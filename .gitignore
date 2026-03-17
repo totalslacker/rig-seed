@@ -1,0 +1,19 @@
+# Build artifacts (populated after bootstrap)
+/target/
+/dist/
+/build/
+/node_modules/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Ephemeral evolution state
+ISSUES_TODAY.md
+ISSUE_RESPONSE.md

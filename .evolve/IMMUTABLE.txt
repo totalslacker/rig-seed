@@ -1,0 +1,7 @@
+# Files the evolution agent must NEVER modify.
+# One path per line. Supports directory paths (trailing /).
+# Changes to this list require human authorization.
+
+IDENTITY.md
+.evolve/IMMUTABLE.txt
+.github/workflows/

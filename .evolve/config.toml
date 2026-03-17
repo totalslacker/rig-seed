@@ -1,0 +1,17 @@
+# rig-seed evolution configuration
+# This file controls how the autonomous evolution process runs.
+
+[schedule]
+interval = "24h"               # How often evolution cycles run (default: once daily)
+
+[limits]
+max_improvements_per_session = 3   # Max improvements per evolution cycle
+bootstrap_days = 3                 # Days focused on infrastructure before features
+
+[github]
+fetch_issues = true            # Pull GitHub issues into evolution context
+issue_label = "agent-input"    # Only fetch issues with this label
+
+[safety]
+max_fix_attempts = 3           # Revert after N failed build attempts
+revert_on_failure = true       # Revert all changes if build fails after max attempts
