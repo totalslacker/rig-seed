@@ -76,6 +76,23 @@ one manually by creating a bead with the `mol-evolve` formula.
 | `.evolve/IMMUTABLE.txt` | Files the agent cannot modify | Human only |
 | `.claude/CLAUDE.md` | Instructions for evolution workers | Yes |
 
+## Validation
+
+Run the template validation script to check that all required files are present:
+
+```bash
+./validate.sh
+```
+
+This is also available as an [example CI workflow](docs/examples/workflows/README.md)
+you can add to your forked repo.
+
+## Documentation
+
+- [The Evolution Process](docs/EVOLUTION.md) — How `mol-evolve` works step by step
+- [Example CI Workflows](docs/examples/workflows/README.md) — GitHub Actions you can copy
+- [Project Plan](docs/PLAN.md) — Architecture and design decisions
+
 ## Inspired By
 
 [yoyo-evolve](https://github.com/yologdev/yoyo-evolve) — a self-evolving coding

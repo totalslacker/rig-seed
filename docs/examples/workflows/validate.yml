@@ -1,0 +1,19 @@
+# Example GitHub Actions workflow: validate rig-seed template structure.
+# Copy this file to .github/workflows/validate.yml in your forked repo.
+
+name: Validate Template
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate template structure
+        run: ./validate.sh

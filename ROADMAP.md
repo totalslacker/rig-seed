@@ -18,9 +18,9 @@ Living document. Updated each evolution session. Items come from three sources:
 
 ## Foundation (Day 4-10)
 
-- [ ] Add example .github/workflows for CI (lint markdown, validate structure)
-- [ ] Add a template validation script (checks all required files exist)
-- [ ] Document the mol-evolve formula steps in detail
+- [x] Add example CI workflows (in docs/examples/workflows/, since .github/workflows/ is immutable)
+- [x] Add a template validation script (validate.sh)
+- [x] Document the mol-evolve formula steps in detail (docs/EVOLUTION.md)
 - [ ] Add example SPECS.md variants for common project types
 
 ## Growth (Day 11+)
