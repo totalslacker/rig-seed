@@ -28,14 +28,27 @@ formula steps shown in your hook. Follow them in order.
 
 ### Build & Test Commands
 
-*Populated during bootstrap. Check here after Day 1.*
+This is a template repo — no build system yet. When you fork rig-seed and
+choose a language/stack, update this section with your actual commands:
 
 ```bash
-# Example (replace with actual commands after bootstrap):
-# cargo build          # Build
-# cargo test           # Test
-# cargo clippy         # Lint
+# Replace these with your project's commands after bootstrap:
+# make build           # Build
+# make test            # Test
+# make lint            # Lint
 ```
+
+### Evolution Day Flow
+
+Each evolution session follows this pattern:
+1. Read state files (IDENTITY, SPECS, JOURNAL, ROADMAP, LEARNINGS, DAY_COUNT)
+2. If SPECS.md is empty, bootstrap: read specs from bead, write SPECS.md
+3. Self-assess: read source code, identify weaknesses
+4. Pick 1-3 improvements (bugs > community issues > roadmap > self-identified)
+5. Implement with tests, commit after each logical unit
+6. Journal the session at the TOP of JOURNAL.md
+7. Update ROADMAP.md, increment DAY_COUNT, update LEARNINGS.md if applicable
+8. Push and submit to merge queue
 
 ### Work Tracking
 

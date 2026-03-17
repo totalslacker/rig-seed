@@ -20,17 +20,46 @@ and quality-gated by the Refinery (merge queue).
 
 ## Quick Start
 
-1. **Fork this repo** (or use it as a GitHub template)
-2. **Add it as a Gas Town rig:**
-   ```bash
-   gt rig add myproject <your-git-url>
-   ```
-3. **Write your specs** in `SPECS.md` — what should this project become?
-4. **Enable evolution** in the rig config:
-   ```json
-   { "evolve": { "enabled": true, "github_repo": "you/your-repo" } }
-   ```
-5. **Watch it grow.** The Deacon plugin triggers daily evolution cycles.
+### 1. Create your project
+
+Fork this repo or use it as a GitHub template. This gives you all the
+evolution state files with sensible defaults.
+
+### 2. Write your specs
+
+Open `SPECS.md` and describe what you want this project to become. Be
+specific — the agent uses this to guide its work. If you leave it empty,
+the agent will read specs from the bead description on its first run.
+
+### 3. Add it as a Gas Town rig
+
+```bash
+gt rig add myproject <your-git-url>
+```
+
+### 4. Enable evolution
+
+Add an `evolve` section to your rig's config:
+
+```json
+{ "evolve": { "enabled": true, "github_repo": "you/your-repo" } }
+```
+
+### 5. Start evolving
+
+```bash
+gt rig undock myproject && gt rig start myproject
+```
+
+The Deacon's evolve plugin triggers daily cycles automatically. Or trigger
+one manually by creating a bead with the `mol-evolve` formula.
+
+### 6. Guide the agent
+
+- Check `JOURNAL.md` to see what the agent did each session
+- File GitHub issues with the `agent-input` label to steer priorities
+- Review `ROADMAP.md` for upcoming work
+- Adjust `.evolve/config.toml` for schedule and limits
 
 ## Template Files
 
