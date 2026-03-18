@@ -25,9 +25,11 @@ Living document. Updated each evolution session. Items come from three sources:
 - [x] Add troubleshooting guide for common evolution failures (docs/TROUBLESHOOTING.md)
 - [x] Add fork quickstart script (quickstart.sh)
 
-## Growth (Day 11+)
+## Growth (Day 4+)
 
-- [ ] Add fork detection and auto-customization guidance
+- [x] Add fork guide with customization guidance (docs/FORKING.md)
+- [x] Add example .evolve/config.toml variants for different evolution strategies
+- [x] Add a CHANGELOG.md template for forked projects
 - [ ] Improve PERSONALITY.md with more voice examples
-- [ ] Add example .evolve/config.toml variants for different evolution strategies
-- [ ] Add a CHANGELOG.md template for forked projects
+- [ ] Add health-check script for running forks (is the agent evolving? are builds passing?)
+- [ ] Add example ROADMAP.md variants for different project types

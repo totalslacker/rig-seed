@@ -1,0 +1,18 @@
+# Issue-driven evolution strategy
+# Best for: open-source projects with active users filing issues.
+# Default cadence, but prioritizes community input over self-assessment.
+
+[schedule]
+interval = "24h"               # Daily cycles
+
+[limits]
+max_improvements_per_session = 2   # Leave room for thorough issue investigation
+bootstrap_days = 3                 # Standard bootstrap period
+
+[github]
+fetch_issues = true
+issue_label = "agent-input"    # The agent reads all issues with this label
+
+[safety]
+max_fix_attempts = 3
+revert_on_failure = true

@@ -1,0 +1,18 @@
+# Conservative evolution strategy
+# Best for: stable projects, production systems, or when you want careful iteration.
+# Changes are infrequent (every 48h) and limited to one improvement per session.
+
+[schedule]
+interval = "48h"               # Evolve every two days
+
+[limits]
+max_improvements_per_session = 1   # One change at a time — easier to review and revert
+bootstrap_days = 5                 # Longer bootstrap for thorough infrastructure setup
+
+[github]
+fetch_issues = true
+issue_label = "agent-input"
+
+[safety]
+max_fix_attempts = 2           # Revert quickly — don't thrash on a broken change
+revert_on_failure = true

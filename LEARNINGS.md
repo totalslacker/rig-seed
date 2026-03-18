@@ -15,6 +15,15 @@ replace.
 
 ---
 
+### Config examples need inline comments, not just a README
+
+Users copy config files and tweak them locally. If the explanation is only in a
+README, they lose context as soon as they paste the file. Each config variant
+should have comments explaining *why* each value is set that way, not just what
+it does. The README then covers strategy selection, not individual settings.
+
+---
+
 ### Immutable directories require indirect examples
 
 `.github/workflows/` is in IMMUTABLE.txt, meaning evolution agents can't create

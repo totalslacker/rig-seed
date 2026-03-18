@@ -4,6 +4,27 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Day 4 — Fork guide, config variants, changelog template (rs-jrd)
+
+Growth phase begins. Three things that help forkers actually get going:
+
+1. **Fork guide** (docs/FORKING.md) — End-to-end walkthrough: run quickstart,
+   write specs, pick a config strategy, set up build commands, add CI, register
+   as a rig. Includes a "what to keep vs. change" table and file protection tips.
+
+2. **Config variants** (docs/examples/configs/) — Three `.evolve/config.toml`
+   examples: conservative (48h/1 change), sprint (8h/3 changes), issue-driven
+   (24h/community-focused). Each has inline comments explaining the tradeoffs.
+
+3. **CHANGELOG template** (CHANGELOG.template.md) — Keep a Changelog format
+   with Unreleased section pre-filled and a commented-out release example.
+   Quickstart doesn't touch it; forkers copy it to CHANGELOG.md when ready.
+
+Foundation was about having all the files. Growth is about making them useful.
+Next: PERSONALITY voice examples, health-check script for running forks.
+
+---
+
 ## Day 3 — Example specs, troubleshooting, and fork quickstart (rs-wup)
 
 Three deliverables, all completing the Foundation milestone:

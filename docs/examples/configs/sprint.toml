@@ -1,0 +1,18 @@
+# Sprint evolution strategy
+# Best for: rapid prototyping, hackathons, early development.
+# Evolves every 8 hours with up to 3 improvements per session.
+
+[schedule]
+interval = "8h"                # Three cycles per day
+
+[limits]
+max_improvements_per_session = 3   # Full capacity each session
+bootstrap_days = 1                 # Minimal bootstrap — get to features fast
+
+[github]
+fetch_issues = true
+issue_label = "agent-input"
+
+[safety]
+max_fix_attempts = 3           # More attempts before reverting — move fast
+revert_on_failure = true

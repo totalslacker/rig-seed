@@ -102,8 +102,10 @@ for starter templates (CLI tool, web API, library).
 
 ## Documentation
 
+- [Forking Guide](docs/FORKING.md) — What to do after you fork rig-seed
 - [The Evolution Process](docs/EVOLUTION.md) — How `mol-evolve` works step by step
 - [Example Specs](docs/examples/specs/README.md) — Starter SPECS.md files for common project types
+- [Example Configs](docs/examples/configs/README.md) — `.evolve/config.toml` variants for different strategies
 - [Example CI Workflows](docs/examples/workflows/README.md) — GitHub Actions you can copy
 - [Troubleshooting](docs/TROUBLESHOOTING.md) — Common problems and how to fix them
 - [Project Plan](docs/PLAN.md) — Architecture and design decisions
