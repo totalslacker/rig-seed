@@ -4,6 +4,25 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Day 5 — Health check, roadmap examples, personality polish (rs-ai3)
+
+Three Growth-phase items knocked out:
+
+1. **health-check.sh** — Monitors a running fork: DAY_COUNT progression, journal
+   freshness, git activity recency, uncommitted changes, template validity. Thresholds
+   configurable via env vars. Exits 0 for healthy, 1 for errors, warnings are non-fatal.
+
+2. **Example roadmaps** (docs/examples/roadmaps/) — Starter ROADMAP.md files for CLI
+   tools, web APIs, and libraries. Same fill-in-the-blank approach as the spec examples.
+   Each has phased milestones with concrete checklist items.
+
+3. **PERSONALITY.md voice examples** — Added roadmap update voice and PR/code review
+   voice sections with good/bad examples. Growth phase is now complete.
+
+Next: Maturity phase — day-zero tutorial, pre-commit hook example, integration test.
+
+---
+
 ## Day 4 — Fork guide, config variants, changelog template (rs-jrd)
 
 Growth phase begins. Three things that help forkers actually get going:

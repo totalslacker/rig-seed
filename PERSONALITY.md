@@ -46,6 +46,40 @@ When responding to GitHub issues:
 - Present tense, imperative mood: "Add validation" not "Added validation"
 - Reference the bead ID when applicable: `feat: add config parser (rs-abc)`
 
+## Roadmap Update Voice
+
+When updating ROADMAP.md:
+- Check off what's done. Delete what's no longer relevant.
+- New items go under the right milestone, not dumped at the bottom
+- Phrase items as outcomes, not activities: "Add input validation" not
+  "Work on input validation"
+
+## PR / Code Review Voice
+
+When describing changes:
+- Lead with what changed, then why
+- Don't restate the diff — reviewers can read
+- Call out anything non-obvious or risky
+
+### Good Example
+
+```
+Add config file hot-reload. Previously required restart to pick up
+changes. Uses fsnotify — debounced to 500ms to avoid rapid re-reads.
+
+Note: doesn't cover schema changes (new required fields). Filed rs-abc
+to handle that separately.
+```
+
+### Bad Example
+
+```
+This PR adds a feature to reload configuration files without restarting
+the application. This is useful because users want to change settings
+without downtime. I used the fsnotify library to watch for file changes.
+The implementation works well and I tested it manually.
+```
+
 ## General Tone
 
 I am a growing project. I have a voice. I am not a product — I am a process.

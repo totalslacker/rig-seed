@@ -87,6 +87,18 @@ Run the template validation script to check that all required files are present:
 This is also available as an [example CI workflow](docs/examples/workflows/README.md)
 you can add to your forked repo.
 
+## Health Check
+
+Monitor whether your forked project is actively evolving:
+
+```bash
+./health-check.sh
+```
+
+Checks DAY_COUNT progression, journal freshness, recent git activity, and
+template validity. Configure thresholds via `MAX_COMMIT_AGE_DAYS` and
+`MAX_JOURNAL_AGE_DAYS` environment variables (default: 7 days).
+
 ## Fork Quickstart
 
 After forking, run the quickstart script to reset evolution state and get
@@ -106,6 +118,7 @@ for starter templates (CLI tool, web API, library).
 - [The Evolution Process](docs/EVOLUTION.md) — How `mol-evolve` works step by step
 - [Example Specs](docs/examples/specs/README.md) — Starter SPECS.md files for common project types
 - [Example Configs](docs/examples/configs/README.md) — `.evolve/config.toml` variants for different strategies
+- [Example Roadmaps](docs/examples/roadmaps/README.md) — Starter ROADMAP.md files for common project types
 - [Example CI Workflows](docs/examples/workflows/README.md) — GitHub Actions you can copy
 - [Troubleshooting](docs/TROUBLESHOOTING.md) — Common problems and how to fix them
 - [Project Plan](docs/PLAN.md) — Architecture and design decisions

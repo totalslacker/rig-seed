@@ -30,6 +30,14 @@ Living document. Updated each evolution session. Items come from three sources:
 - [x] Add fork guide with customization guidance (docs/FORKING.md)
 - [x] Add example .evolve/config.toml variants for different evolution strategies
 - [x] Add a CHANGELOG.md template for forked projects
-- [ ] Improve PERSONALITY.md with more voice examples
-- [ ] Add health-check script for running forks (is the agent evolving? are builds passing?)
-- [ ] Add example ROADMAP.md variants for different project types
+- [x] Improve PERSONALITY.md with more voice examples
+- [x] Add health-check script for running forks (is the agent evolving? are builds passing?)
+- [x] Add example ROADMAP.md variants for different project types
+
+## Maturity (Day 6+)
+
+- [ ] Add example PERSONALITY.md variants (formal, casual, minimal)
+- [ ] Add a "day zero" walkthrough tutorial for first-time users
+- [ ] Add pre-commit hook example that runs validate.sh
+- [ ] Integration test: fork → quickstart → validate → health-check round-trip
+- [ ] Document how to customize the evolution formula for project-specific steps
