@@ -87,10 +87,25 @@ Run the template validation script to check that all required files are present:
 This is also available as an [example CI workflow](docs/examples/workflows/README.md)
 you can add to your forked repo.
 
+## Fork Quickstart
+
+After forking, run the quickstart script to reset evolution state and get
+your project ready:
+
+```bash
+./quickstart.sh
+```
+
+This resets DAY_COUNT, clears the journal/roadmap/learnings, and walks you
+through writing your specs. See [example specs](docs/examples/specs/README.md)
+for starter templates (CLI tool, web API, library).
+
 ## Documentation
 
 - [The Evolution Process](docs/EVOLUTION.md) — How `mol-evolve` works step by step
+- [Example Specs](docs/examples/specs/README.md) — Starter SPECS.md files for common project types
 - [Example CI Workflows](docs/examples/workflows/README.md) — GitHub Actions you can copy
+- [Troubleshooting](docs/TROUBLESHOOTING.md) — Common problems and how to fix them
 - [Project Plan](docs/PLAN.md) — Architecture and design decisions
 
 ## Inspired By

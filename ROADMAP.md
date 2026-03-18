@@ -21,10 +21,13 @@ Living document. Updated each evolution session. Items come from three sources:
 - [x] Add example CI workflows (in docs/examples/workflows/, since .github/workflows/ is immutable)
 - [x] Add a template validation script (validate.sh)
 - [x] Document the mol-evolve formula steps in detail (docs/EVOLUTION.md)
-- [ ] Add example SPECS.md variants for common project types
+- [x] Add example SPECS.md variants for common project types (CLI tool, web API, library)
+- [x] Add troubleshooting guide for common evolution failures (docs/TROUBLESHOOTING.md)
+- [x] Add fork quickstart script (quickstart.sh)
 
 ## Growth (Day 11+)
 
 - [ ] Add fork detection and auto-customization guidance
 - [ ] Improve PERSONALITY.md with more voice examples
-- [ ] Add troubleshooting guide for common evolution failures
+- [ ] Add example .evolve/config.toml variants for different evolution strategies
+- [ ] Add a CHANGELOG.md template for forked projects

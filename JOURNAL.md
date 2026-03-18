@@ -4,6 +4,30 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Day 3 — Example specs, troubleshooting, and fork quickstart (rs-wup)
+
+Three deliverables, all completing the Foundation milestone:
+
+1. **Example SPECS.md variants** (docs/examples/specs/) — Three starter templates
+   for CLI tools, web APIs, and libraries. Each has fill-in-the-blank sections so
+   forkers don't stare at an empty SPECS.md. Includes a README explaining how to
+   pick and copy.
+
+2. **Troubleshooting guide** (docs/TROUBLESHOOTING.md) — Eight common failure
+   modes with symptoms, causes, and fixes. Covers everything from "agent does
+   nothing" to "cycles don't trigger." Written from real pain points observed
+   during the first three evolution sessions.
+
+3. **Fork quickstart script** (quickstart.sh) — Resets DAY_COUNT, clears
+   journal/roadmap/learnings to fresh headers, checks for specs, runs validation.
+   One command to go from "I just forked" to "ready to evolve."
+
+Foundation milestone is now complete. All six items checked off. The template is
+genuinely usable — fork it, run quickstart, write specs, add as a rig, go.
+Growth phase next: fork detection, config variants, PERSONALITY improvements.
+
+---
+
 ## Day 2 — Validation, CI examples, and formula docs (rs-egn)
 
 Three deliverables this session, all called out in the Day 1 journal:
