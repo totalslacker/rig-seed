@@ -34,6 +34,25 @@ useful for monitoring without crying wolf on intentionally slow cadences.
 
 ---
 
+### Day-zero tutorials should be opinionated about order
+
+New users don't know which files matter most. A "read all the docs" approach
+leads to paralysis. The day-zero tutorial works best as a numbered sequence
+with decision points: "Step 2: Write specs. Here's what to answer." Linking
+to examples at each step (not up front) keeps people moving forward instead
+of wandering through a docs tree.
+
+---
+
+### Pre-commit hooks should check immutable files against staging, not the working tree
+
+Checking `git diff --cached --name-only` catches only what's about to be
+committed. Checking the working tree would block commits even when the
+immutable file change isn't staged, which is confusing. The staging area is
+the right boundary for a pre-commit hook.
+
+---
+
 ### Immutable directories require indirect examples
 
 `.github/workflows/` is in IMMUTABLE.txt, meaning evolution agents can't create

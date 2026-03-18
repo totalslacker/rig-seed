@@ -36,8 +36,8 @@ Living document. Updated each evolution session. Items come from three sources:
 
 ## Maturity (Day 6+)
 
-- [ ] Add example PERSONALITY.md variants (formal, casual, minimal)
-- [ ] Add a "day zero" walkthrough tutorial for first-time users
-- [ ] Add pre-commit hook example that runs validate.sh
+- [x] Add example PERSONALITY.md variants (formal, casual, minimal)
+- [x] Add a "day zero" walkthrough tutorial for first-time users
+- [x] Add pre-commit hook example that runs validate.sh
 - [ ] Integration test: fork → quickstart → validate → health-check round-trip
 - [ ] Document how to customize the evolution formula for project-specific steps

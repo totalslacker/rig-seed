@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+# pre-commit hook — runs validate.sh before every commit.
+#
+# Install:
+#   cp docs/examples/hooks/pre-commit .git/hooks/pre-commit
+#   chmod +x .git/hooks/pre-commit
+#
+# What it checks:
+#   - All required template files exist
+#   - DAY_COUNT is a valid integer
+#   - Immutable files haven't been modified (compared to HEAD)
+#
+# To bypass (emergencies only):
+#   git commit --no-verify
+
+set -euo pipefail
+
+# Find repo root (works from any subdirectory)
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+
+# --- Check 1: Run validate.sh ---
+
+if [[ ! -x "$REPO_ROOT/validate.sh" ]]; then
+    echo "pre-commit: validate.sh not found or not executable"
+    echo "  Expected at: $REPO_ROOT/validate.sh"
+    exit 1
+fi
+
+if ! "$REPO_ROOT/validate.sh"; then
+    echo ""
+    echo "pre-commit: validation failed. Fix the issues above before committing."
+    exit 1
+fi
+
+# --- Check 2: Immutable file protection ---
+
+IMMUTABLE_FILE="$REPO_ROOT/.evolve/IMMUTABLE.txt"
+
+if [[ -f "$IMMUTABLE_FILE" ]]; then
+    # Get list of staged files
+    STAGED_FILES=$(git diff --cached --name-only)
+
+    while IFS= read -r pattern; do
+        # Skip comments and blank lines
+        [[ "$pattern" =~ ^#.*$ || -z "$pattern" ]] && continue
+
+        # Trim whitespace
+        pattern=$(echo "$pattern" | xargs)
+
+        if [[ "$pattern" == */ ]]; then
+            # Directory pattern — check if any staged file is under it
+            while IFS= read -r staged; do
+                if [[ "$staged" == "$pattern"* ]]; then
+                    echo "pre-commit: BLOCKED — '$staged' is under immutable directory '$pattern'"
+                    echo "  Remove it from staging: git reset HEAD $staged"
+                    exit 1
+                fi
+            done <<< "$STAGED_FILES"
+        else
+            # File pattern — check if it's staged
+            while IFS= read -r staged; do
+                if [[ "$staged" == "$pattern" ]]; then
+                    echo "pre-commit: BLOCKED — '$staged' is listed in .evolve/IMMUTABLE.txt"
+                    echo "  Remove it from staging: git reset HEAD $staged"
+                    exit 1
+                fi
+            done <<< "$STAGED_FILES"
+        fi
+    done < "$IMMUTABLE_FILE"
+fi
+
+echo "pre-commit: all checks passed"

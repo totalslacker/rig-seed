@@ -120,6 +120,9 @@ for starter templates (CLI tool, web API, library).
 - [Example Configs](docs/examples/configs/README.md) — `.evolve/config.toml` variants for different strategies
 - [Example Roadmaps](docs/examples/roadmaps/README.md) — Starter ROADMAP.md files for common project types
 - [Example CI Workflows](docs/examples/workflows/README.md) — GitHub Actions you can copy
+- [Example Personalities](docs/examples/personalities/README.md) — PERSONALITY.md variants (formal, casual, minimal)
+- [Example Git Hooks](docs/examples/hooks/README.md) — Pre-commit hook for validation and immutable file protection
+- [Day Zero Walkthrough](docs/DAY-ZERO.md) — Step-by-step tutorial for your first evolution session
 - [Troubleshooting](docs/TROUBLESHOOTING.md) — Common problems and how to fix them
 - [Project Plan](docs/PLAN.md) — Architecture and design decisions
 

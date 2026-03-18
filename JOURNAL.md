@@ -4,6 +4,29 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Day 6 — Personality variants, day-zero tutorial, pre-commit hook (rs-ndw)
+
+Three Maturity-phase items:
+
+1. **Personality variants** (docs/examples/personalities/) — Three PERSONALITY.md
+   templates: formal (enterprise/compliance), casual (dev tools/personal projects),
+   minimal (infrastructure/terse). Each has voice examples for journal, issues, and
+   commits. README with a comparison table for picking.
+
+2. **Day-zero walkthrough** (docs/DAY-ZERO.md) — Step-by-step tutorial from "I just
+   forked" to "my first evolution session ran." Covers quickstart, writing specs,
+   choosing personality and config, setting up build commands, adding CI, running
+   validation, and what to expect in the first 10 days.
+
+3. **Pre-commit hook** (docs/examples/hooks/pre-commit) — Runs validate.sh and
+   checks staged files against .evolve/IMMUTABLE.txt. Blocks commits that modify
+   protected files. Includes install instructions and bypass docs.
+
+Next: integration test (fork → quickstart → validate → health-check), formula
+customization docs.
+
+---
+
 ## Day 5 — Health check, roadmap examples, personality polish (rs-ai3)
 
 Three Growth-phase items knocked out:
