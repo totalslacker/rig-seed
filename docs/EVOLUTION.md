@@ -83,12 +83,25 @@ A broken main branch is never acceptable.
 
 ### Step 8: Update State
 
-- **JOURNAL.md** — Write a new entry at the top (what was tried, what worked,
-  what didn't)
+**MANDATORY — this step runs for EVERY session that produces commits, whether
+it's a numbered evolution cycle or a direct-slung task.** The journal is the
+project's memory. Skipping it means the next agent has no context for what
+happened.
+
+- **JOURNAL.md** — Write a new entry at the top. Use session numbering:
+  `## Session <N> — <summary> (<bead-id>)` where `<N>` is the current
+  DAY_COUNT value. For direct tasks (non-evolution beads), use the same
+  format but note the task type: `## Session <N> (task) — <summary> (<bead-id>)`.
+  Include: what was tried, what worked, what didn't, and what's next.
 - **ROADMAP.md** — Check off completed items, add new ones if discovered
-- **DAY_COUNT** — Increment by 1
+- **DAY_COUNT** — Increment by 1 (even for direct tasks — every session counts)
 - **LEARNINGS.md** — Record any new technical insights
 - Close completed beads
+
+**Why unconditional?** A direct-slung task (e.g., a bug fix dispatched by the
+Mayor) still changes the codebase. The next evolution session needs to know what
+changed and why. If the journal is stale, the agent wastes time re-discovering
+context or makes conflicting changes.
 
 ### Step 9: Submit
 

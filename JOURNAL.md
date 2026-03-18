@@ -4,6 +4,24 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Session 6 (task) — Make journaling unconditional in mol-evolve docs (rs-06e)
+
+Updated docs/EVOLUTION.md Step 8 (Update State) to make journaling mandatory for
+every session that produces commits — not just numbered evolution cycles. Direct
+tasks slung by the Mayor were previously at risk of skipping the journal, leaving
+the next agent without context.
+
+Changes:
+- **docs/EVOLUTION.md**: Rewrote Step 8 with MANDATORY header, session numbering
+  format (`## Session <N> — <summary> (<bead-id>)`), direct-task variant, and a
+  "Why unconditional?" rationale section.
+- **DAY_COUNT**: Incremented to 6 (even direct tasks count as sessions).
+
+This addresses GitHub Issue #5 (journal must always be updated) and incorporates
+the session numbering format from Issue #1.
+
+---
+
 ## Day 6 — Personality variants, day-zero tutorial, pre-commit hook (rs-ndw)
 
 Three Maturity-phase items:
