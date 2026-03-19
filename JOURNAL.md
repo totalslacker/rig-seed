@@ -4,6 +4,30 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Session 7 — Integration test, formula docs, health-check fix (rs-tdh)
+
+Three Maturity-phase completions:
+
+1. **Integration test** (tests/integration-test.sh) — End-to-end test that
+   simulates a fork, runs quickstart, validates the template, simulates an
+   evolution session, runs health-check, and verifies error detection. 11 test
+   cases covering the full lifecycle. Uses a temp directory with a fresh git
+   repo — no side effects on the real project.
+
+2. **Formula customization docs** (docs/FORMULA-CUSTOMIZATION.md) — Documents
+   how to customize mol-evolve for project-specific steps: config.toml build
+   commands, CLAUDE.md agent instructions, custom validation checks. Includes
+   examples for Go CLI, Python API, TypeScript library, and monorepo setups.
+   Covers scope control (IMMUTABLE.txt, ROADMAP focusing, session size limits).
+
+3. **Health-check journal header fix** — health-check.sh was only matching
+   `## Day N` headers but the journal format changed to `## Session N` in
+   Session 6. Now matches both patterns so existing and new forks work.
+
+The Maturity roadmap is now complete. All items checked off.
+
+---
+
 ## Session 6 (task) — Make journaling unconditional in mol-evolve docs (rs-06e)
 
 Updated docs/EVOLUTION.md Step 8 (Update State) to make journaling mandatory for

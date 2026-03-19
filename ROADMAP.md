@@ -39,5 +39,6 @@ Living document. Updated each evolution session. Items come from three sources:
 - [x] Add example PERSONALITY.md variants (formal, casual, minimal)
 - [x] Add a "day zero" walkthrough tutorial for first-time users
 - [x] Add pre-commit hook example that runs validate.sh
-- [ ] Integration test: fork → quickstart → validate → health-check round-trip
-- [ ] Document how to customize the evolution formula for project-specific steps
+- [x] Integration test: fork → quickstart → validate → health-check round-trip
+- [x] Document how to customize the evolution formula for project-specific steps
+- [x] Fix health-check.sh to recognize both "## Day" and "## Session" journal headers

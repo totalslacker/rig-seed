@@ -53,6 +53,15 @@ the right boundary for a pre-commit hook.
 
 ---
 
+### Scripts that parse journal headers must handle format evolution
+
+The journal header format changed from `## Day N` to `## Session N` in
+Session 6. Any script that greps for journal entries (health-check.sh, future
+analytics tools) must match both patterns: `^## \(Day\|Session\) `. When
+introducing format changes to state files, audit all scripts that parse them.
+
+---
+
 ### Immutable directories require indirect examples
 
 `.github/workflows/` is in IMMUTABLE.txt, meaning evolution agents can't create

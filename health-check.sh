@@ -72,14 +72,15 @@ journal_file="$dir/JOURNAL.md"
 if [ ! -f "$journal_file" ]; then
   fail "JOURNAL.md missing"
 else
-  entry_count=$(grep -c '^## Day ' "$journal_file" 2>/dev/null || echo "0")
+  # Match both legacy "## Day N" and current "## Session N" header formats
+  entry_count=$(grep -c '^## \(Day\|Session\) ' "$journal_file" 2>/dev/null || echo "0")
   if [ "$entry_count" -eq 0 ]; then
-    warn "JOURNAL.md has no session entries (no '## Day' headers found)"
+    warn "JOURNAL.md has no session entries (no '## Day' or '## Session' headers found)"
   else
     ok "JOURNAL.md has $entry_count session entries"
 
-    # Check if the latest entry mentions a recent day number
-    latest_day=$(grep '^## Day ' "$journal_file" | head -1 | sed 's/## Day \([0-9]*\).*/\1/')
+    # Check if the latest entry mentions a recent day/session number
+    latest_day=$(grep '^## \(Day\|Session\) ' "$journal_file" | head -1 | sed 's/## \(Day\|Session\) \([0-9]*\).*/\2/')
     if [ -n "$latest_day" ] && [ -f "$day_file" ]; then
       current_day=$(tr -d '[:space:]' < "$day_file")
       if [[ "$current_day" =~ ^[0-9]+$ ]] && [[ "$latest_day" =~ ^[0-9]+$ ]]; then
