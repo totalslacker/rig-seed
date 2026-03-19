@@ -87,6 +87,17 @@ Run the template validation script to check that all required files are present:
 This is also available as an [example CI workflow](docs/examples/workflows/README.md)
 you can add to your forked repo.
 
+## Metrics
+
+View a summary of your project's evolution history:
+
+```bash
+./metrics.sh
+```
+
+Shows session count, commits per session, velocity, roadmap progress, and more.
+Use `./metrics.sh -q` for machine-readable key=value output.
+
 ## Health Check
 
 Monitor whether your forked project is actively evolving:
@@ -124,6 +135,7 @@ for starter templates (CLI tool, web API, library).
 - [Example Git Hooks](docs/examples/hooks/README.md) — Pre-commit hook for validation and immutable file protection
 - [Formula Customization](docs/FORMULA-CUSTOMIZATION.md) — How to customize mol-evolve for your project
 - [Day Zero Walkthrough](docs/DAY-ZERO.md) — Step-by-step tutorial for your first evolution session
+- [Upgrading Your Fork](docs/UPGRADING.md) — How to pull new rig-seed features into an existing fork
 - [Troubleshooting](docs/TROUBLESHOOTING.md) — Common problems and how to fix them
 - [Project Plan](docs/PLAN.md) — Architecture and design decisions
 

@@ -1,0 +1,167 @@
+#!/usr/bin/env bash
+# post-session — Example hook that posts journal diffs to Slack or Discord
+# after each evolution session.
+#
+# This is a TEMPLATE. Configure the webhook URL and channel before use.
+#
+# Usage:
+#   1. Set WEBHOOK_URL to your Slack or Discord webhook
+#   2. Install as a post-merge or post-commit hook:
+#      cp docs/examples/hooks/post-session .git/hooks/post-merge
+#      chmod +x .git/hooks/post-merge
+#   3. Or call it from your CI pipeline after the Refinery merges
+#
+# Environment variables:
+#   WEBHOOK_URL           Slack or Discord incoming webhook URL (required)
+#   NOTIFICATION_TARGET   "slack" or "discord" (default: auto-detect from URL)
+#   PROJECT_NAME          Project name for the notification (default: repo name)
+#   MAX_DIFF_LINES        Max lines of journal diff to include (default: 40)
+#   DRY_RUN               Set to "1" to print the payload instead of sending
+
+set -euo pipefail
+
+# --- Configuration ---
+
+WEBHOOK_URL="${WEBHOOK_URL:-}"
+NOTIFICATION_TARGET="${NOTIFICATION_TARGET:-}"
+PROJECT_NAME="${PROJECT_NAME:-$(basename "$(git rev-parse --show-toplevel 2>/dev/null || echo 'unknown')")}"
+MAX_DIFF_LINES="${MAX_DIFF_LINES:-40}"
+DRY_RUN="${DRY_RUN:-0}"
+
+# --- Validation ---
+
+if [ -z "$WEBHOOK_URL" ] && [ "$DRY_RUN" != "1" ]; then
+  echo "post-session: WEBHOOK_URL not set, skipping notification"
+  exit 0
+fi
+
+# Auto-detect target from URL
+if [ -z "$NOTIFICATION_TARGET" ]; then
+  case "$WEBHOOK_URL" in
+    *hooks.slack.com*|*api.slack.com*) NOTIFICATION_TARGET="slack" ;;
+    *discord.com/api/webhooks*|*discordapp.com/api/webhooks*) NOTIFICATION_TARGET="discord" ;;
+    *) NOTIFICATION_TARGET="slack" ;;  # default
+  esac
+fi
+
+# --- Extract journal diff ---
+
+# Get the journal diff from the last commit (or last merge commit)
+journal_diff=$(git diff HEAD~1..HEAD -- JOURNAL.md 2>/dev/null || echo "")
+
+if [ -z "$journal_diff" ]; then
+  echo "post-session: no JOURNAL.md changes in latest commit, skipping"
+  exit 0
+fi
+
+# Extract just the added lines (new journal entry), strip diff markers
+new_entry=$(echo "$journal_diff" \
+  | grep '^+' \
+  | grep -v '^+++' \
+  | sed 's/^+//' \
+  | head -n "$MAX_DIFF_LINES")
+
+if [ -z "$new_entry" ]; then
+  echo "post-session: no new lines added to JOURNAL.md, skipping"
+  exit 0
+fi
+
+# Get session info
+day_count="?"
+if [ -f DAY_COUNT ]; then
+  day_count=$(tr -d '[:space:]' < DAY_COUNT)
+fi
+
+commit_hash=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+commit_url=""
+remote_url=$(git remote get-url origin 2>/dev/null || echo "")
+if [[ "$remote_url" == *github.com* ]]; then
+  # Convert git URL to HTTPS commit URL
+  repo_path=$(echo "$remote_url" | sed -E 's|.*github\.com[:/]||; s|\.git$||')
+  commit_url="https://github.com/${repo_path}/commit/${commit_hash}"
+fi
+
+# --- Build payload ---
+
+# Escape special characters for JSON
+escape_json() {
+  local s="$1"
+  s="${s//\\/\\\\}"
+  s="${s//\"/\\\"}"
+  s="${s//$'\n'/\\n}"
+  s="${s//$'\t'/\\t}"
+  echo "$s"
+}
+
+entry_escaped=$(escape_json "$new_entry")
+truncated_note=""
+total_lines=$(echo "$journal_diff" | grep -c '^+' || echo "0")
+if [ "$total_lines" -gt "$MAX_DIFF_LINES" ]; then
+  truncated_note=" (truncated — $total_lines total lines)"
+fi
+
+if [ "$NOTIFICATION_TARGET" = "discord" ]; then
+  # Discord webhook payload
+  description="${entry_escaped}${truncated_note}"
+  # Discord has a 4096 char limit for embed descriptions
+  if [ ${#description} -gt 4000 ]; then
+    description="${description:0:3990}... (truncated)"
+  fi
+  payload=$(cat <<ENDJSON
+{
+  "embeds": [{
+    "title": "${PROJECT_NAME} — Evolution Session (Day ${day_count})",
+    "description": "${description}",
+    "color": 5814783,
+    "footer": {"text": "Commit: ${commit_hash}"},
+    "url": "${commit_url}"
+  }]
+}
+ENDJSON
+)
+else
+  # Slack webhook payload
+  commit_link="${commit_hash}"
+  if [ -n "$commit_url" ]; then
+    commit_link="<${commit_url}|${commit_hash}>"
+  fi
+  payload=$(cat <<ENDJSON
+{
+  "blocks": [
+    {
+      "type": "header",
+      "text": {"type": "plain_text", "text": "${PROJECT_NAME} — Evolution Session (Day ${day_count})"}
+    },
+    {
+      "type": "section",
+      "text": {"type": "mrkdwn", "text": "${entry_escaped}${truncated_note}"}
+    },
+    {
+      "type": "context",
+      "elements": [{"type": "mrkdwn", "text": "Commit: ${commit_link}"}]
+    }
+  ]
+}
+ENDJSON
+)
+fi
+
+# --- Send or print ---
+
+if [ "$DRY_RUN" = "1" ]; then
+  echo "post-session: DRY RUN — would send to $NOTIFICATION_TARGET:"
+  echo "$payload"
+  exit 0
+fi
+
+response=$(curl -s -o /dev/null -w "%{http_code}" \
+  -H "Content-Type: application/json" \
+  -d "$payload" \
+  "$WEBHOOK_URL")
+
+if [ "$response" -ge 200 ] && [ "$response" -lt 300 ]; then
+  echo "post-session: notification sent to $NOTIFICATION_TARGET (HTTP $response)"
+else
+  echo "post-session: failed to send notification (HTTP $response)" >&2
+  exit 1
+fi

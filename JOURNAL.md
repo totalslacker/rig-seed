@@ -4,6 +4,33 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Session 11 — Upgrade guide, post-session hook, metrics script (rs-dt8)
+
+Three final Sustainability-phase items, completing the milestone:
+
+1. **Upgrade guide** (docs/UPGRADING.md) — How to pull new rig-seed features
+   into an existing fork. Covers three methods: cherry-pick (recommended for
+   targeted changes), selective merge (for batch updates), and manual copy.
+   Includes a table of what to upgrade vs. what to never overwrite, conflict
+   resolution guidance, and version tracking via a config entry.
+
+2. **Post-session hook** (docs/examples/hooks/post-session) — Posts the latest
+   JOURNAL.md diff to Slack or Discord via incoming webhook. Auto-detects
+   platform from URL. Supports DRY_RUN mode for testing. Includes commit link
+   for GitHub repos. Install as a post-merge hook to fire after Refinery merges.
+
+3. **Metrics script** (metrics.sh) — Summarizes evolution history: session count,
+   commits per session, velocity (sessions/week), roadmap progress, codebase
+   size, and learnings count. Supports `--quiet` for machine-readable key=value
+   output (useful for CI or dashboards).
+
+Also: Updated README with Metrics section and Upgrading link. Updated hooks
+README with post-session documentation. Added Ecosystem roadmap phase.
+
+Sustainability milestone is now fully complete.
+
+---
+
 ## Session 10 — Rename /rig-seed to /rig-spawn (rs-aw3)
 
 Renamed the `/rig-seed` slash command to `/rig-spawn` to better reflect its
