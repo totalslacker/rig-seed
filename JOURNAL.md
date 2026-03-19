@@ -4,6 +4,33 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Session 9 — /rig-seed slash command for one-click project setup (rs-1te)
+
+Built the `/rig-seed` Claude Code custom command (`.claude/commands/rig-seed.md`)
+— an interactive wizard that takes a user from "I have an idea" to a fully
+configured, self-evolving Gas Town rig.
+
+The command guides through 10 steps:
+1. Gather project summary
+2. Choose project/rig name
+3. Create repo (fork, new, or existing)
+4. Register as a Gas Town rig (`gt rig add`)
+5. Copy template files and run quickstart
+6. Interactive SPECS.md planning with example templates
+7. Write ROADMAP.md with phased milestones
+8. Configure evolution interval and settings
+9. Validate and commit
+10. Optionally run first evolution session
+
+Key design decisions:
+- **Three repo paths**: fork (recommended), new repo, or existing repo
+- **Error handling at each step**: gh not installed, repo name taken, auth failures
+- **Example-driven planning**: Uses existing docs/examples/specs/ templates
+- **Config walkthrough**: Explains tradeoffs of different evolution intervals
+- Addresses GitHub Issue #10
+
+---
+
 ## Session 8 — CLI polish and sustainability roadmap (rs-i83)
 
 Three Sustainability-phase items:
