@@ -4,9 +4,25 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Session 10 — Rename /rig-seed to /rig-spawn (rs-aw3)
+
+Renamed the `/rig-seed` slash command to `/rig-spawn` to better reflect its
+purpose (spawning new projects, not seeding).
+
+Changes:
+- Renamed `.claude/commands/rig-seed.md` → `.claude/commands/rig-spawn.md`
+- Updated command header from `/rig-seed` to `/rig-spawn`
+- Updated ROADMAP.md slash command reference
+- Updated JOURNAL.md Session 9 entry to reflect new filename
+- Preserved all "rig-seed" references that refer to the project name (not the command)
+
+Addresses GitHub Issue #11.
+
+---
+
 ## Session 9 — /rig-seed slash command for one-click project setup (rs-1te)
 
-Built the `/rig-seed` Claude Code custom command (`.claude/commands/rig-seed.md`)
+Built the `/rig-spawn` Claude Code custom command (`.claude/commands/rig-spawn.md`)
 — an interactive wizard that takes a user from "I have an idea" to a fully
 configured, self-evolving Gas Town rig.
 

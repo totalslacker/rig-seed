@@ -47,7 +47,8 @@ Living document. Updated each evolution session. Items come from three sources:
 
 - [x] Add `--help` and `--quiet` flags to validate.sh and health-check.sh
 - [x] Add missing Formula Customization link to README documentation section
-- [x] Build `/rig-seed` slash command for one-click project setup (Issue #10)
+- [x] Build `/rig-spawn` slash command for one-click project setup (Issue #10)
+- [x] Rename `/rig-seed` slash command to `/rig-spawn` (Issue #11)
 - [ ] Add upgrade guide for existing forks when rig-seed adds new files/features
 - [ ] Add example post-session hook that posts journal diffs to Slack/Discord
 - [ ] Add metrics script that summarizes evolution history (sessions, improvements, velocity)

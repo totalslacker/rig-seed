@@ -4,7 +4,7 @@ allowed-tools: Bash, Read, Write, Edit, Glob, Grep, Agent, AskUserQuestion
 argument-hint: [project idea or name]
 ---
 
-# /rig-seed — New Self-Evolving Project Setup
+# /rig-spawn — New Self-Evolving Project Setup
 
 You are guiding the user through setting up a new Gas Town rig that evolves
 autonomously using the rig-seed template. This is an interactive wizard — ask
