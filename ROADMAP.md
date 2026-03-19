@@ -42,3 +42,11 @@ Living document. Updated each evolution session. Items come from three sources:
 - [x] Integration test: fork → quickstart → validate → health-check round-trip
 - [x] Document how to customize the evolution formula for project-specific steps
 - [x] Fix health-check.sh to recognize both "## Day" and "## Session" journal headers
+
+## Sustainability (Day 8+)
+
+- [x] Add `--help` and `--quiet` flags to validate.sh and health-check.sh
+- [x] Add missing Formula Customization link to README documentation section
+- [ ] Add upgrade guide for existing forks when rig-seed adds new files/features
+- [ ] Add example post-session hook that posts journal diffs to Slack/Discord
+- [ ] Add metrics script that summarizes evolution history (sessions, improvements, velocity)

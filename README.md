@@ -122,6 +122,7 @@ for starter templates (CLI tool, web API, library).
 - [Example CI Workflows](docs/examples/workflows/README.md) — GitHub Actions you can copy
 - [Example Personalities](docs/examples/personalities/README.md) — PERSONALITY.md variants (formal, casual, minimal)
 - [Example Git Hooks](docs/examples/hooks/README.md) — Pre-commit hook for validation and immutable file protection
+- [Formula Customization](docs/FORMULA-CUSTOMIZATION.md) — How to customize mol-evolve for your project
 - [Day Zero Walkthrough](docs/DAY-ZERO.md) — Step-by-step tutorial for your first evolution session
 - [Troubleshooting](docs/TROUBLESHOOTING.md) — Common problems and how to fix them
 - [Project Plan](docs/PLAN.md) — Architecture and design decisions

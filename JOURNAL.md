@@ -4,6 +4,24 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Session 8 — CLI polish and sustainability roadmap (rs-i83)
+
+Three Sustainability-phase items:
+
+1. **`--help` and `--quiet` flags** for validate.sh and health-check.sh — Both
+   scripts now accept `-q`/`--quiet` (suppresses ok lines, only shows failures/
+   warnings and the result) and `-h`/`--help`. Makes them CI-friendly: a quiet
+   pass is zero output except the RESULT line.
+
+2. **README documentation link** — docs/FORMULA-CUSTOMIZATION.md existed since
+   Session 7 but was never linked in the README's Documentation section. Fixed.
+
+3. **Sustainability roadmap phase** — All previous milestones (Bootstrap,
+   Foundation, Growth, Maturity) were complete. Added a Sustainability phase
+   with upgrade guide, notification hooks, and metrics ideas.
+
+---
+
 ## Session 7 — Integration test, formula docs, health-check fix (rs-tdh)
 
 Three Maturity-phase completions:

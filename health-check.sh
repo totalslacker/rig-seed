@@ -16,11 +16,54 @@
 
 set -euo pipefail
 
-dir="${1:-.}"
+# --- Options ---
+
+quiet=false
+dir=""
+
+for arg in "$@"; do
+  case "$arg" in
+    -h|--help)
+      echo "Usage: health-check.sh [options] [directory]"
+      echo ""
+      echo "Check if a forked rig-seed project is actively evolving."
+      echo ""
+      echo "Options:"
+      echo "  -q, --quiet   Only print problems and the final result"
+      echo "  -h, --help    Show this help message"
+      echo ""
+      echo "Arguments:"
+      echo "  directory     Path to the rig-seed project root (default: current directory)"
+      echo ""
+      echo "Environment variables:"
+      echo "  MAX_COMMIT_AGE_DAYS    Days before stale commit warning (default: 7)"
+      echo "  MAX_JOURNAL_AGE_DAYS   Days before stale journal warning (default: 7)"
+      echo ""
+      echo "Exit codes:"
+      echo "  0  Project appears healthy (warnings are non-fatal)"
+      echo "  1  One or more errors detected"
+      exit 0
+      ;;
+    -q|--quiet)
+      quiet=true
+      ;;
+    *)
+      dir="$arg"
+      ;;
+  esac
+done
+
+dir="${dir:-.}"
 warnings=0
 errors=0
 
 # --- Helpers ---
+
+info() {
+  if [ "$quiet" = false ]; then
+    echo "$1"
+  fi
+}
 
 warn() {
   echo "WARN: $1"
@@ -33,7 +76,7 @@ fail() {
 }
 
 ok() {
-  echo "  ok: $1"
+  info "  ok: $1"
 }
 
 # --- Configuration ---
@@ -44,12 +87,12 @@ MAX_COMMIT_AGE_DAYS="${MAX_COMMIT_AGE_DAYS:-7}"
 # Max days since last journal entry (heuristic: checks for "## Day" headers)
 MAX_JOURNAL_AGE_DAYS="${MAX_JOURNAL_AGE_DAYS:-7}"
 
-echo "Health check for rig-seed project: $dir"
-echo ""
+info "Health check for rig-seed project: $dir"
+info ""
 
 # --- 1. DAY_COUNT is present and non-zero ---
 
-echo "=== Evolution Progress ==="
+info "=== Evolution Progress ==="
 day_file="$dir/DAY_COUNT"
 if [ ! -f "$day_file" ]; then
   fail "DAY_COUNT file missing"
@@ -66,8 +109,8 @@ fi
 
 # --- 2. Journal has entries ---
 
-echo ""
-echo "=== Journal Activity ==="
+info ""
+info "=== Journal Activity ==="
 journal_file="$dir/JOURNAL.md"
 if [ ! -f "$journal_file" ]; then
   fail "JOURNAL.md missing"
@@ -97,8 +140,8 @@ fi
 
 # --- 3. Recent git activity ---
 
-echo ""
-echo "=== Git Activity ==="
+info ""
+info "=== Git Activity ==="
 if [ -d "$dir/.git" ] || git -C "$dir" rev-parse --git-dir &>/dev/null; then
   last_commit_epoch=$(git -C "$dir" log -1 --format='%ct' 2>/dev/null || echo "0")
   if [ "$last_commit_epoch" -eq 0 ]; then
@@ -126,8 +169,8 @@ fi
 
 # --- 4. SPECS.md has content ---
 
-echo ""
-echo "=== Project Configuration ==="
+info ""
+info "=== Project Configuration ==="
 specs_file="$dir/SPECS.md"
 if [ ! -f "$specs_file" ]; then
   fail "SPECS.md missing"
@@ -156,8 +199,8 @@ fi
 
 # --- 5. Validate template structure ---
 
-echo ""
-echo "=== Template Validation ==="
+info ""
+info "=== Template Validation ==="
 if [ -x "$dir/validate.sh" ]; then
   if "$dir/validate.sh" "$dir" > /dev/null 2>&1; then
     ok "validate.sh passes"
@@ -170,7 +213,7 @@ fi
 
 # --- Summary ---
 
-echo ""
+info ""
 echo "================================"
 total=$((errors + warnings))
 if [ "$errors" -gt 0 ]; then

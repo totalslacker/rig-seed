@@ -62,6 +62,17 @@ introducing format changes to state files, audit all scripts that parse them.
 
 ---
 
+### Shell scripts need `--quiet` for CI and `--help` for discoverability
+
+Scripts used in CI pipelines (validate.sh, health-check.sh) should support a
+quiet mode that only prints failures and the final result line. Verbose output
+is useful interactively but creates noise in CI logs. A simple `info()` wrapper
+that checks a `$quiet` flag is enough — no need for a logging framework. Also
+add `--help` so users don't have to read the source to learn about env vars
+and exit codes.
+
+---
+
 ### Immutable directories require indirect examples
 
 `.github/workflows/` is in IMMUTABLE.txt, meaning evolution agents can't create
