@@ -94,6 +94,26 @@ this easy via the GitHub REST API.
 
 ---
 
+### Consequential defaults deserve standalone documentation
+
+When a template makes an important choice on behalf of the user (like merge
+strategy), the explanation shouldn't be buried inside a wizard script. Create a
+standalone doc (e.g., docs/MERGE-STRATEGY.md) that the wizard can reference but
+that also stands alone for users who skip the wizard. Config files should include
+commented-out alternatives so users can see what's available without reading docs.
+
+---
+
+### Dashboard scripts should validate inputs but not fail on partial data
+
+A multi-project dashboard will encounter repos in various states: some with git
+history, some without, some with incomplete state files. Skip invalid directories
+with a warning to stderr but continue processing the rest. Only fail (exit 1) if
+*no* valid projects are found. This makes the tool useful even when some repos are
+in early bootstrap state.
+
+---
+
 ### Immutable directories require indirect examples
 
 `.github/workflows/` is in IMMUTABLE.txt, meaning evolution agents can't create

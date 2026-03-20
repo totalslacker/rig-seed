@@ -219,6 +219,14 @@ check_file "DAY_DATE" "Last session date tracker" "$source_root/DAY_DATE"
 echo "  ok"
 echo ""
 
+# Session 15: Dashboard and merge strategy
+echo "Dashboard & merge strategy:"
+check_executable "scripts/dashboard.sh" "Multi-project metrics dashboard" "$source_root/scripts/dashboard.sh"
+check_file "docs/MERGE-STRATEGY.md" "Merge strategy guide" "$source_root/docs/MERGE-STRATEGY.md"
+check_config_key "merge" "Merge strategy configuration (added Session 15)"
+echo "  ok"
+echo ""
+
 # --- Summary ---
 
 echo "================================"

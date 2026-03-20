@@ -35,23 +35,37 @@ echo ""
 
 # --- Step 2: Reset counters ---
 echo "Step 2: Resetting SESSION_COUNT, DAY_COUNT, and DAY_DATE..."
-echo "0" > "$dir/SESSION_COUNT"
-echo "0" > "$dir/DAY_COUNT"
-echo "0000-00-00" > "$dir/DAY_DATE"
-echo "  Done."
+echo "1" > "$dir/SESSION_COUNT"
+echo "1" > "$dir/DAY_COUNT"
+echo "$(date +%Y-%m-%d)" > "$dir/DAY_DATE"
+echo "  Done (set to Day 1, Session 1)."
 echo ""
 
 # --- Step 3: Clear evolution state ---
 echo "Step 3: Clearing previous evolution state..."
 
-cat > "$dir/JOURNAL.md" << 'EOF'
+today=$(date +%Y-%m-%d)
+cat > "$dir/JOURNAL.md" << EOF
 # Journal
 
 Evolution session log. Most recent entry first. Never delete entries.
 
 ---
+
+## Day 1 — Session 1 ($today)
+
+**Goal**: Initialize project from rig-seed template.
+
+Ran quickstart to set up the evolution scaffold. All state files reset:
+SESSION_COUNT, DAY_COUNT, DAY_DATE zeroed. Journal, roadmap, and learnings
+cleared. Ready for first evolution session.
+
+**Next Steps**: Write SPECS.md, configure .evolve/config.toml, run first
+evolution cycle.
+
+---
 EOF
-echo "  JOURNAL.md cleared (header preserved)."
+echo "  JOURNAL.md reset with Day 1 spawn entry."
 
 cat > "$dir/ROADMAP.md" << 'EOF'
 # Roadmap

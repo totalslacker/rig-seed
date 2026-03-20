@@ -4,6 +4,35 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Day 4 — Session 15 (2026-03-20)
+
+**Goal**: Multi-project dashboard, merge strategy guide, quickstart spawn journal entry (Issues #12, #13, roadmap).
+
+Three deliverables:
+
+1. **Multi-project dashboard** (scripts/dashboard.sh) — Aggregates evolution metrics
+   across multiple rig-seed forks. Outputs a comparison table with day count, sessions,
+   commits, roadmap progress, learnings, and velocity per project. Supports `--json`
+   for dashboard/API integrations and `-q` for machine-readable key=value output.
+   Validates each directory is a rig-seed project before gathering metrics.
+
+2. **Merge strategy guide** (docs/MERGE-STRATEGY.md) — Documents three merge strategies
+   for rig-spawn users: Refinery (auto-merge, default), PR-based (human review), and
+   Hybrid (auto for small changes, PR for large). Includes config.toml examples,
+   CLAUDE.md guidance for PR repos, and a comparison table. Also added `[merge]`
+   section to .evolve/config.toml with all strategy options.
+
+3. **Quickstart Day 1 journal entry** — Updated quickstart.sh to write a Day 1 spawn
+   journal entry when initializing a new fork, so the first agent session has context.
+   Counters now start at 1 (not 0) since the quickstart itself is the first session.
+
+Also: Updated migration script with dashboard and merge strategy checks, added
+Merge Strategy Guide and Dashboard sections to README.
+
+**Next Steps**: Grafana/Prometheus integration example for long-running monitoring.
+
+---
+
 ## Day 4 — Session 14 (2026-03-20)
 
 **Goal**: Implement dual Day/Session tracking with mandatory Goal and Next Steps in journal format.

@@ -18,6 +18,13 @@ tag_prefix = "v"               # Prefix for version tags (e.g., "v" → v0.1.0)
 default_bump = "patch"         # Default semver bump: "major", "minor", or "patch"
 push_tags = true               # Push tags to remote after creating them
 
+[merge]
+strategy = "refinery"          # "refinery" (auto-merge), "pr" (human reviews PR), "hybrid" (auto for small, PR for large)
+# require_approval = true      # PR-based: require approval before merge
+# require_ci = true            # PR-based: require CI green before merge
+# pr_threshold = 3             # Hybrid: require PR if more than N files changed
+# pr_labels = ["breaking", "security", "deps"]  # Hybrid: require PR for these labels
+
 [safety]
 max_fix_attempts = 3           # Revert after N failed build attempts
 revert_on_failure = true       # Revert all changes if build fails after max attempts

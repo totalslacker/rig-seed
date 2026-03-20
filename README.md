@@ -98,6 +98,18 @@ View a summary of your project's evolution history:
 Shows session count, commits per session, velocity, roadmap progress, and more.
 Use `./metrics.sh -q` for machine-readable key=value output.
 
+## Multi-Project Dashboard
+
+Compare evolution metrics across multiple rig-seed projects:
+
+```bash
+scripts/dashboard.sh ~/projects/my-cli ~/projects/my-api ~/projects/my-lib
+```
+
+Outputs a table with day count, sessions, commits, roadmap progress, learnings,
+and velocity for each project. Supports `--json` for dashboard integrations and
+`-q` for machine-readable key=value output.
+
 ## Health Check
 
 Monitor whether your forked project is actively evolving:
@@ -148,6 +160,7 @@ from upstream. It never overwrites files you've customized.
 - [Formula Customization](docs/FORMULA-CUSTOMIZATION.md) — How to customize mol-evolve for your project
 - [Day Zero Walkthrough](docs/DAY-ZERO.md) — Step-by-step tutorial for your first evolution session
 - [Upgrading Your Fork](docs/UPGRADING.md) — How to pull new rig-seed features into an existing fork
+- [Merge Strategy Guide](docs/MERGE-STRATEGY.md) — Choosing between Refinery, PR-based, and hybrid merging
 - [Troubleshooting](docs/TROUBLESHOOTING.md) — Common problems and how to fix them
 - [Project Plan](docs/PLAN.md) — Architecture and design decisions
 
