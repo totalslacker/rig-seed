@@ -24,7 +24,7 @@ chmod +x .git/hooks/post-merge
 ## What the Pre-Commit Hook Does
 
 1. **Runs validate.sh** — ensures all required template files exist and
-   DAY_COUNT is valid. If validation fails, the commit is blocked.
+   SESSION_COUNT is valid. If validation fails, the commit is blocked.
 
 2. **Checks immutable files** — reads `.evolve/IMMUTABLE.txt` and blocks
    commits that modify protected files or directories. This catches

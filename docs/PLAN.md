@@ -26,7 +26,7 @@ rig-seed/
 ├── JOURNAL.md                 # Append-only session log (never delete entries)
 ├── ROADMAP.md                 # Living document — priorities, milestones, future
 ├── LEARNINGS.md               # Accumulated technical insights
-├── DAY_COUNT                  # Integer: current evolution day
+├── SESSION_COUNT               # Integer: current evolution session
 ├── SPECS.md                   # User-provided project specification (filled on first run)
 ├── README.md                  # Template README explaining what this is
 └── .gitignore
@@ -75,7 +75,7 @@ A **single generic plugin** that handles evolution for any rig that has rig-seed
 1. Check which rigs have evolution enabled (look for `.evolve/config.toml` in each rig's repo)
 2. For each evolution-enabled rig whose cooldown has elapsed:
    a. Fetch open GitHub issues (if configured) from the rig's repo
-   b. Read current DAY_COUNT, last JOURNAL.md entry
+   b. Read current SESSION_COUNT, last JOURNAL.md entry
    c. Create a bead: "Evolve <project>: Day N" with context (issues, recent journal, specs summary)
    d. `gt sling <bead-id> <rig>` — dispatches a polecat
 
@@ -84,7 +84,7 @@ A **single generic plugin** that handles evolution for any rig that has rig-seed
 Steps (extends the standard polecat-work lifecycle):
 
 ```
-1. load-state        — Read IDENTITY.md, SPECS.md, JOURNAL.md, ROADMAP.md, LEARNINGS.md, DAY_COUNT
+1. load-state        — Read IDENTITY.md, SPECS.md, JOURNAL.md, ROADMAP.md, LEARNINGS.md, SESSION_COUNT
                        If SPECS.md is empty → bootstrap mode (read specs from bead description)
 2. self-assess       — Read all source code, evaluate quality, identify weaknesses
 3. fetch-community   — Read GitHub issues from bead description, prioritize by reactions
@@ -93,7 +93,7 @@ Steps (extends the standard polecat-work lifecycle):
 5. implement         — Write code, tests first where possible, commit after each logical unit
 6. self-review       — Review diff, check IMMUTABLE.txt compliance, look for issues
 7. build-check       — Run configured build/test/lint commands. Fix or revert (max 3 attempts)
-8. update-state      — Journal entry at top of JOURNAL.md, update ROADMAP.md, increment DAY_COUNT,
+8. update-state      — Journal entry at top of JOURNAL.md, update ROADMAP.md, increment SESSION_COUNT,
                        update LEARNINGS.md if applicable, close completed beads
 9. submit-mr         — Push branch, `gt mq submit` → enters refinery queue
 10. await-verdict    — Wait for MERGED or FIX_NEEDED from refinery

@@ -94,11 +94,11 @@ cp "$WORK_DIR/docs/examples/specs/cli-tool.md" "$WORK_DIR/SPECS.md"
 run_test "quickstart.sh completes successfully" "$WORK_DIR/quickstart.sh"
 
 # Verify quickstart results
-day_val=$(tr -d '[:space:]' < "$WORK_DIR/DAY_COUNT")
+day_val=$(tr -d '[:space:]' < "$WORK_DIR/SESSION_COUNT")
 if [ "$day_val" = "0" ]; then
-  pass "DAY_COUNT reset to 0"
+  pass "SESSION_COUNT reset to 0"
 else
-  fail "DAY_COUNT should be 0 after quickstart, got: '$day_val'"
+  fail "SESSION_COUNT should be 0 after quickstart, got: '$day_val'"
 fi
 
 journal_lines=$(wc -l < "$WORK_DIR/JOURNAL.md")
@@ -126,8 +126,8 @@ echo ""
 
 echo "--- Step 5: Simulate an evolution session ---"
 
-# Increment DAY_COUNT
-echo "1" > "$WORK_DIR/DAY_COUNT"
+# Increment SESSION_COUNT
+echo "1" > "$WORK_DIR/SESSION_COUNT"
 
 # Add a journal entry (using the current Session format)
 cat > "$WORK_DIR/JOURNAL.md" << 'JOURNAL'
@@ -170,13 +170,13 @@ echo "--- Step 7: Health check ---"
 run_test "health-check.sh passes on active project" "$WORK_DIR/health-check.sh" "$WORK_DIR"
 
 # Verify health check catches problems
-echo "bad" > "$WORK_DIR/DAY_COUNT"
+echo "bad" > "$WORK_DIR/SESSION_COUNT"
 if "$WORK_DIR/health-check.sh" "$WORK_DIR" > /dev/null 2>&1; then
-  fail "health-check.sh should catch invalid DAY_COUNT"
+  fail "health-check.sh should catch invalid SESSION_COUNT"
 else
-  pass "health-check.sh catches invalid DAY_COUNT"
+  pass "health-check.sh catches invalid SESSION_COUNT"
 fi
-echo "1" > "$WORK_DIR/DAY_COUNT"  # restore
+echo "1" > "$WORK_DIR/SESSION_COUNT"  # restore
 
 # Test with missing SPECS.md
 mv "$WORK_DIR/SPECS.md" "$WORK_DIR/SPECS.md.bak"

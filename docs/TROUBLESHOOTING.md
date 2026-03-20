@@ -48,9 +48,9 @@ isn't reading the build output carefully.
 
 ---
 
-## DAY_COUNT doesn't increment
+## SESSION_COUNT doesn't increment
 
-**Symptom:** Multiple evolution sessions run but DAY_COUNT stays the same.
+**Symptom:** Multiple evolution sessions run but SESSION_COUNT stays the same.
 
 **Cause:** The agent's update-state step failed or was skipped, often because
 an earlier step errored out.
@@ -58,7 +58,7 @@ an earlier step errored out.
 **Fix:**
 1. Check `JOURNAL.md` — if there's no entry for the session, the agent likely
    crashed before reaching update-state
-2. Manually set DAY_COUNT to the correct value
+2. Manually set SESSION_COUNT to the correct value
 3. Check the agent's logs for errors during the session
 
 ---

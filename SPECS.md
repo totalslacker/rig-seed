@@ -9,7 +9,7 @@ scaffold that other projects fork to get self-evolving behavior.
 
 Provide a fork-and-go template repo that:
 1. Contains all the state files an evolution agent needs (identity, specs,
-   journal, roadmap, learnings, day counter)
+   journal, roadmap, learnings, session counter)
 2. Includes sensible defaults for evolution configuration
 3. Documents the process clearly so new users can get started quickly
 4. Serves as a working example of the evolution framework in action

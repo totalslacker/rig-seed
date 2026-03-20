@@ -68,8 +68,8 @@ fi
 
 # Get session info
 day_count="?"
-if [ -f DAY_COUNT ]; then
-  day_count=$(tr -d '[:space:]' < DAY_COUNT)
+if [ -f SESSION_COUNT ]; then
+  day_count=$(tr -d '[:space:]' < SESSION_COUNT)
 fi
 
 commit_hash=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")

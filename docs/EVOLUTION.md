@@ -20,7 +20,7 @@ Read all project state files to understand where things stand:
 - **JOURNAL.md** — What happened in previous sessions
 - **ROADMAP.md** — Current priorities and future work
 - **LEARNINGS.md** — Cached technical insights
-- **DAY_COUNT** — Current evolution day number
+- **SESSION_COUNT** — Current evolution session number
 
 **Bootstrap mode:** If SPECS.md is empty, the agent reads specs from the bead
 description and writes SPECS.md before proceeding. The first few days focus on
@@ -90,11 +90,12 @@ happened.
 
 - **JOURNAL.md** — Write a new entry at the top. Use session numbering:
   `## Session <N> — <summary> (<bead-id>)` where `<N>` is the current
-  DAY_COUNT value. For direct tasks (non-evolution beads), use the same
+  SESSION_COUNT value. For direct tasks (non-evolution beads), use the same
   format but note the task type: `## Session <N> (task) — <summary> (<bead-id>)`.
-  Include: what was tried, what worked, what didn't, and what's next.
+  Include: what was tried, what worked, what didn't. End with a mandatory
+  "What's next:" line so the next agent knows where to pick up.
 - **ROADMAP.md** — Check off completed items, add new ones if discovered
-- **DAY_COUNT** — Increment by 1 (even for direct tasks — every session counts)
+- **SESSION_COUNT** — Increment by 1 (even for direct tasks — every session counts)
 - **LEARNINGS.md** — Record any new technical insights
 - Close completed beads
 

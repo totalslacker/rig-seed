@@ -29,7 +29,7 @@ it does. The README then covers strategy selection, not individual settings.
 A fork that hasn't committed in 5 days isn't necessarily broken — the human
 might be on vacation or the schedule might be weekly. Use warnings for
 activity-based checks (commit recency, journal freshness) and only fail on
-structural problems (missing files, invalid DAY_COUNT). This keeps the script
+structural problems (missing files, invalid SESSION_COUNT). This keeps the script
 useful for monitoring without crying wolf on intentionally slow cadences.
 
 ---
