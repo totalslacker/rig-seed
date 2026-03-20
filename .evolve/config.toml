@@ -12,6 +12,12 @@ bootstrap_days = 3                 # Days focused on infrastructure before featu
 fetch_issues = true            # Pull GitHub issues into evolution context
 issue_label = "agent-input"    # Only fetch issues with this label
 
+[release]
+strategy = "manual"            # "manual" (human runs release.sh), "per-session" (tag after every session), "milestone" (tag when roadmap milestone completes)
+tag_prefix = "v"               # Prefix for version tags (e.g., "v" → v0.1.0)
+default_bump = "patch"         # Default semver bump: "major", "minor", or "patch"
+push_tags = true               # Push tags to remote after creating them
+
 [safety]
 max_fix_attempts = 3           # Revert after N failed build attempts
 revert_on_failure = true       # Revert all changes if build fails after max attempts

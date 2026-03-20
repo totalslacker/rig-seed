@@ -103,6 +103,20 @@ Mayor) still changes the codebase. The next evolution session needs to know what
 changed and why. If the journal is stale, the agent wastes time re-discovering
 context or makes conflicting changes.
 
+### Step 8b: Close Addressed Issues
+
+If this session addressed any GitHub issues, close them now:
+
+```bash
+gh issue close <number> --repo <owner>/<repo> --comment "Addressed in session <N>. <brief description of what was done>"
+```
+
+**Guidelines:**
+- Only close issues you actually addressed — don't close aspirational items
+- Include a brief comment explaining what was done so the reporter knows
+- If an issue was partially addressed, comment with progress but leave it open
+- Reference the session number so the journal entry can be cross-referenced
+
 ### Step 9: Submit
 
 Push the branch and submit to the merge queue (`gt done`). The Refinery

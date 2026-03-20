@@ -4,6 +4,27 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Session 12 — Release script, release config, issue-closing docs (rs-yol)
+
+Three Ecosystem-phase items addressing GitHub Issues #2, #3, and #6:
+
+1. **Release script** (scripts/release.sh) — Reads latest semver tag, increments
+   major/minor/patch, creates annotated tag, pushes. Supports `--dry-run`. Starts
+   at v0.1.0 if no tags exist yet.
+
+2. **Release config** (.evolve/config.toml `[release]` section) — Strategy options:
+   `manual` (human runs the script), `per-session` (tag after every evolution
+   cycle), `milestone` (tag when a roadmap phase completes). Configurable tag
+   prefix and default bump level.
+
+3. **Issue-closing guidance** — Added Step 8b to docs/EVOLUTION.md documenting when
+   and how to close GitHub issues during evolution. Added "Issue Closing Voice"
+   section to PERSONALITY.md with good/bad examples.
+
+What's next: GitHub Actions metrics workflow, migration script for version upgrades.
+
+---
+
 ## Session 11 — Upgrade guide, post-session hook, metrics script (rs-dt8)
 
 Three final Sustainability-phase items, completing the milestone:
