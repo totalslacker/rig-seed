@@ -4,6 +4,30 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Session 13 — Metrics PR workflow, migration script (rs-i2f)
+
+Two Ecosystem-phase items:
+
+1. **Metrics PR comment workflow** (docs/examples/workflows/metrics-pr-comment.yml) —
+   GitHub Actions workflow that runs metrics.sh on pull requests and posts evolution
+   metrics (day count, session count, roadmap completion) as a PR comment. Uses a
+   marker comment pattern to update existing comments instead of creating duplicates.
+   Passes both human-readable and machine-readable metrics output to the comment body.
+
+2. **Migration script** (scripts/migrate.sh) — Detects which rig-seed features are
+   present in a fork and copies missing files from upstream. Checks are ordered by the
+   day each feature was added (Day 1 through Day 13). Supports `--dry-run` to preview
+   changes. Never overwrites existing files — only adds missing ones. Also flags
+   config.toml sections that need manual review (like the release strategy added in
+   Day 12).
+
+Also: Updated workflows README with the new metrics workflow, added Migration section
+to the main README.
+
+What's next: Multi-project dashboard, Grafana/Prometheus integration example.
+
+---
+
 ## Session 12 — Release script, release config, issue-closing docs (rs-yol)
 
 Three Ecosystem-phase items addressing GitHub Issues #2, #3, and #6:

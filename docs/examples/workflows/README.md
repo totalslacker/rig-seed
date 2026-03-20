@@ -22,3 +22,4 @@ cp docs/examples/workflows/lint-markdown.yml .github/workflows/
 |------|-------------|
 | `validate.yml` | Runs `validate.sh` to check all required template files exist |
 | `lint-markdown.yml` | Lints markdown files using markdownlint-cli2 |
+| `metrics-pr-comment.yml` | Runs `metrics.sh` and posts evolution metrics as a PR comment |

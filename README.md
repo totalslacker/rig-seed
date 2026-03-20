@@ -123,6 +123,18 @@ This resets DAY_COUNT, clears the journal/roadmap/learnings, and walks you
 through writing your specs. See [example specs](docs/examples/specs/README.md)
 for starter templates (CLI tool, web API, library).
 
+## Migration
+
+If you forked rig-seed a while ago and want to pick up new features:
+
+```bash
+scripts/migrate.sh --dry-run   # See what's missing
+scripts/migrate.sh             # Add missing files
+```
+
+The script detects which rig-seed features are present and copies missing ones
+from upstream. It never overwrites files you've customized.
+
 ## Documentation
 
 - [Forking Guide](docs/FORKING.md) — What to do after you fork rig-seed

@@ -73,6 +73,27 @@ and exit codes.
 
 ---
 
+### Migration scripts should detect features, not versions
+
+Rig-seed doesn't have a version number — features were added incrementally across
+sessions. A migration script that checks "version >= X" would require maintaining
+a version mapping. Instead, check for the presence of each feature (file exists?
+config key present?) and add what's missing. This is idempotent, order-independent,
+and works regardless of when the fork was created. It also handles partial forks
+(where someone cherry-picked some features but not others).
+
+---
+
+### PR comment workflows should use marker comments
+
+When a GitHub Actions workflow posts metrics as a PR comment, it should include a
+hidden HTML marker (`<!-- rig-seed-metrics -->`) and search for it before creating
+new comments. This prevents duplicate comments on every push — the workflow finds
+and updates the existing comment instead. The `actions/github-script` action makes
+this easy via the GitHub REST API.
+
+---
+
 ### Immutable directories require indirect examples
 
 `.github/workflows/` is in IMMUTABLE.txt, meaning evolution agents can't create
