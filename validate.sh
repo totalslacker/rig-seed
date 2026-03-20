@@ -101,6 +101,8 @@ check_file     "ROADMAP.md"     "Roadmap"
 check_file     "JOURNAL.md"     "Evolution journal"
 check_file     "LEARNINGS.md"   "Technical learnings"
 check_file     "SESSION_COUNT"  "Session counter"
+check_file     "DAY_COUNT"      "Day counter"
+check_file     "DAY_DATE"       "Last session date"
 check_file     "PERSONALITY.md" "Agent personality"
 
 info ""
@@ -126,6 +128,32 @@ if [ -f "$session_count_file" ]; then
     info "  ok: SESSION_COUNT is a valid integer ($day_val)"
   else
     echo "FAIL: SESSION_COUNT must contain a single integer, got: '$day_val'"
+    ((errors++))
+  fi
+fi
+
+info ""
+info "=== DAY_COUNT Format ==="
+day_count_file="$dir/DAY_COUNT"
+if [ -f "$day_count_file" ]; then
+  dc_val=$(tr -d '[:space:]' < "$day_count_file")
+  if [[ "$dc_val" =~ ^[0-9]+$ ]]; then
+    info "  ok: DAY_COUNT is a valid integer ($dc_val)"
+  else
+    echo "FAIL: DAY_COUNT must contain a single integer, got: '$dc_val'"
+    ((errors++))
+  fi
+fi
+
+info ""
+info "=== DAY_DATE Format ==="
+day_date_file="$dir/DAY_DATE"
+if [ -f "$day_date_file" ]; then
+  dd_val=$(tr -d '[:space:]' < "$day_date_file")
+  if [[ "$dd_val" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+    info "  ok: DAY_DATE is a valid date ($dd_val)"
+  else
+    echo "FAIL: DAY_DATE must contain a YYYY-MM-DD date, got: '$dd_val'"
     ((errors++))
   fi
 fi

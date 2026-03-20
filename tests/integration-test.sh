@@ -101,6 +101,20 @@ else
   fail "SESSION_COUNT should be 0 after quickstart, got: '$day_val'"
 fi
 
+dc_val=$(tr -d '[:space:]' < "$WORK_DIR/DAY_COUNT")
+if [ "$dc_val" = "0" ]; then
+  pass "DAY_COUNT reset to 0"
+else
+  fail "DAY_COUNT should be 0 after quickstart, got: '$dc_val'"
+fi
+
+dd_val=$(tr -d '[:space:]' < "$WORK_DIR/DAY_DATE")
+if [ "$dd_val" = "0000-00-00" ]; then
+  pass "DAY_DATE reset to 0000-00-00"
+else
+  fail "DAY_DATE should be 0000-00-00 after quickstart, got: '$dd_val'"
+fi
+
 journal_lines=$(wc -l < "$WORK_DIR/JOURNAL.md")
 if [ "$journal_lines" -le 6 ]; then
   pass "JOURNAL.md cleared to header only"
@@ -126,10 +140,12 @@ echo ""
 
 echo "--- Step 5: Simulate an evolution session ---"
 
-# Increment SESSION_COUNT
+# Increment SESSION_COUNT and DAY_COUNT
 echo "1" > "$WORK_DIR/SESSION_COUNT"
+echo "1" > "$WORK_DIR/DAY_COUNT"
+echo "2026-01-01" > "$WORK_DIR/DAY_DATE"
 
-# Add a journal entry (using the current Session format)
+# Add a journal entry (using the Day/Session format)
 cat > "$WORK_DIR/JOURNAL.md" << 'JOURNAL'
 # Journal
 
@@ -137,10 +153,14 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
-## Session 1 — Bootstrap: initial setup (test-001)
+## Day 1 — Session 1 (2026-01-01)
+
+**Goal**: Bootstrap the project — set up structure, write specs, configure build.
 
 Set up project structure, wrote specs, configured build commands.
-Everything passes. Ready for Day 2.
+Everything passes.
+
+**Next Steps**: Add tests and CI configuration.
 
 ---
 JOURNAL

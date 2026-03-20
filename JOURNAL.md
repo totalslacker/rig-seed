@@ -4,6 +4,22 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Day 4 — Session 14 (2026-03-20)
+
+**Goal**: Implement dual Day/Session tracking with mandatory Goal and Next Steps in journal format.
+
+Added DAY_COUNT (calendar day counter) and DAY_DATE (last session date) files alongside
+SESSION_COUNT. Updated journal format to `## Day N — Session M (YYYY-MM-DD)` with
+mandatory **Goal** and **Next Steps** sections. Updated PERSONALITY.md with format docs
+and examples, docs/EVOLUTION.md with counter semantics, validate.sh with DAY_COUNT/DAY_DATE
+checks, quickstart.sh to reset all three counters, metrics.sh to report day count separately,
+health-check.sh to parse all header formats, migrate.sh to detect new files, and
+integration tests for the new counters.
+
+**Next Steps**: Multi-project dashboard, Grafana/Prometheus integration example.
+
+---
+
 ## Session 13 (2026-03-20 08:40) — Session numbering, mandatory journal What's next (rs-cak)
 
 Batch addressing Issues #1, #5, #14, #15, #16 — all related to journal and

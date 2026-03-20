@@ -46,8 +46,12 @@ dir="${dir:-.}"
 
 # --- Validation ---
 
-if [ ! -f "$dir/DAY_COUNT" ] || [ ! -f "$dir/IDENTITY.md" ]; then
-  echo "Error: $dir does not appear to be a rig-seed project." >&2
+if [ ! -f "$dir/IDENTITY.md" ]; then
+  echo "Error: $dir does not appear to be a rig-seed project (missing IDENTITY.md)." >&2
+  exit 1
+fi
+if [ ! -f "$dir/SESSION_COUNT" ] && [ ! -f "$dir/DAY_COUNT" ]; then
+  echo "Error: $dir does not appear to be a rig-seed project (missing SESSION_COUNT and DAY_COUNT)." >&2
   exit 1
 fi
 
@@ -205,6 +209,13 @@ echo ""
 # Day 13: Migration script itself
 echo "Migration tooling:"
 check_executable "scripts/migrate.sh" "This migration script" "$source_root/scripts/migrate.sh"
+echo "  ok"
+echo ""
+
+# Day 14: Day/Session tracking
+echo "Day/Session tracking:"
+check_file "DAY_COUNT" "Calendar day counter" "$source_root/DAY_COUNT"
+check_file "DAY_DATE" "Last session date tracker" "$source_root/DAY_DATE"
 echo "  ok"
 echo ""
 

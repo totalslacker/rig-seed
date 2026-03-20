@@ -61,5 +61,6 @@ Living document. Updated each evolution session. Items come from three sources:
 - [x] Add example GitHub Actions workflow that runs metrics.sh and posts results to PR comments
 - [x] Add migration script that detects rig-seed version and applies incremental upgrades
 - [x] Rename DAY_COUNT to SESSION_COUNT, adopt session numbering everywhere (Issues #1, #5, #14, #15, #16)
+- [x] Add dual Day/Session tracking with DAY_COUNT, DAY_DATE, mandatory Goal and Next Steps (Issues #1, #5, #14, #15, #16)
 - [ ] Add multi-project dashboard that aggregates metrics across multiple forks
 - [ ] Add example Grafana/Prometheus integration for long-running evolution monitoring

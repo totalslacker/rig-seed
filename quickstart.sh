@@ -5,7 +5,7 @@
 #
 # This script:
 #   1. Validates that all required template files exist
-#   2. Resets SESSION_COUNT to 0
+#   2. Resets SESSION_COUNT, DAY_COUNT, and DAY_DATE to initial values
 #   3. Clears JOURNAL.md (keeps header), ROADMAP.md, and LEARNINGS.md
 #   4. Prompts you to write SPECS.md if it's empty
 #   5. Runs the full validation suite
@@ -33,9 +33,11 @@ fi
 echo "  All template files present."
 echo ""
 
-# --- Step 2: Reset SESSION_COUNT ---
-echo "Step 2: Resetting SESSION_COUNT to 0..."
+# --- Step 2: Reset counters ---
+echo "Step 2: Resetting SESSION_COUNT, DAY_COUNT, and DAY_DATE..."
 echo "0" > "$dir/SESSION_COUNT"
+echo "0" > "$dir/DAY_COUNT"
+echo "0000-00-00" > "$dir/DAY_DATE"
 echo "  Done."
 echo ""
 

@@ -20,7 +20,9 @@ Read all project state files to understand where things stand:
 - **JOURNAL.md** — What happened in previous sessions
 - **ROADMAP.md** — Current priorities and future work
 - **LEARNINGS.md** — Cached technical insights
-- **SESSION_COUNT** — Current evolution session number
+- **SESSION_COUNT** — Current evolution session number (monotonic, increments every session)
+- **DAY_COUNT** — Current evolution day number (increments only on calendar date change)
+- **DAY_DATE** — Date of the last session (YYYY-MM-DD, used to detect day changes)
 
 **Bootstrap mode:** If SPECS.md is empty, the agent reads specs from the bead
 description and writes SPECS.md before proceeding. The first few days focus on
@@ -88,14 +90,20 @@ it's a numbered evolution cycle or a direct-slung task.** The journal is the
 project's memory. Skipping it means the next agent has no context for what
 happened.
 
-- **JOURNAL.md** — Write a new entry at the top. Use session numbering:
-  `## Session <N> — <summary> (<bead-id>)` where `<N>` is the current
-  SESSION_COUNT value. For direct tasks (non-evolution beads), use the same
-  format but note the task type: `## Session <N> (task) — <summary> (<bead-id>)`.
-  Include: what was tried, what worked, what didn't. End with a mandatory
-  "What's next:" line so the next agent knows where to pick up.
+- **JOURNAL.md** — Write a new entry at the top. Use the dual-counter format:
+  `## Day <D> — Session <N> (YYYY-MM-DD)` where `<N>` is the current
+  SESSION_COUNT value and `<D>` is the current DAY_COUNT value.
+  Every entry MUST include:
+  - **Goal**: First line after the heading. States intent before describing work.
+  - Work summary in the body.
+  - **Next Steps**: Last section. Hands off context to the next session. MANDATORY.
+  This applies to ALL sessions — evolution cycles, direct tasks, bug fixes.
+  The journal is the project's memory. No session is exempt.
 - **ROADMAP.md** — Check off completed items, add new ones if discovered
-- **SESSION_COUNT** — Increment by 1 (even for direct tasks — every session counts)
+- **SESSION_COUNT** — Increment by 1 (every session counts)
+- **DAY_COUNT** — Increment by 1 ONLY if today's date differs from the value
+  in DAY_DATE. If the date is the same, leave DAY_COUNT unchanged.
+- **DAY_DATE** — Update to today's date (YYYY-MM-DD)
 - **LEARNINGS.md** — Record any new technical insights
 - Close completed beads
 

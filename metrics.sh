@@ -76,9 +76,18 @@ print_metric() {
 # --- Gather metrics ---
 
 # SESSION_COUNT
-day_count=$(tr -d '[:space:]' < "$dir/SESSION_COUNT")
-if [[ ! "$day_count" =~ ^[0-9]+$ ]]; then
-  day_count=0
+session_counter=$(tr -d '[:space:]' < "$dir/SESSION_COUNT")
+if [[ ! "$session_counter" =~ ^[0-9]+$ ]]; then
+  session_counter=0
+fi
+
+# DAY_COUNT
+day_count=0
+if [ -f "$dir/DAY_COUNT" ]; then
+  day_count=$(tr -d '[:space:]' < "$dir/DAY_COUNT")
+  if [[ ! "$day_count" =~ ^[0-9]+$ ]]; then
+    day_count=0
+  fi
 fi
 
 # Session count from journal
@@ -146,7 +155,8 @@ if [ "$quiet" = false ]; then
 fi
 
 print_metric "Day count:" "day_count" "$day_count"
-print_metric "Total sessions:" "session_count" "$session_count"
+print_metric "Session count:" "session_counter" "$session_counter"
+print_metric "Total journal entries:" "session_count" "$session_count"
 print_metric "Total commits:" "total_commits" "$total_commits"
 print_metric "Commits per session:" "commits_per_session" "$commits_per_session"
 
