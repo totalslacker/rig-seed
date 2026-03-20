@@ -227,6 +227,15 @@ check_config_key "merge" "Merge strategy configuration (added Session 15)"
 echo "  ok"
 echo ""
 
+# Session 16: Monitoring integration
+echo "Monitoring integration:"
+check_executable "docs/examples/monitoring/metrics-exporter.sh" "Prometheus metrics exporter" "$source_root/docs/examples/monitoring/metrics-exporter.sh"
+check_file "docs/examples/monitoring/prometheus.yml" "Prometheus scrape config" "$source_root/docs/examples/monitoring/prometheus.yml"
+check_file "docs/examples/monitoring/grafana-dashboard.json" "Grafana dashboard" "$source_root/docs/examples/monitoring/grafana-dashboard.json"
+check_file "docs/examples/monitoring/README.md" "Monitoring setup guide" "$source_root/docs/examples/monitoring/README.md"
+echo "  ok"
+echo ""
+
 # --- Summary ---
 
 echo "================================"

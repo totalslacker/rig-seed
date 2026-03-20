@@ -1,0 +1,29 @@
+# Example Prometheus configuration for scraping rig-seed metrics.
+#
+# Copy this file or merge the scrape_configs section into your existing
+# prometheus.yml. Adjust targets and intervals as needed.
+
+global:
+  # Evolution metrics change infrequently (only when sessions run).
+  # A 5-minute default is conservative. Adjust based on your schedule.
+  scrape_interval: 5m
+  evaluation_interval: 5m
+
+scrape_configs:
+  - job_name: 'rigseed'
+    # Override global interval if you want faster/slower scraping
+    # scrape_interval: 15m
+    static_configs:
+      - targets: ['localhost:9142']
+        labels:
+          # Add a human-friendly label for Grafana filtering
+          environment: 'local'
+
+    # For multiple projects on different ports:
+    # static_configs:
+    #   - targets: ['localhost:9142']
+    #     labels:
+    #       project: 'my-cli-tool'
+    #   - targets: ['localhost:9143']
+    #     labels:
+    #       project: 'my-web-api'

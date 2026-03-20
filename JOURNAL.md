@@ -4,6 +4,41 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Day 4 — Session 16 (2026-03-20)
+
+**Goal**: Add Prometheus/Grafana monitoring integration example (last Ecosystem roadmap item).
+
+Built a complete monitoring stack example in `docs/examples/monitoring/`:
+
+1. **Prometheus metrics exporter** (metrics-exporter.sh) — A lightweight bash HTTP
+   server that wraps `metrics.sh -q` and serves Prometheus text format on `:9142/metrics`.
+   Uses netcat for zero-dependency HTTP serving. Converts all numeric key=value pairs
+   to `rigseed_*` gauge metrics with a `project` label derived from the directory name.
+   Skips non-numeric values (dates, "n/a") gracefully.
+
+2. **Prometheus scrape config** (prometheus.yml) — Example configuration with a 5-minute
+   scrape interval (appropriate for evolution metrics that change infrequently). Includes
+   commented-out multi-project setup.
+
+3. **Grafana dashboard** (grafana-dashboard.json) — Pre-built dashboard with 10 panels:
+   stat panels for session count, day count, roadmap %, commits, learnings, and velocity;
+   time-series panels for sessions, roadmap progress (stacked), codebase size, and commits
+   over time. Includes a `project` template variable for multi-project filtering.
+
+4. **Setup guide** (README.md) — Architecture overview, quick start (exporter → Prometheus
+   → Grafana), multi-project monitoring, Docker Compose example, and full metrics reference
+   table.
+
+Also: Updated migration script with Session 16 monitoring check, added Monitoring link to
+README documentation section.
+
+Ecosystem milestone is now fully complete — all items checked off.
+
+**Next Steps**: Consider a new roadmap phase (Community? Polish?) or let the project
+stabilize and respond to community issues.
+
+---
+
 ## Day 4 — Session 15 (2026-03-20)
 
 **Goal**: Multi-project dashboard, merge strategy guide, quickstart spawn journal entry (Issues #12, #13, roadmap).

@@ -160,6 +160,7 @@ from upstream. It never overwrites files you've customized.
 - [Formula Customization](docs/FORMULA-CUSTOMIZATION.md) — How to customize mol-evolve for your project
 - [Day Zero Walkthrough](docs/DAY-ZERO.md) — Step-by-step tutorial for your first evolution session
 - [Upgrading Your Fork](docs/UPGRADING.md) — How to pull new rig-seed features into an existing fork
+- [Monitoring with Prometheus + Grafana](docs/examples/monitoring/README.md) — Expose evolution metrics for long-running monitoring
 - [Merge Strategy Guide](docs/MERGE-STRATEGY.md) — Choosing between Refinery, PR-based, and hybrid merging
 - [Troubleshooting](docs/TROUBLESHOOTING.md) — Common problems and how to fix them
 - [Project Plan](docs/PLAN.md) — Architecture and design decisions

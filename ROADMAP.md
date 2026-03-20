@@ -65,4 +65,4 @@ Living document. Updated each evolution session. Items come from three sources:
 - [x] Add multi-project dashboard that aggregates metrics across multiple forks
 - [x] Add merge strategy guide for rig-spawn users (refinery vs PR-based vs hybrid) (Issue #13)
 - [x] Update quickstart.sh to write Day 1 spawn journal entry (Issue #12)
-- [ ] Add example Grafana/Prometheus integration for long-running evolution monitoring
+- [x] Add example Grafana/Prometheus integration for long-running evolution monitoring

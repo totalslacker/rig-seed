@@ -120,3 +120,14 @@ in early bootstrap state.
 or modify CI files directly. To provide CI templates, put example workflow files
 in `docs/examples/workflows/` with instructions to copy them. This keeps CI
 human-controlled while still giving forked projects a running start.
+
+---
+
+### Prometheus exporters for shell metrics should skip non-numeric values
+
+When converting key=value output to Prometheus text format, some values will be
+dates, "n/a", or empty strings. Rather than failing or emitting invalid metrics,
+skip any value that doesn't match `^[0-9.]+$`. Prometheus expects numeric gauge
+values — non-numeric entries simply aren't exportable and that's fine. Also strip
+units like `%` from values before emitting, since Prometheus metrics carry units
+in the metric name or HELP text, not in values.
