@@ -17,7 +17,7 @@ cd your-project
 ./quickstart.sh
 ```
 
-This resets DAY_COUNT to 0, clears the journal/roadmap/learnings to fresh
+This resets SESSION_COUNT to 0, clears the journal/roadmap/learnings to fresh
 headers, and runs validation. If it fails, fix the issue it reports before
 continuing.
 
@@ -110,7 +110,7 @@ and let it run. The agent will:
 After the first session, check:
 - `JOURNAL.md` — did it write an honest entry?
 - `ROADMAP.md` — does the plan make sense?
-- `DAY_COUNT` — should be `1`
+- `SESSION_COUNT` — should be `1`
 - The git log — are commits atomic and well-described?
 
 ## What to Expect

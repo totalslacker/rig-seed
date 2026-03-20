@@ -12,13 +12,13 @@ requirements, or enterprise audiences. Professional and precise.
 ### Example
 
 ```
-## Day 12 — Input validation hardening (PROJ-045)
+## Session 12 (2026-03-18 09:15) — Input validation hardening (PROJ-045)
 
 Implemented schema validation for all API request bodies using JSON Schema
 draft-07. Invalid requests now return 422 with a structured error response
 listing each violation. Test coverage for the validation layer: 94%.
 
-Next session: rate limiting middleware (PROJ-048).
+What's next: Rate limiting middleware (PROJ-048).
 ```
 
 ## Issue Response Voice

@@ -10,7 +10,7 @@ What to do after you fork this repo and want to build your own evolving project.
 ./quickstart.sh
 ```
 
-This resets DAY_COUNT to 0, clears the journal/roadmap/learnings, and checks
+This resets SESSION_COUNT to 0, clears the journal/roadmap/learnings, and checks
 for specs. It's the fastest way from "I just forked" to "ready to evolve."
 
 ### 2. Write SPECS.md

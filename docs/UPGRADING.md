@@ -26,7 +26,7 @@ to decide:
 |----------|-------|---------------|-----|
 | **Scripts** | `validate.sh`, `health-check.sh`, `quickstart.sh` | Yes | Bug fixes and new flags benefit your project |
 | **Documentation** | `docs/*.md`, `docs/examples/**` | Selectively | New guides and examples are useful; skip if you've diverged |
-| **State files** | `JOURNAL.md`, `ROADMAP.md`, `LEARNINGS.md`, `DAY_COUNT` | **Never** | These are YOUR project's state — upstream values are rig-seed's |
+| **State files** | `JOURNAL.md`, `ROADMAP.md`, `LEARNINGS.md`, `SESSION_COUNT` | **Never** | These are YOUR project's state — upstream values are rig-seed's |
 | **Identity** | `IDENTITY.md`, `SPECS.md` | **Never** | Your specs are different from rig-seed's |
 | **Config** | `.evolve/config.toml`, `.claude/CLAUDE.md` | Selectively | Compare for new options, but keep your customizations |
 | **Immutable list** | `.evolve/IMMUTABLE.txt` | Review only | Check if new entries make sense for your project |
@@ -59,13 +59,13 @@ git checkout -b upgrade-from-upstream
 git merge upstream/main --no-commit --no-ff
 
 # Unstage your state files (NEVER overwrite these)
-git reset HEAD JOURNAL.md ROADMAP.md LEARNINGS.md DAY_COUNT SPECS.md PERSONALITY.md
+git reset HEAD JOURNAL.md ROADMAP.md LEARNINGS.md SESSION_COUNT SPECS.md PERSONALITY.md
 
 # Review what's left
 git diff --cached --stat
 
 # Commit the parts you want
-git checkout -- JOURNAL.md ROADMAP.md LEARNINGS.md DAY_COUNT SPECS.md PERSONALITY.md
+git checkout -- JOURNAL.md ROADMAP.md LEARNINGS.md SESSION_COUNT SPECS.md PERSONALITY.md
 git commit -m "chore: upgrade from rig-seed upstream"
 ```
 
@@ -114,7 +114,7 @@ git add validate.sh && git commit -m "chore: update validate.sh from upstream"
 Conflicts during merge are normal — your fork has diverged from the template.
 
 **Safe to resolve by keeping yours:**
-- `JOURNAL.md`, `ROADMAP.md`, `LEARNINGS.md`, `DAY_COUNT` — always keep yours
+- `JOURNAL.md`, `ROADMAP.md`, `LEARNINGS.md`, `SESSION_COUNT` — always keep yours
 - `SPECS.md`, `PERSONALITY.md` — always keep yours
 - `.claude/CLAUDE.md` — keep yours (but check upstream for new sections)
 

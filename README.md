@@ -71,7 +71,7 @@ one manually by creating a bead with the `mol-evolve` formula.
 | `ROADMAP.md` | Priorities, milestones, future work | Yes |
 | `JOURNAL.md` | Session log (append-only, never delete) | Append only |
 | `LEARNINGS.md` | Accumulated technical insights | Yes |
-| `DAY_COUNT` | Current evolution day number | Auto-incremented |
+| `SESSION_COUNT` | Current evolution session number | Auto-incremented |
 | `.evolve/config.toml` | Evolution settings (frequency, limits) | Yes |
 | `.evolve/IMMUTABLE.txt` | Files the agent cannot modify | Human only |
 | `.claude/CLAUDE.md` | Instructions for evolution workers | Yes |
@@ -106,7 +106,7 @@ Monitor whether your forked project is actively evolving:
 ./health-check.sh
 ```
 
-Checks DAY_COUNT progression, journal freshness, recent git activity, and
+Checks SESSION_COUNT progression, journal freshness, recent git activity, and
 template validity. Configure thresholds via `MAX_COMMIT_AGE_DAYS` and
 `MAX_JOURNAL_AGE_DAYS` environment variables (default: 7 days).
 
@@ -119,7 +119,7 @@ your project ready:
 ./quickstart.sh
 ```
 
-This resets DAY_COUNT, clears the journal/roadmap/learnings, and walks you
+This resets SESSION_COUNT, clears the journal/roadmap/learnings, and walks you
 through writing your specs. See [example specs](docs/examples/specs/README.md)
 for starter templates (CLI tool, web API, library).
 

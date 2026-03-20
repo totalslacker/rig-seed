@@ -50,6 +50,6 @@ rig-seed/
 ├── ROADMAP.md             # Priorities and milestones
 ├── JOURNAL.md             # Session log (append-only)
 ├── LEARNINGS.md           # Technical insights
-├── DAY_COUNT              # Current evolution day
+├── SESSION_COUNT           # Current evolution session number
 └── README.md              # Project overview
 ```

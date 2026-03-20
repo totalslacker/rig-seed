@@ -4,6 +4,28 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Session 13 (2026-03-20 08:40) — Session numbering, mandatory journal What's next (rs-cak)
+
+Batch addressing Issues #1, #5, #14, #15, #16 — all related to journal and
+session tracking:
+
+1. **Renamed DAY_COUNT → SESSION_COUNT** across the entire template: the file
+   itself, all scripts (validate.sh, quickstart.sh, health-check.sh, metrics.sh),
+   all docs, integration tests, and hook examples. "Day" was misleading since
+   sessions can run multiple times per day or skip days entirely.
+
+2. **Updated journal format in PERSONALITY.md** to use
+   `## Session N (YYYY-MM-DD HH:MM) — summary` with a mandatory "What's next:"
+   line. Updated all three personality variant examples (formal, casual, minimal)
+   to match.
+
+3. **Made "What's next:" mandatory** in docs/EVOLUTION.md Step 8, so the next
+   agent always knows where to pick up.
+
+What's next: GitHub Actions metrics workflow, migration script for version upgrades.
+
+---
+
 ## Session 12 — Release script, release config, issue-closing docs (rs-yol)
 
 Three Ecosystem-phase items addressing GitHub Issues #2, #3, and #6:

@@ -21,7 +21,7 @@ Customize the formula when your project has:
 The standard `mol-evolve` formula has 9 steps (documented fully in
 [EVOLUTION.md](EVOLUTION.md)):
 
-1. **Load State** — Read IDENTITY, SPECS, JOURNAL, ROADMAP, LEARNINGS, DAY_COUNT
+1. **Load State** — Read IDENTITY, SPECS, JOURNAL, ROADMAP, LEARNINGS, SESSION_COUNT
 2. **Self-Assess** — Read source code, identify weaknesses
 3. **Fetch Community Input** — Check GitHub issues
 4. **Select Work** — Pick 1-3 improvements

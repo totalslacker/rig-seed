@@ -55,8 +55,8 @@ dir="${dir:-.}"
 
 # --- Validation ---
 
-if [ ! -f "$dir/DAY_COUNT" ] || [ ! -f "$dir/JOURNAL.md" ]; then
-  echo "Error: $dir does not appear to be a rig-seed project (missing DAY_COUNT or JOURNAL.md)" >&2
+if [ ! -f "$dir/SESSION_COUNT" ] || [ ! -f "$dir/JOURNAL.md" ]; then
+  echo "Error: $dir does not appear to be a rig-seed project (missing SESSION_COUNT or JOURNAL.md)" >&2
   exit 1
 fi
 
@@ -75,8 +75,8 @@ print_metric() {
 
 # --- Gather metrics ---
 
-# DAY_COUNT
-day_count=$(tr -d '[:space:]' < "$dir/DAY_COUNT")
+# SESSION_COUNT
+day_count=$(tr -d '[:space:]' < "$dir/SESSION_COUNT")
 if [[ ! "$day_count" =~ ^[0-9]+$ ]]; then
   day_count=0
 fi

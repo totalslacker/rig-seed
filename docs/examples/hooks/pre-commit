@@ -7,7 +7,7 @@
 #
 # What it checks:
 #   - All required template files exist
-#   - DAY_COUNT is a valid integer
+#   - SESSION_COUNT is a valid integer
 #   - Immutable files haven't been modified (compared to HEAD)
 #
 # To bypass (emergencies only):

@@ -100,7 +100,7 @@ check_file     "SPECS.md"       "Project specification"
 check_file     "ROADMAP.md"     "Roadmap"
 check_file     "JOURNAL.md"     "Evolution journal"
 check_file     "LEARNINGS.md"   "Technical learnings"
-check_file     "DAY_COUNT"      "Day counter"
+check_file     "SESSION_COUNT"  "Session counter"
 check_file     "PERSONALITY.md" "Agent personality"
 
 info ""
@@ -118,14 +118,14 @@ check_dir      ".claude"         "Claude config directory"
 check_nonempty ".claude/CLAUDE.md" "Claude instructions"
 
 info ""
-info "=== DAY_COUNT Format ==="
-day_count_file="$dir/DAY_COUNT"
-if [ -f "$day_count_file" ]; then
-  day_val=$(tr -d '[:space:]' < "$day_count_file")
+info "=== SESSION_COUNT Format ==="
+session_count_file="$dir/SESSION_COUNT"
+if [ -f "$session_count_file" ]; then
+  day_val=$(tr -d '[:space:]' < "$session_count_file")
   if [[ "$day_val" =~ ^[0-9]+$ ]]; then
-    info "  ok: DAY_COUNT is a valid integer ($day_val)"
+    info "  ok: SESSION_COUNT is a valid integer ($day_val)"
   else
-    echo "FAIL: DAY_COUNT must contain a single integer, got: '$day_val'"
+    echo "FAIL: SESSION_COUNT must contain a single integer, got: '$day_val'"
     ((errors++))
   fi
 fi

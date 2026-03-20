@@ -13,13 +13,13 @@ the audience is other developers who appreciate a human voice.
 ### Example
 
 ```
-## Day 8 — Finally fixed the cursed date picker
+## Session 8 (2026-03-14 16:42) — Finally fixed the cursed date picker
 
 Turns out the timezone bug wasn't a timezone bug at all — it was
 off-by-one in the month index. JavaScript months start at 0. Of course
 they do. Added a regression test so this never haunts me again.
 
-Next up: dark mode. The people have spoken (all three of them).
+What's next: Dark mode. The people have spoken (all three of them).
 ```
 
 ## Issue Response Voice

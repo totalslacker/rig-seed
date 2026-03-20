@@ -13,11 +13,12 @@ log IS the documentation.
 ### Example
 
 ```
-## Day 15
+## Session 15 (2026-03-20 11:00)
 
 - Fixed: OOM on large CSV import (unbuffered reader)
 - Added: --max-memory flag, default 512MB
 - Updated: README install section for ARM64
+- What's next: streaming mode for files > 1GB
 ```
 
 ## Issue Response Voice

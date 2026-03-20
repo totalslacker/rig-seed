@@ -5,7 +5,7 @@
 #   directory: path to the rig-seed project root (default: current directory)
 #
 # Checks:
-#   - DAY_COUNT is advancing (compared to git history)
+#   - SESSION_COUNT is advancing (compared to git history)
 #   - Journal has recent entries
 #   - Last commit is recent (within configured threshold)
 #   - Build/validation passes
@@ -84,26 +84,26 @@ ok() {
 # Max days since last commit before we flag it
 MAX_COMMIT_AGE_DAYS="${MAX_COMMIT_AGE_DAYS:-7}"
 
-# Max days since last journal entry (heuristic: checks for "## Day" headers)
+# Max days since last journal entry (heuristic: checks for "## Session" headers)
 MAX_JOURNAL_AGE_DAYS="${MAX_JOURNAL_AGE_DAYS:-7}"
 
 info "Health check for rig-seed project: $dir"
 info ""
 
-# --- 1. DAY_COUNT is present and non-zero ---
+# --- 1. SESSION_COUNT is present and non-zero ---
 
 info "=== Evolution Progress ==="
-day_file="$dir/DAY_COUNT"
+day_file="$dir/SESSION_COUNT"
 if [ ! -f "$day_file" ]; then
-  fail "DAY_COUNT file missing"
+  fail "SESSION_COUNT file missing"
 else
   day_val=$(tr -d '[:space:]' < "$day_file")
   if [[ ! "$day_val" =~ ^[0-9]+$ ]]; then
-    fail "DAY_COUNT is not a valid integer: '$day_val'"
+    fail "SESSION_COUNT is not a valid integer: '$day_val'"
   elif [ "$day_val" -eq 0 ]; then
-    warn "DAY_COUNT is 0 — evolution hasn't started yet"
+    warn "SESSION_COUNT is 0 — evolution hasn't started yet"
   else
-    ok "DAY_COUNT = $day_val"
+    ok "SESSION_COUNT = $day_val"
   fi
 fi
 
@@ -129,9 +129,9 @@ else
       if [[ "$current_day" =~ ^[0-9]+$ ]] && [[ "$latest_day" =~ ^[0-9]+$ ]]; then
         gap=$((current_day - latest_day))
         if [ "$gap" -gt 1 ]; then
-          warn "Journal's latest entry is Day $latest_day but DAY_COUNT is $current_day (gap of $gap)"
+          warn "Journal's latest session is $latest_day but SESSION_COUNT is $current_day (gap of $gap)"
         else
-          ok "Journal is up to date with DAY_COUNT"
+          ok "Journal is up to date with SESSION_COUNT"
         fi
       fi
     fi
