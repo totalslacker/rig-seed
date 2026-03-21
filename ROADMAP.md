@@ -74,6 +74,6 @@ Living document. Updated each evolution session. Items come from three sources:
 - [x] Add `[build]` config section with check_script and multi-command support
 - [x] Add `[template]` config section for upstream sync settings
 - [x] Update EVOLUTION.md Step 7 with multi-build-system validation guidance
-- [ ] Add CI workflow lint for modified `.github/workflows/` files
-- [ ] Add rollback script for reverting broken merges automatically
-- [ ] Add pre-submit CI trigger (run CI on branch before merge, not after)
+- [x] Add CI workflow lint for modified `.github/workflows/` files
+- [x] Add rollback script for reverting broken merges automatically
+- [x] Add pre-submit CI trigger (run CI on branch before merge, not after)

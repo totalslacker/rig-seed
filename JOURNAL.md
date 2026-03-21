@@ -4,6 +4,45 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Day 5 — Session 18 (2026-03-21)
+
+**Goal**: Complete the Resilience roadmap phase — CI workflow lint, rollback script, and pre-submit CI trigger.
+
+Three deliverables completing the Resilience milestone:
+
+1. **CI workflow lint script** (scripts/lint-workflows.sh) — Validates GitHub Actions workflow
+   files beyond basic YAML syntax. Checks for deprecated action versions (checkout@v1-v3,
+   setup-*@v1-v2), missing required top-level keys (name, on, jobs), security anti-patterns
+   (pull_request_target without explicit permissions, hardcoded secrets), and best-practice
+   warnings (continue-on-error hiding failures). Supports `--quiet` for CI and `--help`.
+   Exits 0 if all checks pass, 1 if errors found.
+
+2. **Rollback script** (scripts/rollback.sh) — Safely reverts the most recent merge when the
+   build is broken. Uses `git revert` to create a new commit (non-destructive, preserves
+   history). Handles both merge commits (`-m 1`) and regular commits. Verifies working tree
+   is clean before starting. Automatically runs the build check script after reverting to
+   confirm the fix. Supports `--dry-run` to preview without acting and `--commit=SHA` to
+   target a specific commit. On conflict, provides resolution commands.
+
+3. **Pre-submit CI workflow** (docs/examples/workflows/pre-submit-ci.yml) — Example GitHub
+   Actions workflow that runs the full build/test suite on branches BEFORE merge to main.
+   Triggers on push to non-main branches and PRs targeting main. Includes a `ci-gate` job
+   that can be required in branch protection rules. Uses `concurrency` with
+   `cancel-in-progress` to save CI minutes on rapid pushes.
+
+Also:
+- Updated docs/examples/workflows/README.md with pre-submit-ci.yml entry
+- Updated README.md with Workflow Lint and Rollback sections
+- Updated scripts/migrate.sh with Session 18 feature detection
+- Checked off all three Resilience roadmap items — milestone complete
+
+**Next Steps**: The Resilience phase is now complete. Consider a new roadmap phase
+(Community? Polish? Observability?) or stabilize and respond to community issues.
+Issues #8 and #9 relate to Gas Town internals (refinery merge behavior), not this
+template repo — they should be addressed in the gastown rig.
+
+---
+
 ## Day 5 — Session 17 (2026-03-21)
 
 **Goal**: Address CRITICAL Issue #17 (multi-build-system validation) and Issue #4 (upstream template sync).

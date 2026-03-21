@@ -245,6 +245,14 @@ check_config_key "template" "Upstream sync configuration (added Session 17)"
 echo "  ok"
 echo ""
 
+# Session 18: Workflow lint, rollback, pre-submit CI
+echo "Workflow lint, rollback & pre-submit CI:"
+check_executable "scripts/lint-workflows.sh" "CI workflow lint script" "$source_root/scripts/lint-workflows.sh"
+check_executable "scripts/rollback.sh" "Rollback script for broken merges" "$source_root/scripts/rollback.sh"
+check_file "docs/examples/workflows/pre-submit-ci.yml" "Pre-submit CI workflow example" "$source_root/docs/examples/workflows/pre-submit-ci.yml"
+echo "  ok"
+echo ""
+
 # --- Summary ---
 
 echo "================================"

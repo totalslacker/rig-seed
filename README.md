@@ -167,6 +167,31 @@ upstream = "https://github.com/totalslacker/rig-seed.git"
 sync = "manual"
 ```
 
+## Workflow Lint
+
+Validate your GitHub Actions workflow files for common issues:
+
+```bash
+scripts/lint-workflows.sh
+```
+
+Checks YAML syntax, deprecated action versions, missing required fields,
+security anti-patterns (hardcoded secrets, unsafe `pull_request_target`), and
+best practices. Use `-q` for quiet CI output.
+
+## Rollback
+
+If a broken merge reaches main, revert it safely:
+
+```bash
+scripts/rollback.sh --dry-run    # Preview what will be reverted
+scripts/rollback.sh              # Revert and verify the build passes
+```
+
+Creates a revert commit (non-destructive). Handles both merge commits and
+regular commits. Automatically runs the build check after reverting to
+confirm the fix.
+
 ## Migration
 
 If you forked rig-seed a while ago and want to pick up new features:
