@@ -33,7 +33,34 @@ to decide:
 
 ## Upgrade methods
 
-### Method 1: Cherry-pick specific commits (recommended)
+### Method 0: Automated sync script (recommended)
+
+The easiest way to stay up to date:
+
+```bash
+# Preview what would change
+./scripts/sync-upstream.sh --dry-run
+
+# Apply upstream changes
+./scripts/sync-upstream.sh
+```
+
+The script automatically:
+- Adds/updates the `rig-seed-upstream` remote
+- Fetches the latest template
+- Merges infrastructure files (scripts, docs, examples)
+- Preserves your project-specific files (SPECS, JOURNAL, ROADMAP, etc.)
+- Reports conflicts that need manual resolution
+
+Configure the upstream URL in `.evolve/config.toml`:
+
+```toml
+[template]
+upstream = "https://github.com/totalslacker/rig-seed.git"
+sync = "manual"    # "manual" or "on-evolution" (auto-sync each session)
+```
+
+### Method 1: Cherry-pick specific commits
 
 Best when you only want a few changes:
 

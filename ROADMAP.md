@@ -66,3 +66,14 @@ Living document. Updated each evolution session. Items come from three sources:
 - [x] Add merge strategy guide for rig-spawn users (refinery vs PR-based vs hybrid) (Issue #13)
 - [x] Update quickstart.sh to write Day 1 spawn journal entry (Issue #12)
 - [x] Add example Grafana/Prometheus integration for long-running evolution monitoring
+
+## Resilience (Day 5+)
+
+- [x] Add multi-build-system check script with auto-detection (Issue #17, #7)
+- [x] Add upstream template sync script for consumer projects (Issue #4)
+- [x] Add `[build]` config section with check_script and multi-command support
+- [x] Add `[template]` config section for upstream sync settings
+- [x] Update EVOLUTION.md Step 7 with multi-build-system validation guidance
+- [ ] Add CI workflow lint for modified `.github/workflows/` files
+- [ ] Add rollback script for reverting broken merges automatically
+- [ ] Add pre-submit CI trigger (run CI on branch before merge, not after)

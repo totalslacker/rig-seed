@@ -75,13 +75,35 @@ Before submitting, the agent reviews its own diff:
 
 ### Step 7: Build Check
 
-Run the project's build, test, and lint commands. If the build fails:
+Run **ALL** of the project's build, test, and lint commands — not just the
+primary language. Projects with multiple build systems (e.g., Go backend +
+TypeScript frontend) must pass every check before submitting.
+
+**How the check works:**
+
+1. If `scripts/check.sh` exists, run it. This is the canonical build gate
+   that auto-detects all build systems and runs configured commands.
+2. Otherwise, run commands from the `[build]` section of `.evolve/config.toml`.
+3. As a fallback, run whatever is in the project's `.claude/CLAUDE.md` build
+   instructions.
+
+**Multi-build-system detection:** `scripts/check.sh` automatically detects:
+- `go.mod` → runs `go build`, `go test`, `go vet`
+- `package.json` (root or subdirectories like `frontend/`) → runs available
+  npm scripts (`build`, `test`, `lint`, `typecheck`)
+- `Cargo.toml` → runs `cargo build`, `cargo test`
+- `pyproject.toml` → runs `pytest`, `mypy`, `ruff` as configured
+- `Makefile` → runs standard targets as a fallback
+- `.github/workflows/*.yml` → lints YAML syntax
+
+**If any check fails:**
 
 1. Attempt to fix (up to `max_fix_attempts` from config, default: 3)
 2. If still failing, revert all changes
 3. Journal the failure honestly
 
-A broken main branch is never acceptable.
+**This is a hard gate.** Code that doesn't compile in ANY configured build
+system must NEVER be submitted. A broken main branch is never acceptable.
 
 ### Step 8: Update State
 

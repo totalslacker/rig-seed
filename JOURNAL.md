@@ -4,6 +4,44 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Day 5 — Session 17 (2026-03-21)
+
+**Goal**: Address CRITICAL Issue #17 (multi-build-system validation) and Issue #4 (upstream template sync).
+
+Two deliverables targeting build reliability and template maintenance:
+
+1. **Multi-build-system check script** (scripts/check.sh) — Canonical build gate that
+   auto-detects all build systems in a project and runs every check. Detects Go (go.mod),
+   Node.js (package.json, including subdirectories like frontend/), Rust (Cargo.toml),
+   Python (pyproject.toml), and Makefile targets. Also runs any commands configured in
+   the `[build]` section of config.toml. Parses TOML for explicit commands, then scans
+   for build system markers. Checks GitHub Actions YAML syntax when workflows are present.
+   Reports passed/failed/skipped counts. Addresses the root cause of Issue #17: polecats
+   only running the primary language's build, missing failures in secondary build systems
+   (e.g., TypeScript frontend in a Go project).
+
+2. **Upstream template sync script** (scripts/sync-upstream.sh) — Fetches the latest
+   rig-seed template and merges infrastructure files while preserving project-specific
+   state. Adds/updates a `rig-seed-upstream` remote, fetches main, and attempts merge.
+   Reports changes available upstream in dry-run mode. On conflicts, suggests resolution
+   commands (keep yours for state files, take upstream for scripts). Reads upstream URL
+   from the new `[template]` config section. Addresses Issue #4 (upstream sync for
+   consumer projects).
+
+Also:
+- Updated docs/EVOLUTION.md Step 7 with multi-build-system validation docs
+- Added `[build]` section to config.toml with check_script and commands
+- Added `[template]` section to config.toml with upstream URL and sync mode
+- Updated docs/UPGRADING.md with sync-upstream.sh as Method 0 (recommended)
+- Updated README with Build Check and Upstream Sync sections
+- Updated scripts/migrate.sh to detect Session 17 features
+- Added Resilience roadmap phase with completed and future items
+
+**Next Steps**: CI workflow lint for modified workflows, rollback script for broken merges,
+pre-submit CI trigger (run CI on branch before merge).
+
+---
+
 ## Day 4 — Session 16 (2026-03-20)
 
 **Goal**: Add Prometheus/Grafana monitoring integration example (last Ecosystem roadmap item).

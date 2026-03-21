@@ -123,6 +123,28 @@ human-controlled while still giving forked projects a running start.
 
 ---
 
+### Build check scripts must auto-detect ALL build systems, not just the primary
+
+A project with `go.mod` AND `frontend/package.json` has two build systems. If the
+build-check step only runs `go build`, TypeScript compilation errors will reach main.
+The check script should scan for all known build system markers (go.mod, package.json,
+Cargo.toml, pyproject.toml, Makefile) and run every detected one. Check subdirectories
+too — `frontend/`, `client/`, `web/`, `ui/`, and `app/` are common patterns for
+secondary build systems that live in subdirectories rather than the project root.
+
+---
+
+### Upstream sync should merge infrastructure but never state files
+
+When pulling rig-seed updates into a fork, the sync must distinguish between template
+infrastructure (scripts, docs, examples) and project-specific state (SPECS, JOURNAL,
+ROADMAP, LEARNINGS, counters). A full `git merge` will conflict on state files every
+time. The sync script should report available changes for infrastructure files and
+provide clear conflict resolution guidance: always keep yours for state files, take
+upstream for scripts and docs.
+
+---
+
 ### Prometheus exporters for shell metrics should skip non-numeric values
 
 When converting key=value output to Prometheus text format, some values will be

@@ -25,6 +25,24 @@ strategy = "refinery"          # "refinery" (auto-merge), "pr" (human reviews PR
 # pr_threshold = 3             # Hybrid: require PR if more than N files changed
 # pr_labels = ["breaking", "security", "deps"]  # Hybrid: require PR for these labels
 
+[build]
+# The check script is the canonical build gate. If it exists, it runs ALL
+# configured and auto-detected checks. See scripts/check.sh.
+check_script = "scripts/check.sh"
+
+# Explicit build commands (run by check.sh if configured, or directly by the agent).
+# List ALL commands needed to verify the project compiles and passes tests.
+# For multi-language projects, include commands for EVERY build system.
+# commands = [
+#   "go build ./...",
+#   "go test ./...",
+#   "cd frontend && npm run build && npx tsc --noEmit",
+# ]
+
+[template]
+upstream = "https://github.com/totalslacker/rig-seed.git"
+sync = "manual"                # "manual" (run sync-upstream.sh), "on-evolution" (sync at start of each session)
+
 [safety]
 max_fix_attempts = 3           # Revert after N failed build attempts
 revert_on_failure = true       # Revert all changes if build fails after max attempts

@@ -135,6 +135,38 @@ This resets SESSION_COUNT, clears the journal/roadmap/learnings, and walks you
 through writing your specs. See [example specs](docs/examples/specs/README.md)
 for starter templates (CLI tool, web API, library).
 
+## Build Check
+
+Run all build/test/lint checks across all detected build systems:
+
+```bash
+scripts/check.sh
+```
+
+Auto-detects Go, Node.js, Rust, Python, and Makefile projects (including
+subdirectories like `frontend/`). Also runs any commands configured in the
+`[build]` section of `.evolve/config.toml`. This is the same script the
+evolution agent runs during Step 7 (Build Check) — a broken build is never
+submitted.
+
+## Upstream Sync
+
+Stay up to date with the latest rig-seed template improvements:
+
+```bash
+scripts/sync-upstream.sh --dry-run   # Preview changes
+scripts/sync-upstream.sh             # Apply updates
+```
+
+Merges infrastructure files (scripts, docs, examples) from upstream while
+preserving your project-specific state. Configure in `.evolve/config.toml`:
+
+```toml
+[template]
+upstream = "https://github.com/totalslacker/rig-seed.git"
+sync = "manual"
+```
+
 ## Migration
 
 If you forked rig-seed a while ago and want to pick up new features:

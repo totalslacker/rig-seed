@@ -236,6 +236,15 @@ check_file "docs/examples/monitoring/README.md" "Monitoring setup guide" "$sourc
 echo "  ok"
 echo ""
 
+# Session 17: Build check script and upstream sync
+echo "Build check & upstream sync:"
+check_executable "scripts/check.sh" "Multi-build-system check script" "$source_root/scripts/check.sh"
+check_executable "scripts/sync-upstream.sh" "Upstream template sync" "$source_root/scripts/sync-upstream.sh"
+check_config_key "build" "Build check configuration (added Session 17)"
+check_config_key "template" "Upstream sync configuration (added Session 17)"
+echo "  ok"
+echo ""
+
 # --- Summary ---
 
 echo "================================"
