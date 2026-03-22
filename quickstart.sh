@@ -94,6 +94,28 @@ the same things. Search here before looking things up externally.
 ---
 EOF
 echo "  LEARNINGS.md cleared (header preserved)."
+
+cat > "$dir/NEXT_STEPS.md" << 'EOF'
+# Next Steps
+
+Updated at the end of each evolution session. Read at the start of the next.
+
+## Priority (do these first)
+
+- [ ] Write SPECS.md with project requirements
+- [ ] Configure .evolve/config.toml for your needs
+- [ ] Run first evolution cycle
+
+## Suggested (consider these)
+
+- [ ] Set up build commands in config.toml
+- [ ] Add CI workflows from docs/examples/workflows/
+
+## Deferred (not now, but don't forget)
+
+- [ ] Customize PERSONALITY.md for your project's voice
+EOF
+echo "  NEXT_STEPS.md initialized with bootstrap items."
 echo ""
 
 # --- Step 4: Check SPECS.md ---

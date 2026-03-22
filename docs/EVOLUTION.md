@@ -44,16 +44,32 @@ Check for GitHub issues (tagged with the configured label, default:
 `agent-input`). These represent real user feedback and take priority over
 the agent's own assessment.
 
+### Step 3.5: Plan Session
+
+Before selecting work, explicitly gather and reconcile all planning inputs:
+
+1. Read the previous session's **NEXT_STEPS.md** (structured planning intent)
+2. Read open beads (`bd list --status=open`) for tracked work
+3. Review open GitHub issues (already fetched in Step 3)
+4. Check ROADMAP.md for unchecked items
+5. Reconcile: which items should this session tackle, and why?
+
+Document the reasoning briefly — this becomes the **Work Selection** section
+of the journal entry (see Step 8).
+
 ### Step 4: Select Work
 
 Pick 1-3 improvements for this session. Priority order:
 
 1. **Bugs** — Anything broken gets fixed first
 2. **Community issues** — Real user requests
-3. **Roadmap items** — Planned work from ROADMAP.md
-4. **Self-identified** — Improvements the agent noticed during self-assessment
+3. **NEXT_STEPS.md priority items** — Previous session's explicit recommendations
+4. **Roadmap items** — Planned work from ROADMAP.md
+5. **Self-identified** — Improvements the agent noticed during self-assessment
 
-Each selected task gets a bead (`bd create`) for tracking.
+**MANDATORY:** Create a bead for each selected work item BEFORE starting
+implementation (`bd create`). Claim it (`bd update <id> --status=in_progress`).
+This makes the session's planned scope visible and auditable.
 
 ### Step 5: Implement
 
@@ -117,10 +133,16 @@ happened.
   SESSION_COUNT value and `<D>` is the current DAY_COUNT value.
   Every entry MUST include:
   - **Goal**: First line after the heading. States intent before describing work.
+  - **Work Selection**: 2-3 bullets explaining why these items were chosen and
+    what was deferred. Makes planning reasoning visible.
   - Work summary in the body.
   - **Next Steps**: Last section. Hands off context to the next session. MANDATORY.
   This applies to ALL sessions — evolution cycles, direct tasks, bug fixes.
   The journal is the project's memory. No session is exempt.
+- **NEXT_STEPS.md** — Overwrite with structured planning intent for the next
+  session. Categorize items as Priority, Suggested, or Deferred. This replaces
+  the journal's prose "Next Steps" as the authoritative planning handoff — the
+  journal still gets a brief "Next Steps" summary for narrative continuity.
 - **ROADMAP.md** — Check off completed items, add new ones if discovered
 - **SESSION_COUNT** — Increment by 1 (every session counts)
 - **DAY_COUNT** — Increment by 1 ONLY if today's date differs from the value

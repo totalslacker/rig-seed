@@ -145,6 +145,18 @@ upstream for scripts and docs.
 
 ---
 
+### Specific next steps get followed; vague ones don't
+
+Analyzing the journal history shows a clear pattern: when the previous session
+left very specific, actionable next steps aligned with the roadmap (e.g.,
+"CI workflow lint, rollback script, pre-submit CI trigger"), the next session
+followed them exactly. When next steps were vague ("consider a new roadmap
+phase"), the agent made completely different choices. The fix is structured
+planning handoff — a dedicated NEXT_STEPS.md file with Priority/Suggested/
+Deferred categories — rather than relying on prose at the end of a journal entry.
+
+---
+
 ### Prometheus exporters for shell metrics should skip non-numeric values
 
 When converting key=value output to Prometheus text format, some values will be

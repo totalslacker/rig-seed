@@ -4,6 +4,47 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Day 6 — Session 19 (2026-03-22)
+
+**Goal**: Investigate how planning works in rig-seed and implement structured planning improvements (Issue #18).
+
+**Work Selection**: Issue #18 is the only new community issue since Session 18. The previous
+session's next steps suggested considering a new roadmap phase or responding to community issues.
+Issue #18 is a research/report task about planning itself — addressing it also creates the
+opportunity to implement the improvements it investigates, which is a natural fit.
+
+Three deliverables making evolution planning visible and structured:
+
+1. **Planning investigation document** (docs/PLANNING.md) — Analyzed how work selection
+   currently happens across 18 sessions. Found that specific, roadmap-aligned next steps
+   get followed while vague suggestions don't. Identified four gaps: prose-only next steps,
+   no explicit planning step, invisible work selection reasoning, and underused beads for
+   planning. Proposed four concrete improvements with an implementation path.
+
+2. **NEXT_STEPS.md structured planning handoff** — New state file that replaces the journal's
+   prose "Next Steps" with a structured format: Priority (do first), Suggested (consider),
+   and Deferred (park for later). Overwritten each session. Read at the start of the next.
+   Updated validate.sh to check for it, quickstart.sh to initialize it, and migrate.sh to
+   detect it in forks.
+
+3. **Evolution formula updates** (docs/EVOLUTION.md) — Added Step 3.5 (Plan Session) between
+   Fetch Community Input and Select Work: read NEXT_STEPS.md, reconcile with open beads/issues/
+   roadmap, document reasoning. Added NEXT_STEPS.md to Step 4 priority hierarchy (slot 3, after
+   bugs and community issues). Added "Work Selection" as a mandatory journal section. Made bead
+   creation before implementation mandatory in Step 4 documentation.
+
+Also:
+- Added Planning roadmap phase with completed and future items
+- Updated README template files table with NEXT_STEPS.md and documentation links section
+- Added learning: specific next steps get followed, vague ones don't
+- Updated migration script with Session 19 feature detection
+
+**Next Steps**: See NEXT_STEPS.md for structured planning. Key items: close stale GitHub
+issues addressed in prior sessions, add planning voice examples to PERSONALITY.md, consider
+a `--plan` flag for metrics.sh.
+
+---
+
 ## Day 5 — Session 18 (2026-03-21)
 
 **Goal**: Complete the Resilience roadmap phase — CI workflow lint, rollback script, and pre-submit CI trigger.

@@ -71,6 +71,7 @@ one manually by creating a bead with the `mol-evolve` formula.
 | `ROADMAP.md` | Priorities, milestones, future work | Yes |
 | `JOURNAL.md` | Session log (append-only, never delete) | Append only |
 | `LEARNINGS.md` | Accumulated technical insights | Yes |
+| `NEXT_STEPS.md` | Structured planning intent for next session | Overwritten each session |
 | `SESSION_COUNT` | Current evolution session number | Auto-incremented |
 | `.evolve/config.toml` | Evolution settings (frequency, limits) | Yes |
 | `.evolve/IMMUTABLE.txt` | Files the agent cannot modify | Human only |
@@ -219,6 +220,7 @@ from upstream. It never overwrites files you've customized.
 - [Upgrading Your Fork](docs/UPGRADING.md) — How to pull new rig-seed features into an existing fork
 - [Monitoring with Prometheus + Grafana](docs/examples/monitoring/README.md) — Expose evolution metrics for long-running monitoring
 - [Merge Strategy Guide](docs/MERGE-STRATEGY.md) — Choosing between Refinery, PR-based, and hybrid merging
+- [Planning Investigation](docs/PLANNING.md) — How evolution sessions choose work and how to improve it
 - [Troubleshooting](docs/TROUBLESHOOTING.md) — Common problems and how to fix them
 - [Project Plan](docs/PLAN.md) — Architecture and design decisions
 

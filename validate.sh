@@ -103,6 +103,7 @@ check_file     "LEARNINGS.md"   "Technical learnings"
 check_file     "SESSION_COUNT"  "Session counter"
 check_file     "DAY_COUNT"      "Day counter"
 check_file     "DAY_DATE"       "Last session date"
+check_file     "NEXT_STEPS.md"  "Planning handoff"
 check_file     "PERSONALITY.md" "Agent personality"
 
 info ""

@@ -253,6 +253,13 @@ check_file "docs/examples/workflows/pre-submit-ci.yml" "Pre-submit CI workflow e
 echo "  ok"
 echo ""
 
+# Session 19: Planning investigation and NEXT_STEPS.md
+echo "Planning & structured handoff:"
+check_file "NEXT_STEPS.md" "Structured planning handoff" "$source_root/NEXT_STEPS.md"
+check_file "docs/PLANNING.md" "Planning investigation & recommendations" "$source_root/docs/PLANNING.md"
+echo "  ok"
+echo ""
+
 # --- Summary ---
 
 echo "================================"

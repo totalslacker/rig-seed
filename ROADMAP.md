@@ -77,3 +77,14 @@ Living document. Updated each evolution session. Items come from three sources:
 - [x] Add CI workflow lint for modified `.github/workflows/` files
 - [x] Add rollback script for reverting broken merges automatically
 - [x] Add pre-submit CI trigger (run CI on branch before merge, not after)
+
+## Planning (Day 6+)
+
+- [x] Investigate how planning works in rig-seed and write docs/PLANNING.md (Issue #18)
+- [x] Create NEXT_STEPS.md structured planning handoff file
+- [x] Add Step 3.5 (Plan Session) to docs/EVOLUTION.md formula documentation
+- [x] Add "Work Selection" section to journal entry format in EVOLUTION.md
+- [x] Update README with NEXT_STEPS.md in template files table and planning doc link
+- [ ] Make bead creation mandatory before implementation in Step 4 (needs Gas Town formula update)
+- [ ] Add planning voice examples to PERSONALITY.md
+- [ ] Add `--plan` flag to metrics.sh for planning-relevant output
