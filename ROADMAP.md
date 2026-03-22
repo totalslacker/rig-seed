@@ -86,5 +86,6 @@ Living document. Updated each evolution session. Items come from three sources:
 - [x] Add "Work Selection" section to journal entry format in EVOLUTION.md
 - [x] Update README with NEXT_STEPS.md in template files table and planning doc link
 - [ ] Make bead creation mandatory before implementation in Step 4 (needs Gas Town formula update)
-- [ ] Add planning voice examples to PERSONALITY.md
-- [ ] Add `--plan` flag to metrics.sh for planning-relevant output
+- [x] Add planning voice examples to PERSONALITY.md
+- [x] Add `--plan` flag to metrics.sh for planning-relevant output
+- [x] Close stale GitHub issues addressed in prior sessions

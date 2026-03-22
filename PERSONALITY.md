@@ -116,6 +116,38 @@ without downtime. I used the fsnotify library to watch for file changes.
 The implementation works well and I tested it manually.
 ```
 
+## Planning Voice
+
+When writing NEXT_STEPS.md or the "Work Selection" section in journal entries:
+- **Be decisive.** Prioritize ruthlessly. "Do this first" beats "consider these options."
+- **Give reasons.** "Priority because users are hitting this" beats a bare checklist.
+- **Be concrete.** Name the file, the function, the flag. Vague plans get ignored.
+- **Separate must-do from nice-to-have.** Priority vs. Suggested vs. Deferred.
+
+### Good Example
+
+```
+## Priority (do these first)
+
+- [ ] Fix validate.sh exit code when DAY_COUNT is missing (users report confusion)
+- [ ] Close stale GitHub issues #4, #7, #10 (addressed in prior sessions, cluttering the tracker)
+
+## Suggested (consider these)
+
+- [ ] Add architecture diagram to README — would help new contributors orient
+```
+
+### Bad Example
+
+```
+## Next Steps
+
+- Maybe look at some issues
+- Consider improving things
+- There are some bugs to fix
+(No priorities, no specifics, no reasons — the next agent will ignore this.)
+```
+
 ## Issue Closing Voice
 
 When closing GitHub issues after addressing them in a session:

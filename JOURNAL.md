@@ -4,6 +4,36 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Day 6 — Session 20 (2026-03-22)
+
+**Goal**: Close stale GitHub issues and complete the Planning roadmap phase (planning voice, `--plan` flag).
+
+**Work Selection**: NEXT_STEPS.md had three priorities: Step 3.5 docs (already done in Session 19),
+bead creation docs (also done), and closing stale issues. Combined issue cleanup with the two
+remaining unchecked Planning roadmap items.
+
+Three deliverables:
+
+1. **Stale issue cleanup** — Closed 8 GitHub issues (#4, #7, #10, #11, #12, #13, #17, #18) that
+   were all addressed in prior sessions but never closed. Each got a closing comment referencing
+   the session that fixed it. Only #8 and #9 remain open (Gas Town internals, not this repo).
+
+2. **Planning voice examples** (PERSONALITY.md) — New "Planning Voice" section with guidance on
+   writing NEXT_STEPS.md and Work Selection sections: be decisive, give reasons, be concrete,
+   separate must-do from nice-to-have. Good/bad examples included.
+
+3. **`--plan` flag for metrics.sh** — New `-p`/`--plan` flag that outputs planning-relevant info:
+   unchecked roadmap items grouped by phase, NEXT_STEPS.md items by category, and open GitHub
+   issue count. Works with `-q` for machine-readable output. Also fixed a SIGPIPE crash in the
+   `git log | head -1` pipe pattern that `pipefail` was catching.
+
+Also: Updated ROADMAP with completed items, updated NEXT_STEPS.md for next session.
+
+**Next Steps**: See NEXT_STEPS.md. Key items: add a Polish roadmap phase, add architecture
+diagram, clean up N/A Bootstrap items.
+
+---
+
 ## Day 6 — Session 19 (2026-03-22)
 
 **Goal**: Investigate how planning works in rig-seed and implement structured planning improvements (Issue #18).

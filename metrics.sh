@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # metrics.sh — Summarize evolution history for a rig-seed project.
 #
-# Usage: ./metrics.sh [-q|--quiet] [-h|--help] [directory]
+# Usage: ./metrics.sh [-q|--quiet] [-p|--plan] [-h|--help] [directory]
 #
 # Outputs:
 #   - Total sessions and current day count
@@ -20,6 +20,7 @@ set -euo pipefail
 # --- Options ---
 
 quiet=false
+plan=false
 dir=""
 
 for arg in "$@"; do
@@ -31,6 +32,7 @@ for arg in "$@"; do
       echo ""
       echo "Options:"
       echo "  -q, --quiet   Machine-readable output (key=value pairs)"
+      echo "  -p, --plan    Show planning-relevant info (unchecked roadmap, next steps)"
       echo "  -h, --help    Show this help message"
       echo ""
       echo "Arguments:"
@@ -39,11 +41,15 @@ for arg in "$@"; do
       echo "Examples:"
       echo "  ./metrics.sh              # Human-readable summary"
       echo "  ./metrics.sh -q           # key=value output for scripting"
+      echo "  ./metrics.sh -p           # Planning-focused output"
       echo "  ./metrics.sh ~/my-project # Check a different project"
       exit 0
       ;;
     -q|--quiet)
       quiet=true
+      ;;
+    -p|--plan)
+      plan=true
       ;;
     *)
       dir="$arg"
@@ -107,10 +113,10 @@ if git -C "$dir" rev-parse --git-dir &>/dev/null; then
   total_commits=$(git -C "$dir" rev-list --count HEAD 2>/dev/null || echo "0")
 
   if [ "$total_commits" -gt 0 ]; then
-    first_commit_date=$(git -C "$dir" log --reverse --format='%ci' | head -1 | cut -d' ' -f1)
+    first_commit_date=$(git -C "$dir" log --reverse --format='%ci' | head -1 | cut -d' ' -f1 || true)
     last_commit_date=$(git -C "$dir" log -1 --format='%ci' | cut -d' ' -f1)
 
-    first_epoch=$(git -C "$dir" log --reverse --format='%ct' | head -1)
+    first_epoch=$(git -C "$dir" log --reverse --format='%ct' | head -1 || true)
     last_epoch=$(git -C "$dir" log -1 --format='%ct')
     age_days=$(( (last_epoch - first_epoch) / 86400 ))
     if [ "$age_days" -eq 0 ]; then
@@ -128,7 +134,7 @@ if git -C "$dir" rev-parse --git-dir &>/dev/null; then
   fi
 
   files_in_repo=$(git -C "$dir" ls-files | wc -l | tr -d ' ')
-  total_lines=$(git -C "$dir" ls-files -z | xargs -0 cat 2>/dev/null | wc -l | tr -d ' ' || echo "0")
+  total_lines=$(git -C "$dir" ls-files -z | xargs -0 wc -l 2>/dev/null | tail -1 | awk '{print $1}' || echo "0")
 fi
 
 # Roadmap progress
@@ -200,4 +206,89 @@ print_metric "Learnings recorded:" "learnings_count" "$learnings_count"
 if [ "$quiet" = false ]; then
   echo ""
   echo "================================"
+fi
+
+# --- Planning output (--plan) ---
+
+if [ "$plan" = true ]; then
+  if [ "$quiet" = false ]; then
+    echo ""
+    echo "=== Planning Context ==="
+  fi
+
+  # Unchecked roadmap items by phase
+  if [ -f "$dir/ROADMAP.md" ]; then
+    if [ "$quiet" = false ]; then
+      echo ""
+      echo "Unchecked roadmap items:"
+    fi
+    current_phase=""
+    while IFS= read -r line; do
+      if [[ "$line" =~ ^##\  ]]; then
+        current_phase="${line## }"
+        current_phase="${current_phase#\#\# }"
+      elif [[ "$line" =~ ^-\ \[\ \] ]]; then
+        item="${line#- \[ \] }"
+        if [ "$quiet" = true ]; then
+          echo "roadmap_unchecked_item=${item}"
+        else
+          echo "  [$current_phase] $item"
+        fi
+      fi
+    done < "$dir/ROADMAP.md"
+  fi
+
+  # NEXT_STEPS.md content
+  if [ -f "$dir/NEXT_STEPS.md" ]; then
+    # Count items by category
+    priority_count=$(grep -c '^\- \[ \]' "$dir/NEXT_STEPS.md" 2>/dev/null || echo "0")
+    if [ "$quiet" = false ]; then
+      echo ""
+      echo "Next steps ($priority_count items):"
+    fi
+    print_metric "Next steps items:" "next_steps_count" "$priority_count"
+
+    current_section=""
+    while IFS= read -r line; do
+      if [[ "$line" =~ ^##\  ]]; then
+        current_section="${line#\#\# }"
+      elif [[ "$line" =~ ^-\ \[.\] ]]; then
+        item="${line#- \[?\] }"
+        # Extract checked status
+        if [[ "$line" =~ ^-\ \[x\] ]]; then
+          status="done"
+        else
+          status="open"
+          item="${line#- \[ \] }"
+        fi
+        if [ "$quiet" = true ]; then
+          echo "next_step_${status}=${item}"
+        else
+          if [ "$status" = "done" ]; then
+            echo "  [x] ($current_section) $item"
+          else
+            echo "  [ ] ($current_section) $item"
+          fi
+        fi
+      fi
+    done < "$dir/NEXT_STEPS.md"
+  else
+    if [ "$quiet" = true ]; then
+      echo "next_steps_count=0"
+    else
+      echo ""
+      echo "NEXT_STEPS.md: not found"
+    fi
+  fi
+
+  # Open GitHub issues count (if gh is available)
+  if command -v gh &>/dev/null && git -C "$dir" rev-parse --git-dir &>/dev/null; then
+    open_issues=$(gh issue list --state open --limit 100 --json number 2>/dev/null | grep -c '"number"' || echo "0")
+    print_metric "Open GitHub issues:" "open_issues" "$open_issues"
+  fi
+
+  if [ "$quiet" = false ]; then
+    echo ""
+    echo "================================"
+  fi
 fi

@@ -260,6 +260,19 @@ check_file "docs/PLANNING.md" "Planning investigation & recommendations" "$sourc
 echo "  ok"
 echo ""
 
+# Session 20: Planning voice in PERSONALITY.md and --plan flag in metrics.sh
+echo "Session 20 enhancements (in-file updates):"
+if [ -f "$dir/PERSONALITY.md" ] && ! grep -q '## Planning Voice' "$dir/PERSONALITY.md" 2>/dev/null; then
+  echo "  NOTE: PERSONALITY.md missing Planning Voice section (added Session 20)"
+  echo "        Compare with upstream to add planning guidance."
+fi
+if [ -f "$dir/metrics.sh" ] && ! grep -q '\-\-plan' "$dir/metrics.sh" 2>/dev/null; then
+  echo "  NOTE: metrics.sh missing --plan flag (added Session 20)"
+  echo "        Compare with upstream to add planning output."
+fi
+echo "  ok"
+echo ""
+
 # --- Summary ---
 
 echo "================================"
