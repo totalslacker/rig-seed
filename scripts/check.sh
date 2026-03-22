@@ -19,6 +19,23 @@
 
 set -euo pipefail
 
+# --- Help ---
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+    echo "Usage: $(basename "$0") [directory]"
+    echo ""
+    echo "Run ALL build/test/lint checks for a rig-seed project."
+    echo ""
+    echo "  directory   Project root (default: current directory)"
+    echo ""
+    echo "Detects Go, Node.js, Rust, Python, and Makefile projects."
+    echo "Also runs commands from [build] in .evolve/config.toml."
+    echo ""
+    echo "Exit codes:"
+    echo "  0   All checks passed"
+    echo "  1   One or more checks failed"
+    exit 0
+fi
+
 dir="${1:-.}"
 cd "$dir"
 

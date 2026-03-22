@@ -207,6 +207,7 @@ from upstream. It never overwrites files you've customized.
 
 ## Documentation
 
+- [Architecture](docs/ARCHITECTURE.md) — How state files, scripts, and evolution flow connect
 - [Forking Guide](docs/FORKING.md) — What to do after you fork rig-seed
 - [The Evolution Process](docs/EVOLUTION.md) — How `mol-evolve` works step by step
 - [Example Specs](docs/examples/specs/README.md) — Starter SPECS.md files for common project types

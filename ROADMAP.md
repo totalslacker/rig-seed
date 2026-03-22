@@ -12,9 +12,9 @@ Living document. Updated each evolution session. Items come from three sources:
 - [x] Add CONTRIBUTING.md explaining the evolution process
 - [x] Improve README with clearer getting-started instructions
 - [x] Improve .claude/CLAUDE.md with evolution day flow
-- [ ] Choose language and tech stack based on specs (N/A — template repo)
-- [ ] Set up project structure (N/A — template repo, structure is the state files)
-- [ ] Write initial tests (N/A until forked projects add code)
+- [x] ~Choose language and tech stack~ — N/A: template repo has no runtime code
+- [x] ~Set up project structure~ — N/A: structure IS the state files and scripts
+- [x] ~Write initial tests~ — N/A for template; integration test covers the template itself (Session 7)
 
 ## Foundation (Day 4-10)
 
@@ -89,3 +89,13 @@ Living document. Updated each evolution session. Items come from three sources:
 - [x] Add planning voice examples to PERSONALITY.md
 - [x] Add `--plan` flag to metrics.sh for planning-relevant output
 - [x] Close stale GitHub issues addressed in prior sessions
+
+## Polish (Day 6+)
+
+- [x] Add architecture diagram documenting state files, scripts, and evolution flow
+- [x] Clean up N/A Bootstrap roadmap items
+- [x] Add `--help` flag to scripts/check.sh and scripts/release.sh
+- [ ] Add `-q`/`--quiet` flag to scripts/check.sh for CI-friendly output
+- [ ] Standardize error message prefixes across all scripts (currently mixed: "Error:", "FAIL:", "ERROR:")
+- [ ] Review and normalize emoji vs text-only output markers across scripts
+- [ ] Add architecture diagram link to docs/DAY-ZERO.md and docs/FORKING.md

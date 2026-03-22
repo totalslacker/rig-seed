@@ -12,6 +12,22 @@
 
 set -euo pipefail
 
+# --- Help ---
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+    echo "Usage: $(basename "$0") [--dry-run] [major|minor|patch]"
+    echo ""
+    echo "Tag a new semver release based on the latest git tag."
+    echo ""
+    echo "Options:"
+    echo "  --dry-run   Show what would happen without creating a tag"
+    echo "  major       Increment major version (v1.2.3 → v2.0.0)"
+    echo "  minor       Increment minor version (v1.2.3 → v1.3.0)"
+    echo "  patch       Increment patch version (v1.2.3 → v1.2.4) [default]"
+    echo ""
+    echo "If no tags exist yet, starts at v0.1.0."
+    exit 0
+fi
+
 BUMP="${1:-patch}"
 DRY_RUN=false
 
@@ -21,7 +37,7 @@ if [[ "$BUMP" == "--dry-run" ]]; then
 fi
 
 if [[ "$BUMP" != "major" && "$BUMP" != "minor" && "$BUMP" != "patch" ]]; then
-    echo "Usage: $0 [--dry-run] [major|minor|patch]"
+    echo "Usage: $(basename "$0") [--dry-run] [major|minor|patch]"
     echo "  Default: patch"
     exit 1
 fi
