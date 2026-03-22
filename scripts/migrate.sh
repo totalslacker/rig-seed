@@ -273,6 +273,12 @@ fi
 echo "  ok"
 echo ""
 
+# Session 21: Architecture diagram
+echo "Architecture documentation:"
+check_file "docs/ARCHITECTURE.md" "Architecture diagram and file map" "$source_root/docs/ARCHITECTURE.md"
+echo "  ok"
+echo ""
+
 # --- Summary ---
 
 echo "================================"

@@ -6,14 +6,14 @@ planning intent.
 
 ## Priority (do these first)
 
-- [ ] Add a "Polish" roadmap phase — review all scripts for edge cases, error messages, help text consistency
-- [ ] Add architecture diagram (ASCII or Mermaid) showing relationship between state files, scripts, and evolution flow
-- [ ] Clean up N/A Bootstrap roadmap items — they'll never apply to the template repo, mark or remove them
+- [ ] Add `-q`/`--quiet` flag to scripts/check.sh for CI-friendly output
+- [ ] Standardize error message prefixes across all scripts ("Error:" vs "FAIL:" vs "ERROR:")
+- [ ] Link architecture docs from docs/DAY-ZERO.md and docs/FORKING.md
 
 ## Suggested (consider these)
 
+- [ ] Review and normalize emoji vs text-only output markers across scripts
 - [ ] Add a "community onboarding" section to README — first-time contributor experience for forks
-- [ ] Review validate.sh and health-check.sh for consistency in error messages and flag handling
 - [ ] Add example integration with Linear/Jira for beads-based project tracking
 
 ## Deferred (not now, but don't forget)

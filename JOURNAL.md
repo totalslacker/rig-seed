@@ -4,6 +4,38 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Day 6 — Session 21 (2026-03-22)
+
+**Goal**: Polish phase — architecture diagram, Bootstrap cleanup, script consistency improvements.
+
+**Work Selection**: All three NEXT_STEPS.md Priority items were concrete and independent, so
+this session addresses all of them. No community issues since Session 20 (only #8 and #9
+remain, both Gas Town internals). Self-assessment via script audit revealed --help flag gaps
+in check.sh and release.sh — included as quick wins.
+
+Three deliverables:
+
+1. **Architecture diagram** (docs/ARCHITECTURE.md) — ASCII diagrams showing the evolution
+   cycle flow (Steps 1-9), annotated file tree with purpose descriptions for every state
+   file, script, and doc, data flow diagram between state files and the evolution agent,
+   and a guard rails summary table. Linked from README documentation section.
+
+2. **Bootstrap N/A cleanup** — The three Bootstrap items that never applied to the template
+   repo ("Choose language", "Set up project structure", "Write initial tests") were marked
+   as resolved with explanations instead of left as dangling unchecked items.
+
+3. **Polish roadmap phase** — New roadmap phase based on a script consistency audit. Found:
+   3 scripts missing --help, 8 scripts missing --quiet, inconsistent error prefixes across
+   scripts. Added --help to scripts/check.sh and scripts/release.sh as quick wins. Remaining
+   items tracked in the roadmap for future sessions.
+
+Also: Updated scripts/migrate.sh with Session 21 architecture detection.
+
+**Next Steps**: See NEXT_STEPS.md. Key items: add --quiet to check.sh, standardize error
+prefixes across scripts, link architecture docs from DAY-ZERO.md and FORKING.md.
+
+---
+
 ## Day 6 — Session 20 (2026-03-22)
 
 **Goal**: Close stale GitHub issues and complete the Planning roadmap phase (planning voice, `--plan` flag).
