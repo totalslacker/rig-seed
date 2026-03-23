@@ -205,6 +205,41 @@ scripts/migrate.sh             # Add missing files
 The script detects which rig-seed features are present and copies missing ones
 from upstream. It never overwrites files you've customized.
 
+## Community & Onboarding
+
+If you're contributing to a project that was forked from rig-seed, here's how
+to get oriented quickly:
+
+### Understand the project
+
+1. Read `SPECS.md` — what the project is building
+2. Read `JOURNAL.md` (top entries) — what happened recently
+3. Check `ROADMAP.md` — what's planned next
+4. Run `./health-check.sh` — see the project's current health
+
+### Steer the agent
+
+File a GitHub issue with the `agent-input` label. The evolution agent
+prioritizes community issues above its own roadmap. Be specific — "the CLI
+crashes when given an empty file" works better than "improve error handling."
+
+### Contribute directly
+
+Pull requests are welcome. Before you start:
+
+- Run `./validate.sh` to confirm the template is intact
+- Run `scripts/check.sh` to verify all builds pass
+- Don't modify `IDENTITY.md` or files in `.evolve/IMMUTABLE.txt`
+- Don't delete journal entries — `JOURNAL.md` is append-only
+- See `CONTRIBUTING.md` for full guidelines
+
+### Set up your own fork
+
+Want your own self-evolving project? See [Quick Start](#quick-start) above or
+run the `/rig-spawn` wizard in Claude Code for interactive setup. The
+[Day Zero Walkthrough](docs/DAY-ZERO.md) covers everything from fork to first
+evolution session.
+
 ## Documentation
 
 - [Architecture](docs/ARCHITECTURE.md) — How state files, scripts, and evolution flow connect
