@@ -1,0 +1,37 @@
+# shellcheck.yml — Lint shell scripts with ShellCheck
+#
+# Catches common bash pitfalls: unquoted variables, unused variables,
+# subshell surprises, and more. Runs on all .sh files in the repo.
+#
+# To use: copy to .github/workflows/shellcheck.yml
+#
+# Prerequisites:
+#   - None (uses the koalaman/shellcheck-action which bundles shellcheck)
+
+name: ShellCheck
+
+on:
+  push:
+    branches: [main]
+    paths: ['**/*.sh']
+  pull_request:
+    paths: ['**/*.sh']
+
+jobs:
+  shellcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run ShellCheck
+        uses: ludeeus/action-shellcheck@2.0.0
+        with:
+          # Check all .sh files recursively
+          scandir: '.'
+          # Severity threshold: error, warning, info, style
+          severity: warning
+          # Exclude specific checks if needed (comma-separated SC codes)
+          # disable_code: SC2059,SC2034
+        env:
+          # Follow sourced files for more accurate analysis
+          SHELLCHECK_OPTS: '-x'

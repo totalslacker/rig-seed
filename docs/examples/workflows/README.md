@@ -24,3 +24,4 @@ cp docs/examples/workflows/lint-markdown.yml .github/workflows/
 | `lint-markdown.yml` | Lints markdown files using markdownlint-cli2 |
 | `metrics-pr-comment.yml` | Runs `metrics.sh` and posts evolution metrics as a PR comment |
 | `pre-submit-ci.yml` | Runs full build/test suite on branches before merge to main |
+| `shellcheck.yml` | Lints shell scripts with ShellCheck to catch common bash pitfalls |
