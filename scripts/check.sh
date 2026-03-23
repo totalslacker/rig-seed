@@ -10,8 +10,9 @@
 #   2. Auto-detect secondary build systems (package.json, Cargo.toml, etc.)
 #   3. Run all detected checks — ALL must pass
 #
-# Usage: ./scripts/check.sh [-q|--quiet] [directory]
+# Usage: ./scripts/check.sh [-q|--quiet] [--json] [directory]
 #   -q, --quiet   Suppress passing checks and info lines; only show failures
+#   --json        Output results as a JSON object
 #   directory     Project root (default: current directory)
 #
 # Exit codes:
@@ -28,6 +29,7 @@ if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
     echo ""
     echo "Options:"
     echo "  -q, --quiet   Suppress passing checks and info lines; only show failures"
+    echo "  --json        Output results as a JSON object"
     echo "  directory     Project root (default: current directory)"
     echo ""
     echo "Detects Go, Node.js, Rust, Python, and Makefile projects."
@@ -41,10 +43,12 @@ fi
 
 # --- Parse arguments ---
 quiet=false
+json=false
 dir="."
 for arg in "$@"; do
   case "$arg" in
     -q|--quiet) quiet=true ;;
+    --json) json=true ;;
     *) dir="$arg" ;;
   esac
 done
@@ -54,22 +58,32 @@ passed=0
 failed=0
 skipped=0
 
+# JSON mode collects results into arrays
+json_checks=()
+
+json_add() {
+  local name="$1" status="$2"
+  json_checks+=("{\"name\":\"$name\",\"status\":\"$status\"}")
+}
+
 # --- Helpers ---
 
 info() {
-  [ "$quiet" = true ] || echo "$@"
+  [ "$quiet" = true ] || [ "$json" = true ] || echo "$@"
 }
 
 run_check() {
   local label="$1"
   shift
   info "  ▶ $label"
-  if "$@" 2>&1 | { [ "$quiet" = true ] && cat >/dev/null || sed 's/^/    /'; }; then
+  if "$@" 2>&1 | { if [ "$quiet" = true ] || [ "$json" = true ]; then cat >/dev/null; else sed 's/^/    /'; fi; }; then
     info "  ✓ $label passed"
     ((passed++))
+    [ "$json" = true ] && json_add "$label" "passed"
   else
-    echo "  ✗ $label FAILED"
+    [ "$json" = false ] && echo "  ✗ $label FAILED"
     ((failed++))
+    [ "$json" = true ] && json_add "$label" "failed"
   fi
 }
 
@@ -77,12 +91,14 @@ run_check_cmd() {
   local label="$1"
   local cmd="$2"
   info "  ▶ $label"
-  if eval "$cmd" 2>&1 | { [ "$quiet" = true ] && cat >/dev/null || sed 's/^/    /'; }; then
+  if eval "$cmd" 2>&1 | { if [ "$quiet" = true ] || [ "$json" = true ]; then cat >/dev/null; else sed 's/^/    /'; fi; }; then
     info "  ✓ $label passed"
     ((passed++))
+    [ "$json" = true ] && json_add "$label" "passed"
   else
-    echo "  ✗ $label FAILED"
+    [ "$json" = false ] && echo "  ✗ $label FAILED"
     ((failed++))
+    [ "$json" = true ] && json_add "$label" "failed"
   fi
 }
 
@@ -169,8 +185,9 @@ if [ -f "go.mod" ]; then
     run_check "go test" go test ./...
     run_check "go vet" go vet ./...
   else
-    echo "  ⚠ go not found in PATH — skipping Go checks"
+    [ "$json" = false ] && echo "  ⚠ go not found in PATH — skipping Go checks"
     ((skipped++))
+    [ "$json" = true ] && json_add "go" "skipped"
   fi
 fi
 
@@ -192,8 +209,9 @@ if [ -f "package.json" ]; then
       run_check "npm typecheck" npm run typecheck
     fi
   else
-    echo "  ⚠ npm not found in PATH — skipping Node.js checks"
+    [ "$json" = false ] && echo "  ⚠ npm not found in PATH — skipping Node.js checks"
     ((skipped++))
+    [ "$json" = true ] && json_add "npm" "skipped"
   fi
 fi
 
@@ -218,8 +236,9 @@ for subdir in frontend client web ui app; do
         fi
       fi
     else
-      echo "  ⚠ npm not found in PATH — skipping $subdir checks"
+      [ "$json" = false ] && echo "  ⚠ npm not found in PATH — skipping $subdir checks"
       ((skipped++))
+      [ "$json" = true ] && json_add "$subdir" "skipped"
     fi
   fi
 done
@@ -232,8 +251,9 @@ if [ -f "Cargo.toml" ]; then
     run_check "cargo test" cargo test
     run_check "cargo clippy" cargo clippy -- -D warnings 2>/dev/null || true
   else
-    echo "  ⚠ cargo not found in PATH — skipping Rust checks"
+    [ "$json" = false ] && echo "  ⚠ cargo not found in PATH — skipping Rust checks"
     ((skipped++))
+    [ "$json" = true ] && json_add "cargo" "skipped"
   fi
 fi
 
@@ -253,8 +273,9 @@ if [ -f "pyproject.toml" ] || [ -f "setup.py" ] || [ -f "setup.cfg" ]; then
       run_check "ruff check" ruff check .
     fi
   else
-    echo "  ⚠ python3 not found in PATH — skipping Python checks"
+    [ "$json" = false ] && echo "  ⚠ python3 not found in PATH — skipping Python checks"
     ((skipped++))
+    [ "$json" = true ] && json_add "python3" "skipped"
   fi
 fi
 
@@ -282,21 +303,49 @@ if [ -d ".github/workflows" ]; then
     for wf in .github/workflows/*.yml .github/workflows/*.yaml; do
       [ -f "$wf" ] || continue
       if ! python3 -c "import yaml; yaml.safe_load(open('$wf'))" 2>/dev/null; then
-        echo "  ✗ Invalid YAML: $wf"
+        [ "$json" = false ] && echo "  ✗ Invalid YAML: $wf"
         ((workflow_errors++))
       fi
     done
     if [ $workflow_errors -gt 0 ]; then
-      echo "  ✗ workflow YAML lint FAILED ($workflow_errors files)"
+      [ "$json" = false ] && echo "  ✗ workflow YAML lint FAILED ($workflow_errors files)"
       ((failed++))
+      [ "$json" = true ] && json_add "workflow YAML lint" "failed"
     else
       info "  ✓ workflow YAML lint passed"
       ((passed++))
+      [ "$json" = true ] && json_add "workflow YAML lint" "passed"
     fi
   fi
 fi
 
 # --- Summary ---
+
+if [ "$json" = true ]; then
+  # Build JSON output
+  local_result="passed"
+  if [ $failed -gt 0 ]; then
+    local_result="failed"
+  elif [ $passed -eq 0 ] && [ ${#config_commands[@]} -eq 0 ]; then
+    local_result="no_checks"
+  fi
+
+  # Build checks array
+  checks_json=""
+  for item in "${json_checks[@]}"; do
+    if [ -n "$checks_json" ]; then
+      checks_json="$checks_json,$item"
+    else
+      checks_json="$item"
+    fi
+  done
+
+  printf '{"result":"%s","passed":%d,"failed":%d,"skipped":%d,"checks":[%s]}\n' \
+    "$local_result" "$passed" "$failed" "$skipped" "$checks_json"
+
+  [ $failed -gt 0 ] && exit 1
+  exit 0
+fi
 
 info ""
 info "=== Check Summary ==="
