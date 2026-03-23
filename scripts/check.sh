@@ -10,8 +10,9 @@
 #   2. Auto-detect secondary build systems (package.json, Cargo.toml, etc.)
 #   3. Run all detected checks — ALL must pass
 #
-# Usage: ./scripts/check.sh [directory]
-#   directory: project root (default: current directory)
+# Usage: ./scripts/check.sh [-q|--quiet] [directory]
+#   -q, --quiet   Suppress passing checks and info lines; only show failures
+#   directory     Project root (default: current directory)
 #
 # Exit codes:
 #   0 — all checks passed
@@ -21,11 +22,13 @@ set -euo pipefail
 
 # --- Help ---
 if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
-    echo "Usage: $(basename "$0") [directory]"
+    echo "Usage: $(basename "$0") [-q|--quiet] [directory]"
     echo ""
     echo "Run ALL build/test/lint checks for a rig-seed project."
     echo ""
-    echo "  directory   Project root (default: current directory)"
+    echo "Options:"
+    echo "  -q, --quiet   Suppress passing checks and info lines; only show failures"
+    echo "  directory     Project root (default: current directory)"
     echo ""
     echo "Detects Go, Node.js, Rust, Python, and Makefile projects."
     echo "Also runs commands from [build] in .evolve/config.toml."
@@ -36,7 +39,15 @@ if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
     exit 0
 fi
 
-dir="${1:-.}"
+# --- Parse arguments ---
+quiet=false
+dir="."
+for arg in "$@"; do
+  case "$arg" in
+    -q|--quiet) quiet=true ;;
+    *) dir="$arg" ;;
+  esac
+done
 cd "$dir"
 
 passed=0
@@ -45,12 +56,16 @@ skipped=0
 
 # --- Helpers ---
 
+info() {
+  [ "$quiet" = true ] || echo "$@"
+}
+
 run_check() {
   local label="$1"
   shift
-  echo "  ▶ $label"
-  if "$@" 2>&1 | sed 's/^/    /'; then
-    echo "  ✓ $label passed"
+  info "  ▶ $label"
+  if "$@" 2>&1 | { [ "$quiet" = true ] && cat >/dev/null || sed 's/^/    /'; }; then
+    info "  ✓ $label passed"
     ((passed++))
   else
     echo "  ✗ $label FAILED"
@@ -61,9 +76,9 @@ run_check() {
 run_check_cmd() {
   local label="$1"
   local cmd="$2"
-  echo "  ▶ $label"
-  if eval "$cmd" 2>&1 | sed 's/^/    /'; then
-    echo "  ✓ $label passed"
+  info "  ▶ $label"
+  if eval "$cmd" 2>&1 | { [ "$quiet" = true ] && cat >/dev/null || sed 's/^/    /'; }; then
+    info "  ✓ $label passed"
     ((passed++))
   else
     echo "  ✗ $label FAILED"
@@ -72,7 +87,7 @@ run_check_cmd() {
 }
 
 detect_info() {
-  echo "  ℹ $1"
+  info "  ℹ $1"
 }
 
 # --- Parse config.toml for [build] commands ---
@@ -131,20 +146,20 @@ fi
 
 # --- Run configured commands ---
 
-echo "=== Build Check ==="
-echo ""
+info "=== Build Check ==="
+info ""
 
 if [ ${#config_commands[@]} -gt 0 ]; then
-  echo "--- Configured Commands (from config.toml) ---"
+  info "--- Configured Commands (from config.toml) ---"
   for cmd in "${config_commands[@]}"; do
     run_check_cmd "config: $cmd" "$cmd"
   done
-  echo ""
+  info ""
 fi
 
 # --- Auto-detect build systems ---
 
-echo "--- Auto-Detected Build Systems ---"
+info "--- Auto-Detected Build Systems ---"
 
 # Go
 if [ -f "go.mod" ]; then
@@ -275,7 +290,7 @@ if [ -d ".github/workflows" ]; then
       echo "  ✗ workflow YAML lint FAILED ($workflow_errors files)"
       ((failed++))
     else
-      echo "  ✓ workflow YAML lint passed"
+      info "  ✓ workflow YAML lint passed"
       ((passed++))
     fi
   fi
@@ -283,11 +298,11 @@ fi
 
 # --- Summary ---
 
-echo ""
-echo "=== Check Summary ==="
-echo "  Passed:  $passed"
-echo "  Failed:  $failed"
-echo "  Skipped: $skipped"
+info ""
+info "=== Check Summary ==="
+info "  Passed:  $passed"
+info "  Failed:  $failed"
+info "  Skipped: $skipped"
 
 if [ $failed -gt 0 ]; then
   echo ""
@@ -296,7 +311,7 @@ if [ $failed -gt 0 ]; then
 elif [ $passed -eq 0 ] && [ ${#config_commands[@]} -eq 0 ]; then
   echo ""
   echo "RESULT: no build systems detected — add [build] commands to .evolve/config.toml"
-  echo "  See docs/FORMULA-CUSTOMIZATION.md for examples."
+  info "  See docs/FORMULA-CUSTOMIZATION.md for examples."
   exit 0
 else
   echo ""

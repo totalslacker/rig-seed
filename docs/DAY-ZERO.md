@@ -10,6 +10,9 @@ evolve autonomously.
 - Git configured with push access to your fork
 - Gas Town installed and a rig registered (see [FORKING.md](FORKING.md))
 
+For a visual overview of how all the pieces fit together, see the
+[Architecture Diagram](ARCHITECTURE.md).
+
 ## Step 1: Run the Quickstart
 
 ```bash

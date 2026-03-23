@@ -80,12 +80,12 @@ upstream_url="${upstream_url:-$UPSTREAM_DEFAULT}"
 # --- Preflight ---
 
 if ! git rev-parse --is-inside-work-tree &>/dev/null; then
-  echo "ERROR: not inside a git repository"
+  echo "Error: not inside a git repository"
   exit 2
 fi
 
 if [ -n "$(git status --porcelain)" ]; then
-  echo "ERROR: working tree is not clean — commit or stash changes first"
+  echo "Error: working tree is not clean — commit or stash changes first"
   exit 2
 fi
 
@@ -112,7 +112,7 @@ fi
 
 echo "Fetching upstream..."
 if ! git fetch "$REMOTE_NAME" main 2>/dev/null; then
-  echo "ERROR: could not fetch from $upstream_url"
+  echo "Error: could not fetch from $upstream_url"
   echo "  Check the URL and your network connection."
   exit 2
 fi

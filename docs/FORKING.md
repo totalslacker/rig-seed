@@ -2,6 +2,9 @@
 
 What to do after you fork this repo and want to build your own evolving project.
 
+For a visual overview of state files, scripts, and the evolution cycle, see the
+[Architecture Diagram](ARCHITECTURE.md).
+
 ## Step-by-step
 
 ### 1. Run the quickstart
