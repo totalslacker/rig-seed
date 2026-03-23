@@ -6,15 +6,15 @@ planning intent.
 
 ## Priority (do these first)
 
-- [ ] Add `--json` output mode to check.sh (like dashboard.sh has) — Developer Experience phase
-- [ ] Add shellcheck linting to the CI workflow examples — catches common script bugs
-- [ ] Add a `--watch` mode to health-check.sh for continuous monitoring
+- [ ] Add example integration with Linear/Jira for beads-based project tracking — last Developer Experience item
+- [ ] Add a script output conventions doc (emoji markers, RESULT: line, Error: prefix) — makes conventions discoverable
+- [ ] Add `--color`/`--no-color` flags to scripts for terminal-aware output
 
 ## Suggested (consider these)
 
-- [ ] Add example integration with Linear/Jira for beads-based project tracking
-- [ ] Add a script output conventions doc (emoji markers, RESULT: line, Error: prefix)
-- [ ] Add `--color`/`--no-color` flags to scripts for terminal-aware output
+- [ ] Add a "session recap" script that summarizes the latest journal entry
+- [ ] Add `--format=table|csv|json` to metrics.sh for flexible output
+- [ ] Consider a new roadmap phase (Observability? Automation?) for post-DX work
 
 ## Deferred (not now, but don't forget)
 

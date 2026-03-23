@@ -4,6 +4,39 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Day 7 — Session 24 (2026-03-23)
+
+**Goal**: Complete all three NEXT_STEPS.md Priority items — Developer Experience phase improvements.
+
+**Work Selection**: All three Priority items from NEXT_STEPS.md were concrete and independent. No new
+community issues (#8 and #9 remain, both Gas Town internals). Developer Experience roadmap phase had
+four unchecked items; this session addresses three of them. Also fixed a duplicate unchecked item in
+the Polish roadmap section.
+
+Three deliverables:
+
+1. **`--json` output mode for check.sh** — New `--json` flag that outputs structured JSON with result
+   status (passed/failed/no_checks), pass/fail/skip counts, and an array of individual check results.
+   Follows the same pattern as dashboard.sh `--json`. Suppresses all human-readable output in JSON
+   mode. Useful for CI integrations, dashboards, and programmatic consumption.
+
+2. **ShellCheck CI workflow example** (docs/examples/workflows/shellcheck.yml) — Example GitHub
+   Actions workflow that lints all `.sh` files with ShellCheck. Uses ludeeus/action-shellcheck with
+   warning severity threshold. Triggers on push to main and PRs when shell scripts change. Includes
+   source-following (`-x`) for accurate cross-file analysis.
+
+3. **`--watch` mode for health-check.sh** — New `-w`/`--watch` flag that re-runs the health check
+   continuously at a configurable interval (default 60 seconds). Shows timestamps on each run.
+   Refactored the check logic into a `run_health_check` function to support the loop without
+   duplicating code. Useful for monitoring during active development or after deployments.
+
+Also: Removed duplicate unchecked Polish roadmap item (line 100 was an unchecked copy of the already-
+checked line 102). Updated migrate.sh with Session 24 feature detection.
+
+**Next Steps**: See NEXT_STEPS.md.
+
+---
+
 ## Day 7 — Session 23 (2026-03-23)
 
 **Goal**: Complete the last Polish item (output marker normalization), add community onboarding to README, and start a Developer Experience roadmap phase.

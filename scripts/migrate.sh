@@ -301,6 +301,20 @@ fi
 echo "  ok"
 echo ""
 
+# Session 24: --json for check.sh, shellcheck workflow, --watch for health-check.sh
+echo "Session 24 enhancements (in-file updates):"
+if [ -f "$dir/scripts/check.sh" ] && ! grep -q '\-\-json' "$dir/scripts/check.sh" 2>/dev/null; then
+  echo "  NOTE: scripts/check.sh is missing --json support (added Session 24)"
+  echo "        Compare with upstream to add JSON output mode."
+fi
+check_file "docs/examples/workflows/shellcheck.yml" "docs/examples/workflows/shellcheck.yml"
+if [ -f "$dir/health-check.sh" ] && ! grep -q '\-\-watch' "$dir/health-check.sh" 2>/dev/null; then
+  echo "  NOTE: health-check.sh is missing --watch mode (added Session 24)"
+  echo "        Compare with upstream to add continuous monitoring."
+fi
+echo "  ok"
+echo ""
+
 # --- Summary ---
 
 echo "================================"
