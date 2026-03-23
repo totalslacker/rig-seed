@@ -30,13 +30,13 @@ cleanup() {
 trap cleanup EXIT
 
 pass() {
-  echo "  PASS: $1"
+  echo "  ✓ $1"
   tests_passed=$((tests_passed + 1))
   tests_run=$((tests_run + 1))
 }
 
 fail() {
-  echo "  FAIL: $1"
+  echo "  ✗ $1"
   tests_failed=$((tests_failed + 1))
   tests_run=$((tests_run + 1))
 }

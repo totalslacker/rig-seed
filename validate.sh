@@ -58,10 +58,10 @@ check_file() {
   local path="$dir/$1"
   local label="${2:-$1}"
   if [ ! -f "$path" ]; then
-    echo "FAIL: missing $label ($1)"
+    echo "  ✗ missing $label ($1)"
     ((errors++))
   else
-    info "  ok: $label"
+    info "  ✓ $label"
   fi
 }
 
@@ -69,10 +69,10 @@ check_dir() {
   local path="$dir/$1"
   local label="${2:-$1}"
   if [ ! -d "$path" ]; then
-    echo "FAIL: missing directory $label ($1)"
+    echo "  ✗ missing directory $label ($1)"
     ((errors++))
   else
-    info "  ok: $label"
+    info "  ✓ $label"
   fi
 }
 
@@ -80,12 +80,12 @@ check_nonempty() {
   local path="$dir/$1"
   local label="${2:-$1}"
   if [ ! -f "$path" ]; then
-    echo "FAIL: missing $label ($1)"
+    echo "  ✗ missing $label ($1)"
     ((errors++))
   elif [ ! -s "$path" ]; then
-    echo "WARN: $label exists but is empty ($1)"
+    echo "  ⚠ $label exists but is empty ($1)"
   else
-    info "  ok: $label"
+    info "  ✓ $label"
   fi
 }
 
@@ -126,9 +126,9 @@ session_count_file="$dir/SESSION_COUNT"
 if [ -f "$session_count_file" ]; then
   day_val=$(tr -d '[:space:]' < "$session_count_file")
   if [[ "$day_val" =~ ^[0-9]+$ ]]; then
-    info "  ok: SESSION_COUNT is a valid integer ($day_val)"
+    info "  ✓ SESSION_COUNT is a valid integer ($day_val)"
   else
-    echo "FAIL: SESSION_COUNT must contain a single integer, got: '$day_val'"
+    echo "  ✗ SESSION_COUNT must contain a single integer, got: '$day_val'"
     ((errors++))
   fi
 fi
@@ -139,9 +139,9 @@ day_count_file="$dir/DAY_COUNT"
 if [ -f "$day_count_file" ]; then
   dc_val=$(tr -d '[:space:]' < "$day_count_file")
   if [[ "$dc_val" =~ ^[0-9]+$ ]]; then
-    info "  ok: DAY_COUNT is a valid integer ($dc_val)"
+    info "  ✓ DAY_COUNT is a valid integer ($dc_val)"
   else
-    echo "FAIL: DAY_COUNT must contain a single integer, got: '$dc_val'"
+    echo "  ✗ DAY_COUNT must contain a single integer, got: '$dc_val'"
     ((errors++))
   fi
 fi
@@ -152,9 +152,9 @@ day_date_file="$dir/DAY_DATE"
 if [ -f "$day_date_file" ]; then
   dd_val=$(tr -d '[:space:]' < "$day_date_file")
   if [[ "$dd_val" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
-    info "  ok: DAY_DATE is a valid date ($dd_val)"
+    info "  ✓ DAY_DATE is a valid date ($dd_val)"
   else
-    echo "FAIL: DAY_DATE must contain a YYYY-MM-DD date, got: '$dd_val'"
+    echo "  ✗ DAY_DATE must contain a YYYY-MM-DD date, got: '$dd_val'"
     ((errors++))
   fi
 fi
@@ -171,15 +171,15 @@ if [ -f "$immutable_file" ]; then
     if [[ "$line" == */ ]]; then
       # Directory entry
       if [ -d "$path" ]; then
-        info "  ok: immutable directory $line exists"
+        info "  ✓ immutable directory $line exists"
       else
-        info " info: immutable directory $line not yet created (ok for fresh template)"
+        info "  ℹ immutable directory $line not yet created (ok for fresh template)"
       fi
     else
       if [ -f "$path" ]; then
-        info "  ok: immutable file $line exists"
+        info "  ✓ immutable file $line exists"
       else
-        echo "FAIL: immutable file $line is listed but missing"
+        echo "  ✗ immutable file $line is listed but missing"
         ((errors++))
       fi
     fi

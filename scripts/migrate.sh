@@ -104,7 +104,7 @@ check_config_key() {
   local description="$2"
 
   if [ ! -f "$dir/.evolve/config.toml" ]; then
-    echo "  [warning] .evolve/config.toml missing — cannot check $key"
+    echo "  ⚠ .evolve/config.toml missing — cannot check $key"
     skipped=$((skipped + 1))
     return
   fi

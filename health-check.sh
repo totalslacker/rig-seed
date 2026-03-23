@@ -66,17 +66,17 @@ info() {
 }
 
 warn() {
-  echo "WARN: $1"
+  echo "  ⚠ $1"
   warnings=$((warnings + 1))
 }
 
 fail() {
-  echo "FAIL: $1"
+  echo "  ✗ $1"
   errors=$((errors + 1))
 }
 
 ok() {
-  info "  ok: $1"
+  info "  ✓ $1"
 }
 
 # --- Configuration ---
