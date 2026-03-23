@@ -95,7 +95,7 @@ Living document. Updated each evolution session. Items come from three sources:
 - [x] Add architecture diagram documenting state files, scripts, and evolution flow
 - [x] Clean up N/A Bootstrap roadmap items
 - [x] Add `--help` flag to scripts/check.sh and scripts/release.sh
-- [ ] Add `-q`/`--quiet` flag to scripts/check.sh for CI-friendly output
-- [ ] Standardize error message prefixes across all scripts (currently mixed: "Error:", "FAIL:", "ERROR:")
+- [x] Add `-q`/`--quiet` flag to scripts/check.sh for CI-friendly output
+- [x] Standardize error message prefixes across all scripts (Error: for operational, FAIL: for checks)
 - [ ] Review and normalize emoji vs text-only output markers across scripts
-- [ ] Add architecture diagram link to docs/DAY-ZERO.md and docs/FORKING.md
+- [x] Add architecture diagram link to docs/DAY-ZERO.md and docs/FORKING.md

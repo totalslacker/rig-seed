@@ -279,6 +279,15 @@ check_file "docs/ARCHITECTURE.md" "Architecture diagram and file map" "$source_r
 echo "  ok"
 echo ""
 
+# Session 22: check.sh --quiet flag
+echo "Session 22 enhancements (in-file updates):"
+if [ -f "$dir/scripts/check.sh" ] && ! grep -q '\-\-quiet' "$dir/scripts/check.sh" 2>/dev/null; then
+  echo "  NOTE: scripts/check.sh missing --quiet flag (added Session 22)"
+  echo "        Compare with upstream to add quiet mode support."
+fi
+echo "  ok"
+echo ""
+
 # --- Summary ---
 
 echo "================================"

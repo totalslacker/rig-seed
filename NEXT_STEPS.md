@@ -6,15 +6,15 @@ planning intent.
 
 ## Priority (do these first)
 
-- [ ] Add `-q`/`--quiet` flag to scripts/check.sh for CI-friendly output
-- [ ] Standardize error message prefixes across all scripts ("Error:" vs "FAIL:" vs "ERROR:")
-- [ ] Link architecture docs from docs/DAY-ZERO.md and docs/FORKING.md
+- [ ] Review and normalize emoji vs text-only output markers across scripts (last unchecked Polish item)
+- [ ] Add a "community onboarding" section to README — first-time contributor experience for forks
+- [ ] Consider a new roadmap phase (Observability? Developer Experience?) or stabilize
 
 ## Suggested (consider these)
 
-- [ ] Review and normalize emoji vs text-only output markers across scripts
-- [ ] Add a "community onboarding" section to README — first-time contributor experience for forks
 - [ ] Add example integration with Linear/Jira for beads-based project tracking
+- [ ] Add a `--json` output mode to check.sh (like dashboard.sh has)
+- [ ] Add shellcheck linting to the CI workflow examples
 
 ## Deferred (not now, but don't forget)
 

@@ -4,6 +4,36 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Day 7 — Session 22 (2026-03-23)
+
+**Goal**: Complete three Priority items from NEXT_STEPS.md — all Polish phase script and docs improvements.
+
+**Work Selection**: All three NEXT_STEPS.md Priority items were concrete and independent. No community
+issues (only #8 and #9 remain, both Gas Town internals). Roadmap Polish phase has four unchecked items;
+this session addresses three of them.
+
+Three deliverables:
+
+1. **`--quiet` flag for check.sh** — Added `-q`/`--quiet` flag that suppresses passing checks, info
+   lines, and section headers. In quiet mode, only failures and the RESULT line are printed, making
+   the script CI-friendly. Follows the same pattern established by validate.sh and health-check.sh.
+   Updated the help text and argument parsing to handle both `-q` and a directory argument.
+
+2. **Error prefix standardization** — Audited all scripts and found two conventions: `FAIL:` for
+   check/validation failures (validate.sh, health-check.sh) and `Error:` for runtime/operational
+   errors (rollback.sh, migrate.sh, dashboard.sh). The only outlier was sync-upstream.sh using
+   `ERROR:` — normalized to `Error:` to match the other operational scripts (3 occurrences).
+
+3. **Architecture diagram links** — Added links to docs/ARCHITECTURE.md from docs/DAY-ZERO.md
+   (in the Prerequisites section) and docs/FORKING.md (before the step-by-step guide), so new
+   users can see the visual overview of state files, scripts, and the evolution cycle.
+
+Also: Updated scripts/migrate.sh with Session 22 check.sh `--quiet` detection.
+
+**Next Steps**: See NEXT_STEPS.md.
+
+---
+
 ## Day 6 — Session 21 (2026-03-22)
 
 **Goal**: Polish phase — architecture diagram, Bootstrap cleanup, script consistency improvements.
