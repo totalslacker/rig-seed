@@ -4,6 +4,39 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Day 7 — Session 23 (2026-03-23)
+
+**Goal**: Complete the last Polish item (output marker normalization), add community onboarding to README, and start a Developer Experience roadmap phase.
+
+**Work Selection**: All three NEXT_STEPS.md Priority items addressed. No new community issues
+(only #8 and #9 remain, both Gas Town internals). The last unchecked Polish item was concrete
+and well-scoped. The README onboarding section and new roadmap phase round out the session.
+
+Three deliverables:
+
+1. **Output marker normalization** — Audited all 10 scripts for emoji vs text-only output
+   markers. Found two conventions: root scripts (validate.sh, health-check.sh) used text-only
+   (`ok:`, `FAIL:`, `WARN:`) while scripts/ directory scripts used emoji (`✓`, `✗`, `⚠`, `ℹ`).
+   Standardized everything on emoji: updated validate.sh (`ok:` → `✓`, `FAIL:` → `✗`,
+   `WARN:` → `⚠`), health-check.sh (same), migrate.sh (`[warning]` → `⚠`), and the
+   integration test (`PASS:` → `✓`, `FAIL:` → `✗`). `RESULT:` and `Error:` text prefixes
+   kept as-is (already consistent). This completes the Polish roadmap phase.
+
+2. **Community & Onboarding section in README** — New section for first-time contributors to
+   forked rig-seed projects. Four subsections: understanding the project (read state files,
+   run health-check), steering the agent (file issues with `agent-input` label), contributing
+   directly (validate + check commands, safety rules), and setting up your own fork (links
+   to Quick Start and Day Zero tutorial).
+
+3. **Developer Experience roadmap phase** — New phase with five items: `--json` output for
+   check.sh, shellcheck in CI examples, Linear/Jira integration example, `--watch` mode for
+   health-check.sh, plus the community onboarding section (already done). Gives future
+   sessions clear, concrete work to pick from.
+
+**Next Steps**: See NEXT_STEPS.md.
+
+---
+
 ## Day 7 — Session 22 (2026-03-23)
 
 **Goal**: Complete three Priority items from NEXT_STEPS.md — all Polish phase script and docs improvements.

@@ -99,3 +99,12 @@ Living document. Updated each evolution session. Items come from three sources:
 - [x] Standardize error message prefixes across all scripts (Error: for operational, FAIL: for checks)
 - [ ] Review and normalize emoji vs text-only output markers across scripts
 - [x] Add architecture diagram link to docs/DAY-ZERO.md and docs/FORKING.md
+- [x] Normalize emoji vs text-only output markers across all scripts
+
+## Developer Experience (Day 8+)
+
+- [x] Add Community & Onboarding section to README for first-time fork contributors
+- [ ] Add `--json` output mode to check.sh (like dashboard.sh has)
+- [ ] Add shellcheck linting to CI workflow examples
+- [ ] Add example integration with Linear/Jira for beads-based project tracking
+- [ ] Add a `--watch` mode to health-check.sh for continuous monitoring

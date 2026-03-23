@@ -6,15 +6,15 @@ planning intent.
 
 ## Priority (do these first)
 
-- [ ] Review and normalize emoji vs text-only output markers across scripts (last unchecked Polish item)
-- [ ] Add a "community onboarding" section to README — first-time contributor experience for forks
-- [ ] Consider a new roadmap phase (Observability? Developer Experience?) or stabilize
+- [ ] Add `--json` output mode to check.sh (like dashboard.sh has) — Developer Experience phase
+- [ ] Add shellcheck linting to the CI workflow examples — catches common script bugs
+- [ ] Add a `--watch` mode to health-check.sh for continuous monitoring
 
 ## Suggested (consider these)
 
 - [ ] Add example integration with Linear/Jira for beads-based project tracking
-- [ ] Add a `--json` output mode to check.sh (like dashboard.sh has)
-- [ ] Add shellcheck linting to the CI workflow examples
+- [ ] Add a script output conventions doc (emoji markers, RESULT: line, Error: prefix)
+- [ ] Add `--color`/`--no-color` flags to scripts for terminal-aware output
 
 ## Deferred (not now, but don't forget)
 

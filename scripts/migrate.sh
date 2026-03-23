@@ -288,6 +288,19 @@ fi
 echo "  ok"
 echo ""
 
+# Session 23: emoji output markers in validate.sh and health-check.sh
+echo "Session 23 enhancements (in-file updates):"
+if [ -f "$dir/validate.sh" ] && grep -q 'echo "FAIL:' "$dir/validate.sh" 2>/dev/null; then
+  echo "  NOTE: validate.sh uses text-only markers (emoji markers added Session 23)"
+  echo "        Compare with upstream to update ok:/FAIL:/WARN: to ✓/✗/⚠."
+fi
+if [ -f "$dir/health-check.sh" ] && grep -q 'echo "FAIL:' "$dir/health-check.sh" 2>/dev/null; then
+  echo "  NOTE: health-check.sh uses text-only markers (emoji markers added Session 23)"
+  echo "        Compare with upstream to update ok:/FAIL:/WARN: to ✓/✗/⚠."
+fi
+echo "  ok"
+echo ""
+
 # --- Summary ---
 
 echo "================================"
