@@ -8,6 +8,7 @@ Pre-built git hooks for rig-seed projects.
 |------|---------|
 | [pre-commit](pre-commit) | Runs validate.sh and checks immutable file protection before each commit |
 | [post-session](post-session) | Posts journal diffs to Slack or Discord after each evolution session |
+| [post-session-sync](post-session-sync) | Runs Linear/Jira integration sync after each session |
 
 ## Installation
 
@@ -50,6 +51,35 @@ after each evolution session is merged.
 
 ```bash
 DRY_RUN=1 ./docs/examples/hooks/post-session
+```
+
+## What the Post-Session-Sync Hook Does
+
+Automatically runs the Linear or Jira sync script after a session is merged,
+pushing new beads and roadmap changes to your external tracker.
+
+**Configuration:**
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `SYNC_TARGET` | Yes | `"linear"` or `"jira"` |
+| `SYNC_SCRIPT` | No | Path to sync script (auto-detected from target) |
+| `SYNC_DIRECTION` | No | `"push"`, `"pull"`, or `"both"` (default: push) |
+| `SYNC_DRY_RUN` | No | Set to `"1"` to preview without syncing |
+| `SYNC_QUIET` | No | Set to `"1"` to suppress info output |
+
+**Chain with notifications:**
+
+```bash
+# Run both post-session hooks (notification + sync):
+cat docs/examples/hooks/post-session docs/examples/hooks/post-session-sync \
+  > .git/hooks/post-merge && chmod +x .git/hooks/post-merge
+```
+
+**Test it without syncing:**
+
+```bash
+SYNC_TARGET=linear SYNC_DRY_RUN=1 ./docs/examples/hooks/post-session-sync
 ```
 
 ## Bypassing

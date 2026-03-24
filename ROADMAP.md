@@ -115,3 +115,13 @@ Living document. Updated each evolution session. Items come from three sources:
 - [x] Add `--color`/`--no-color` flags to remaining scripts (check.sh, dashboard.sh, lint-workflows.sh, rollback.sh)
 - [x] Add a "session recap" script that summarizes the latest journal entry (scripts/recap.sh)
 - [x] Add `--format=table|csv|json|kv` to metrics.sh for flexible output
+
+## Automation (Day 9+)
+
+- [x] Add post-session hook example that runs integration sync scripts automatically
+- [x] Add validation for .beads-external-map.json in validate.sh (warn if malformed)
+- [x] Add `--color`/`--no-color` to metrics.sh (last script without color support)
+- [ ] Add a `--diff` mode to recap.sh that shows the git diff from the latest session
+- [ ] Add shellcheck annotations or `# shellcheck disable=` directives to any flagged patterns
+- [ ] Add a pre-session hook example that runs health-check.sh before starting work
+- [ ] Add a `--lint` mode to validate.sh that checks script conventions compliance

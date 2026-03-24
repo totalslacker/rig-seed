@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # metrics.sh — Summarize evolution history for a rig-seed project.
 #
-# Usage: ./metrics.sh [-q|--quiet] [-p|--plan] [--format=FORMAT] [-h|--help] [directory]
+# Usage: ./metrics.sh [-q|--quiet] [-p|--plan] [--format=FORMAT] [--color|--no-color] [-h|--help] [directory]
 #
 # Outputs:
 #   - Total sessions and current day count
@@ -21,6 +21,7 @@ set -euo pipefail
 
 format=table
 plan=false
+use_color=auto
 dir=""
 
 for arg in "$@"; do
@@ -34,6 +35,8 @@ for arg in "$@"; do
       echo "  -q, --quiet           Machine-readable output (alias for --format=kv)"
       echo "  --format=FORMAT       Output format: table (default), kv, csv, json"
       echo "  -p, --plan            Show planning-relevant info (unchecked roadmap, next steps)"
+      echo "  --color               Force colored output"
+      echo "  --no-color            Disable colored output"
       echo "  -h, --help            Show this help message"
       echo ""
       echo "Formats:"
@@ -70,6 +73,12 @@ for arg in "$@"; do
     -p|--plan)
       plan=true
       ;;
+    --color)
+      use_color=always
+      ;;
+    --no-color)
+      use_color=never
+      ;;
     *)
       dir="$arg"
       ;;
@@ -77,6 +86,20 @@ for arg in "$@"; do
 done
 
 dir="${dir:-.}"
+
+# --- Color setup ---
+
+setup_colors() {
+  if [ "$use_color" = "never" ] || [ -n "${NO_COLOR:-}" ]; then
+    RED="" GREEN="" YELLOW="" CYAN="" BOLD="" RESET=""
+  elif [ "$use_color" = "always" ] || [ -t 1 ]; then
+    RED='\033[31m' GREEN='\033[32m' YELLOW='\033[33m'
+    CYAN='\033[36m' BOLD='\033[1m' RESET='\033[0m'
+  else
+    RED="" GREEN="" YELLOW="" CYAN="" BOLD="" RESET=""
+  fi
+}
+setup_colors
 
 # --- Validation ---
 
@@ -102,7 +125,7 @@ print_metric() {
   if [ "$format" = "kv" ]; then
     echo "${key}=${value}"
   elif [ "$format" = "table" ]; then
-    printf "  %-30s %s\n" "$label" "$value"
+    printf "  %-30s ${BOLD}%s${RESET}\n" "$label" "$value"
   fi
   # csv and json are emitted at the end
 }
@@ -184,13 +207,13 @@ fi
 
 section() {
   if [ "$format" = "table" ]; then
-    echo "$@"
+    printf '%b\n' "$@"
   fi
 }
 
-section "=== Evolution Metrics ==="
+section "${CYAN}=== Evolution Metrics ===${RESET}"
 section ""
-section "Progress:"
+section "${BOLD}Progress:${RESET}"
 
 print_metric "Day count:" "day_count" "$day_count"
 print_metric "Session count:" "session_counter" "$session_counter"
@@ -199,7 +222,7 @@ print_metric "Total commits:" "total_commits" "$total_commits"
 print_metric "Commits per session:" "commits_per_session" "$commits_per_session"
 
 section ""
-section "Velocity:"
+section "${BOLD}Velocity:${RESET}"
 
 print_metric "Project age (days):" "age_days" "$age_days"
 print_metric "Sessions per week:" "sessions_per_week" "$sessions_per_week"
@@ -207,13 +230,13 @@ print_metric "First commit:" "first_commit_date" "${first_commit_date:-n/a}"
 print_metric "Last commit:" "last_commit_date" "${last_commit_date:-n/a}"
 
 section ""
-section "Codebase:"
+section "${BOLD}Codebase:${RESET}"
 
 print_metric "Files in repo:" "files_in_repo" "$files_in_repo"
 print_metric "Total lines:" "total_lines" "$total_lines"
 
 section ""
-section "Roadmap:"
+section "${BOLD}Roadmap:${RESET}"
 
 print_metric "Items completed:" "roadmap_checked" "$roadmap_checked"
 print_metric "Items remaining:" "roadmap_unchecked" "$roadmap_unchecked"
@@ -223,12 +246,12 @@ if [ "$roadmap_total" -gt 0 ]; then
 fi
 
 section ""
-section "Knowledge:"
+section "${BOLD}Knowledge:${RESET}"
 
 print_metric "Learnings recorded:" "learnings_count" "$learnings_count"
 
 section ""
-section "================================"
+section "${CYAN}================================${RESET}"
 
 # --- CSV output ---
 if [ "$format" = "csv" ]; then
@@ -284,7 +307,7 @@ fi
 
 if [ "$plan" = true ]; then
   section ""
-  section "=== Planning Context ==="
+  section "${CYAN}=== Planning Context ===${RESET}"
 
   # Unchecked roadmap items by phase
   if [ -f "$dir/ROADMAP.md" ]; then
@@ -354,5 +377,5 @@ if [ "$plan" = true ]; then
   fi
 
   section ""
-  section "================================"
+  section "${CYAN}================================${RESET}"
 fi

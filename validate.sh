@@ -183,6 +183,30 @@ if [ -f "$day_date_file" ]; then
 fi
 
 info ""
+info "${CYAN}=== Integration Config ===${RESET}"
+beads_map="$dir/.beads-external-map.json"
+if [ -f "$beads_map" ]; then
+  # File exists — check it's valid JSON
+  if command -v python3 &>/dev/null; then
+    if python3 -c "import json; json.load(open('$beads_map'))" 2>/dev/null; then
+      info "  ${GREEN}✓${RESET} .beads-external-map.json is valid JSON"
+    else
+      printf "  ${YELLOW}⚠${RESET} .beads-external-map.json exists but is not valid JSON\n"
+    fi
+  elif command -v jq &>/dev/null; then
+    if jq empty "$beads_map" 2>/dev/null; then
+      info "  ${GREEN}✓${RESET} .beads-external-map.json is valid JSON"
+    else
+      printf "  ${YELLOW}⚠${RESET} .beads-external-map.json exists but is not valid JSON\n"
+    fi
+  else
+    info "  ${CYAN}ℹ${RESET} .beads-external-map.json present (install jq or python3 to validate)"
+  fi
+else
+  info "  ${CYAN}ℹ${RESET} no .beads-external-map.json (ok — only needed for external integrations)"
+fi
+
+info ""
 info "${CYAN}=== Immutable File Protection ===${RESET}"
 immutable_file="$dir/.evolve/IMMUTABLE.txt"
 if [ -f "$immutable_file" ]; then

@@ -1,0 +1,112 @@
+#!/usr/bin/env bash
+# post-session-sync — Example hook that runs integration sync after each session.
+#
+# Automatically pushes new/updated beads to Linear or Jira after an evolution
+# session is merged. Pairs with the sync scripts in docs/examples/integrations/.
+#
+# Usage:
+#   1. Configure your integration sync script (linear-sync.sh or jira-sync.sh)
+#   2. Install as a post-merge hook:
+#      cp docs/examples/hooks/post-session-sync .git/hooks/post-merge
+#      chmod +x .git/hooks/post-merge
+#   3. Or chain with the notification hook:
+#      cat docs/examples/hooks/post-session docs/examples/hooks/post-session-sync \
+#        > .git/hooks/post-merge && chmod +x .git/hooks/post-merge
+#
+# Environment variables:
+#   SYNC_TARGET         "linear" or "jira" (required)
+#   SYNC_SCRIPT         Path to sync script (default: auto-detect from SYNC_TARGET)
+#   SYNC_DIRECTION      "push", "pull", or "both" (default: push)
+#   SYNC_DRY_RUN        Set to "1" to preview without syncing
+#   SYNC_QUIET          Set to "1" to suppress informational output
+
+set -euo pipefail
+
+# --- Configuration ---
+
+SYNC_TARGET="${SYNC_TARGET:-}"
+SYNC_SCRIPT="${SYNC_SCRIPT:-}"
+SYNC_DIRECTION="${SYNC_DIRECTION:-push}"
+SYNC_DRY_RUN="${SYNC_DRY_RUN:-0}"
+SYNC_QUIET="${SYNC_QUIET:-0}"
+
+info() {
+  if [ "$SYNC_QUIET" != "1" ]; then
+    echo "post-session-sync: $1"
+  fi
+}
+
+# --- Validation ---
+
+if [ -z "$SYNC_TARGET" ] && [ -z "$SYNC_SCRIPT" ]; then
+  info "SYNC_TARGET not set, skipping integration sync"
+  exit 0
+fi
+
+# Auto-detect sync script from target
+if [ -z "$SYNC_SCRIPT" ]; then
+  repo_root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+  case "$SYNC_TARGET" in
+    linear)
+      SYNC_SCRIPT="$repo_root/docs/examples/integrations/linear-sync.sh"
+      ;;
+    jira)
+      SYNC_SCRIPT="$repo_root/docs/examples/integrations/jira-sync.sh"
+      ;;
+    *)
+      echo "post-session-sync: unknown SYNC_TARGET '$SYNC_TARGET' (expected: linear, jira)" >&2
+      exit 1
+      ;;
+  esac
+fi
+
+if [ ! -x "$SYNC_SCRIPT" ]; then
+  echo "post-session-sync: sync script not found or not executable: $SYNC_SCRIPT" >&2
+  echo "  Ensure the integration script exists and has been configured." >&2
+  exit 1
+fi
+
+# --- Check for beads changes ---
+
+# Only sync if beads-related files changed in the latest commit
+beads_changed=$(git diff --name-only HEAD~1..HEAD 2>/dev/null \
+  | grep -c -E '\.beads|ROADMAP|NEXT_STEPS' || echo "0")
+
+if [ "$beads_changed" -eq 0 ]; then
+  info "no beads-related changes in latest commit, skipping sync"
+  exit 0
+fi
+
+# --- Run sync ---
+
+sync_args=()
+
+case "$SYNC_DIRECTION" in
+  push)
+    sync_args+=("--push")
+    ;;
+  pull)
+    sync_args+=("--pull")
+    ;;
+  both)
+    sync_args+=("--push" "--pull")
+    ;;
+  *)
+    echo "post-session-sync: unknown SYNC_DIRECTION '$SYNC_DIRECTION' (expected: push, pull, both)" >&2
+    exit 1
+    ;;
+esac
+
+if [ "$SYNC_DRY_RUN" = "1" ]; then
+  sync_args+=("--dry-run")
+fi
+
+info "running $SYNC_TARGET sync ($SYNC_DIRECTION)..."
+
+if "$SYNC_SCRIPT" "${sync_args[@]}"; then
+  info "sync complete"
+else
+  echo "post-session-sync: sync failed (exit $?)" >&2
+  # Don't fail the hook — sync failure shouldn't block merges
+  exit 0
+fi

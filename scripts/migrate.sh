@@ -358,6 +358,20 @@ fi
 echo "  ok"
 echo ""
 
+# Session 27: Post-session-sync hook, validate.sh integration check, metrics.sh color
+echo "Session 27 enhancements:"
+check_executable "docs/examples/hooks/post-session-sync" "Post-session integration sync hook" "$source_root/docs/examples/hooks/post-session-sync"
+if [ -f "$dir/validate.sh" ] && ! grep -q 'beads-external-map' "$dir/validate.sh" 2>/dev/null; then
+  echo "  NOTE: validate.sh missing .beads-external-map.json validation (added Session 27)"
+  echo "        Compare with upstream to add integration config checking."
+fi
+if [ -f "$dir/metrics.sh" ] && ! grep -q '\-\-no-color' "$dir/metrics.sh" 2>/dev/null; then
+  echo "  NOTE: metrics.sh missing --color/--no-color flags (added Session 27)"
+  echo "        Compare with upstream to add terminal-aware color output."
+fi
+echo "  ok"
+echo ""
+
 # --- Summary ---
 
 echo "================================"
