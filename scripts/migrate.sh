@@ -315,6 +315,23 @@ fi
 echo "  ok"
 echo ""
 
+# Session 25: Script conventions doc, color flags, integrations
+echo "Session 25 enhancements:"
+check_file "docs/SCRIPT-CONVENTIONS.md" "Script output conventions doc" "$source_root/docs/SCRIPT-CONVENTIONS.md"
+check_file "docs/examples/integrations/README.md" "External integrations guide" "$source_root/docs/examples/integrations/README.md"
+check_executable "docs/examples/integrations/linear-sync.sh" "Linear sync script" "$source_root/docs/examples/integrations/linear-sync.sh"
+check_executable "docs/examples/integrations/jira-sync.sh" "Jira sync script" "$source_root/docs/examples/integrations/jira-sync.sh"
+if [ -f "$dir/validate.sh" ] && ! grep -q '\-\-no-color' "$dir/validate.sh" 2>/dev/null; then
+  echo "  NOTE: validate.sh missing --color/--no-color flags (added Session 25)"
+  echo "        Compare with upstream to add terminal-aware color output."
+fi
+if [ -f "$dir/health-check.sh" ] && ! grep -q '\-\-no-color' "$dir/health-check.sh" 2>/dev/null; then
+  echo "  NOTE: health-check.sh missing --color/--no-color flags (added Session 25)"
+  echo "        Compare with upstream to add terminal-aware color output."
+fi
+echo "  ok"
+echo ""
+
 # --- Summary ---
 
 echo "================================"

@@ -6,15 +6,15 @@ planning intent.
 
 ## Priority (do these first)
 
-- [ ] Add example integration with Linear/Jira for beads-based project tracking — last Developer Experience item
-- [ ] Add a script output conventions doc (emoji markers, RESULT: line, Error: prefix) — makes conventions discoverable
-- [ ] Add `--color`/`--no-color` flags to scripts for terminal-aware output
+- [ ] Add `--color`/`--no-color` flags to remaining scripts (check.sh, dashboard.sh, lint-workflows.sh, rollback.sh) — Script Quality phase, pattern established in Session 25
+- [ ] Add a "session recap" script that summarizes the latest journal entry — useful for quick status checks
+- [ ] Add `--format=table|csv|json` to metrics.sh — replace the separate -q and --json modes with a unified format flag
 
 ## Suggested (consider these)
 
-- [ ] Add a "session recap" script that summarizes the latest journal entry
-- [ ] Add `--format=table|csv|json` to metrics.sh for flexible output
-- [ ] Consider a new roadmap phase (Observability? Automation?) for post-DX work
+- [ ] Add a post-session hook example that runs the integration sync scripts automatically
+- [ ] Add validation for .beads-external-map.json in validate.sh (warn if present but malformed)
+- [ ] Consider a new roadmap phase (Automation? Observability?) for post-Script-Quality work
 
 ## Deferred (not now, but don't forget)
 

@@ -254,7 +254,9 @@ evolution session.
 - [Formula Customization](docs/FORMULA-CUSTOMIZATION.md) — How to customize mol-evolve for your project
 - [Day Zero Walkthrough](docs/DAY-ZERO.md) — Step-by-step tutorial for your first evolution session
 - [Upgrading Your Fork](docs/UPGRADING.md) — How to pull new rig-seed features into an existing fork
+- [External Integrations](docs/examples/integrations/README.md) — Sync beads to Linear, Jira, or other project trackers
 - [Monitoring with Prometheus + Grafana](docs/examples/monitoring/README.md) — Expose evolution metrics for long-running monitoring
+- [Script Conventions](docs/SCRIPT-CONVENTIONS.md) — Output markers, color, flags, and patterns used by all scripts
 - [Merge Strategy Guide](docs/MERGE-STRATEGY.md) — Choosing between Refinery, PR-based, and hybrid merging
 - [Planning Investigation](docs/PLANNING.md) — How evolution sessions choose work and how to improve it
 - [Troubleshooting](docs/TROUBLESHOOTING.md) — Common problems and how to fix them

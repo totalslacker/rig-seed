@@ -4,6 +4,45 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Day 8 — Session 25 (2026-03-24)
+
+**Goal**: Complete all three NEXT_STEPS.md Priority items — script conventions doc, color flags, and Linear/Jira integration.
+
+**Work Selection**: All three Priority items from NEXT_STEPS.md were concrete and independent. No new
+community issues (#8 and #9 remain, both Gas Town internals). Developer Experience roadmap phase was
+fully complete after Session 24, so this session starts a new Script Quality phase alongside finishing
+the last DX item.
+
+Three deliverables:
+
+1. **Script output conventions doc** (docs/SCRIPT-CONVENTIONS.md) — Authoritative reference for all
+   output conventions used across rig-seed scripts. Documents the five emoji markers (✓/✗/⚠/ℹ/▶),
+   section header format (=== and ---), the RESULT line contract, error prefix conventions (Error: for
+   runtime vs ✗ for check failures), standard flags (--help, --quiet, --json, --dry-run, --color/
+   --no-color), color conventions (green/red/yellow/cyan/bold with ANSI codes), exit code semantics,
+   and a skeleton for new scripts. Makes the implicit conventions discoverable and consistent.
+
+2. **`--color`/`--no-color` flags** for validate.sh and health-check.sh — Both root scripts now
+   support terminal-aware colored output. Colors auto-detect whether stdout is a terminal (isatty),
+   can be forced on with `--color` or off with `--no-color`, and respect the `NO_COLOR` environment
+   variable (https://no-color.org/). Green for passing checks, red for failures, yellow for warnings,
+   cyan for section headers and info markers, bold for RESULT lines. Output functions switched from
+   `echo` to `printf '%b\n'` for proper escape sequence handling.
+
+3. **Linear/Jira integration examples** (docs/examples/integrations/) — Complete sync scripts for
+   both Linear and Jira that bridge beads to external project trackers. Both support push (beads →
+   external), pull (external → beads), --dry-run preview, and maintain a local .beads-external-map.json
+   mapping file. README covers setup, when to use (team visibility, sprint planning) vs when not to
+   (solo projects, replacing beads), and customization guidance. Completes the Developer Experience
+   roadmap phase.
+
+Also: Added Script Quality roadmap phase with completed and future items. Updated README documentation
+section with integrations and conventions doc links. Updated migrate.sh with Session 25 feature detection.
+
+**Next Steps**: See NEXT_STEPS.md.
+
+---
+
 ## Day 7 — Session 24 (2026-03-23)
 
 **Goal**: Complete all three NEXT_STEPS.md Priority items — Developer Experience phase improvements.

@@ -105,5 +105,13 @@ Living document. Updated each evolution session. Items come from three sources:
 - [x] Add Community & Onboarding section to README for first-time fork contributors
 - [x] Add `--json` output mode to check.sh (like dashboard.sh has)
 - [x] Add shellcheck linting to CI workflow examples
-- [ ] Add example integration with Linear/Jira for beads-based project tracking
+- [x] Add example integration with Linear/Jira for beads-based project tracking
 - [x] Add a `--watch` mode to health-check.sh for continuous monitoring
+
+## Script Quality (Day 8+)
+
+- [x] Add script output conventions doc (docs/SCRIPT-CONVENTIONS.md)
+- [x] Add `--color`/`--no-color` flags to validate.sh and health-check.sh
+- [ ] Add `--color`/`--no-color` flags to remaining scripts (check.sh, dashboard.sh, etc.)
+- [ ] Add a "session recap" script that summarizes the latest journal entry
+- [ ] Add `--format=table|csv|json` to metrics.sh for flexible output
