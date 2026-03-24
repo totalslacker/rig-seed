@@ -6,15 +6,15 @@ planning intent.
 
 ## Priority (do these first)
 
-- [ ] Add a post-session hook example that runs the integration sync scripts automatically — extends the hooks ecosystem
-- [ ] Add validation for .beads-external-map.json in validate.sh (warn if present but malformed) — catches broken integration configs
-- [ ] Consider a new roadmap phase (Automation? Observability?) for post-Script-Quality work — all current phases are complete
+- [ ] Add a `--diff` mode to recap.sh that shows the git diff from the latest session — quick session review
+- [ ] Add shellcheck annotations or `# shellcheck disable=` directives to any flagged patterns — code quality
+- [ ] Add a pre-session hook example that runs health-check.sh before starting work — extends the hooks ecosystem
 
 ## Suggested (consider these)
 
-- [ ] Add `--color`/`--no-color` to metrics.sh (currently the only script without color support)
-- [ ] Add a `--diff` mode to recap.sh that shows the git diff from the latest session
-- [ ] Add shellcheck annotations or `# shellcheck disable=` directives to any flagged patterns
+- [ ] Add a `--lint` mode to validate.sh that checks script conventions compliance
+- [ ] Add a `--watch` mode to metrics.sh for continuous monitoring (like health-check.sh --watch)
+- [ ] Add example CI workflow that runs post-session-sync hook on merge
 
 ## Deferred (not now, but don't forget)
 

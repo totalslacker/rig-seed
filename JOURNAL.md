@@ -4,6 +4,44 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Day 9 — Session 27 (2026-03-24)
+
+**Goal**: Complete all three NEXT_STEPS.md Priority items — post-session sync hook, validate.sh integration check, and new Automation roadmap phase — plus the Suggested metrics.sh color flag.
+
+**Work Selection**: All three Priority items from NEXT_STEPS.md were concrete and independent. The
+Suggested --color/--no-color for metrics.sh was also straightforward and completes full color coverage
+across all scripts. No new community issues. Script Quality phase was completed in Session 26; this
+session starts a new Automation phase.
+
+Four deliverables:
+
+1. **Post-session-sync hook** (docs/examples/hooks/post-session-sync) — Example git hook that
+   automatically runs Linear or Jira sync scripts after each evolution session merge. Detects
+   beads-related file changes before syncing to avoid unnecessary API calls. Configurable via
+   SYNC_TARGET (linear/jira), SYNC_DIRECTION (push/pull/both), and SYNC_DRY_RUN. Can be chained
+   with the existing post-session notification hook. Non-blocking: sync failures don't prevent merges.
+
+2. **Integration config validation in validate.sh** — New "Integration Config" check section that
+   validates .beads-external-map.json if present. Uses python3 or jq (whichever is available) to
+   verify valid JSON. Warns (not errors) on malformed files since the map is optional. Skips
+   gracefully if neither JSON parser is installed.
+
+3. **`--color`/`--no-color` for metrics.sh** — Terminal-aware color output matching the pattern
+   established across all other scripts. Cyan for section headers, bold for subsection headers and
+   metric values, respects NO_COLOR env var and TTY detection. Completes color support coverage:
+   every rig-seed script now has consistent --color/--no-color flags.
+
+4. **New Automation roadmap phase** — Defined with three completed items from this session plus
+   four future items (recap --diff mode, shellcheck annotations, pre-session hook, validate --lint).
+   All prior roadmap phases are now complete.
+
+Also: Updated migrate.sh with Session 27 feature detection. Updated hooks README with post-session-sync
+documentation and chaining instructions.
+
+**Next Steps**: See NEXT_STEPS.md.
+
+---
+
 ## Day 8 — Session 26 (2026-03-24)
 
 **Goal**: Complete all three NEXT_STEPS.md Priority items — color flags for remaining scripts, session recap script, and metrics --format flag.
