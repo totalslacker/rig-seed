@@ -13,6 +13,7 @@ set -euo pipefail
 # --- Options ---
 
 quiet=false
+use_color=auto
 dir=""
 
 for arg in "$@"; do
@@ -23,11 +24,13 @@ for arg in "$@"; do
       echo "Verify a rig-seed template has all required files and structure."
       echo ""
       echo "Options:"
-      echo "  -q, --quiet   Only print failures and the final result"
-      echo "  -h, --help    Show this help message"
+      echo "  -q, --quiet    Only print failures and the final result"
+      echo "  --color        Force colored output"
+      echo "  --no-color     Disable colored output"
+      echo "  -h, --help     Show this help message"
       echo ""
       echo "Arguments:"
-      echo "  directory     Path to the rig-seed project root (default: current directory)"
+      echo "  directory      Path to the rig-seed project root (default: current directory)"
       echo ""
       echo "Exit codes:"
       echo "  0  All checks pass"
@@ -36,6 +39,12 @@ for arg in "$@"; do
       ;;
     -q|--quiet)
       quiet=true
+      ;;
+    --color)
+      use_color=always
+      ;;
+    --no-color)
+      use_color=never
       ;;
     *)
       dir="$arg"
@@ -46,11 +55,25 @@ done
 dir="${dir:-.}"
 errors=0
 
+# --- Color setup ---
+
+setup_colors() {
+  if [ "$use_color" = "never" ] || [ -n "${NO_COLOR:-}" ]; then
+    RED="" GREEN="" YELLOW="" CYAN="" BOLD="" RESET=""
+  elif [ "$use_color" = "always" ] || [ -t 1 ]; then
+    RED='\033[31m' GREEN='\033[32m' YELLOW='\033[33m'
+    CYAN='\033[36m' BOLD='\033[1m' RESET='\033[0m'
+  else
+    RED="" GREEN="" YELLOW="" CYAN="" BOLD="" RESET=""
+  fi
+}
+setup_colors
+
 # --- Helpers ---
 
 info() {
   if [ "$quiet" = false ]; then
-    echo "$1"
+    printf '%b\n' "$1"
   fi
 }
 
@@ -58,10 +81,10 @@ check_file() {
   local path="$dir/$1"
   local label="${2:-$1}"
   if [ ! -f "$path" ]; then
-    echo "  ✗ missing $label ($1)"
+    printf "  ${RED}✗${RESET} missing %s (%s)\n" "$label" "$1"
     ((errors++))
   else
-    info "  ✓ $label"
+    info "  ${GREEN}✓${RESET} $label"
   fi
 }
 
@@ -69,10 +92,10 @@ check_dir() {
   local path="$dir/$1"
   local label="${2:-$1}"
   if [ ! -d "$path" ]; then
-    echo "  ✗ missing directory $label ($1)"
+    printf "  ${RED}✗${RESET} missing directory %s (%s)\n" "$label" "$1"
     ((errors++))
   else
-    info "  ✓ $label"
+    info "  ${GREEN}✓${RESET} $label"
   fi
 }
 
@@ -80,12 +103,12 @@ check_nonempty() {
   local path="$dir/$1"
   local label="${2:-$1}"
   if [ ! -f "$path" ]; then
-    echo "  ✗ missing $label ($1)"
+    printf "  ${RED}✗${RESET} missing %s (%s)\n" "$label" "$1"
     ((errors++))
   elif [ ! -s "$path" ]; then
-    echo "  ⚠ $label exists but is empty ($1)"
+    printf "  ${YELLOW}⚠${RESET} %s exists but is empty (%s)\n" "$label" "$1"
   else
-    info "  ✓ $label"
+    info "  ${GREEN}✓${RESET} $label"
   fi
 }
 
@@ -94,7 +117,7 @@ check_nonempty() {
 info "Validating rig-seed template in: $dir"
 info ""
 
-info "=== Required State Files ==="
+info "${CYAN}=== Required State Files ===${RESET}"
 check_nonempty "IDENTITY.md"    "Project identity"
 check_file     "SPECS.md"       "Project specification"
 check_file     "ROADMAP.md"     "Roadmap"
@@ -107,13 +130,13 @@ check_file     "NEXT_STEPS.md"  "Planning handoff"
 check_file     "PERSONALITY.md" "Agent personality"
 
 info ""
-info "=== Evolution Config ==="
+info "${CYAN}=== Evolution Config ===${RESET}"
 check_dir      ".evolve"              "Evolution config directory"
 check_nonempty ".evolve/config.toml"  "Evolution settings"
 check_nonempty ".evolve/IMMUTABLE.txt" "Immutable file list"
 
 info ""
-info "=== Project Infrastructure ==="
+info "${CYAN}=== Project Infrastructure ===${RESET}"
 check_file     "README.md"       "README"
 check_file     "LICENSE"         "License file"
 check_file     "CONTRIBUTING.md" "Contributing guide"
@@ -121,46 +144,46 @@ check_dir      ".claude"         "Claude config directory"
 check_nonempty ".claude/CLAUDE.md" "Claude instructions"
 
 info ""
-info "=== SESSION_COUNT Format ==="
+info "${CYAN}=== SESSION_COUNT Format ===${RESET}"
 session_count_file="$dir/SESSION_COUNT"
 if [ -f "$session_count_file" ]; then
   day_val=$(tr -d '[:space:]' < "$session_count_file")
   if [[ "$day_val" =~ ^[0-9]+$ ]]; then
-    info "  ✓ SESSION_COUNT is a valid integer ($day_val)"
+    info "  ${GREEN}✓${RESET} SESSION_COUNT is a valid integer ($day_val)"
   else
-    echo "  ✗ SESSION_COUNT must contain a single integer, got: '$day_val'"
+    printf "  ${RED}✗${RESET} SESSION_COUNT must contain a single integer, got: '%s'\n" "$day_val"
     ((errors++))
   fi
 fi
 
 info ""
-info "=== DAY_COUNT Format ==="
+info "${CYAN}=== DAY_COUNT Format ===${RESET}"
 day_count_file="$dir/DAY_COUNT"
 if [ -f "$day_count_file" ]; then
   dc_val=$(tr -d '[:space:]' < "$day_count_file")
   if [[ "$dc_val" =~ ^[0-9]+$ ]]; then
-    info "  ✓ DAY_COUNT is a valid integer ($dc_val)"
+    info "  ${GREEN}✓${RESET} DAY_COUNT is a valid integer ($dc_val)"
   else
-    echo "  ✗ DAY_COUNT must contain a single integer, got: '$dc_val'"
+    printf "  ${RED}✗${RESET} DAY_COUNT must contain a single integer, got: '%s'\n" "$dc_val"
     ((errors++))
   fi
 fi
 
 info ""
-info "=== DAY_DATE Format ==="
+info "${CYAN}=== DAY_DATE Format ===${RESET}"
 day_date_file="$dir/DAY_DATE"
 if [ -f "$day_date_file" ]; then
   dd_val=$(tr -d '[:space:]' < "$day_date_file")
   if [[ "$dd_val" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
-    info "  ✓ DAY_DATE is a valid date ($dd_val)"
+    info "  ${GREEN}✓${RESET} DAY_DATE is a valid date ($dd_val)"
   else
-    echo "  ✗ DAY_DATE must contain a YYYY-MM-DD date, got: '$dd_val'"
+    printf "  ${RED}✗${RESET} DAY_DATE must contain a YYYY-MM-DD date, got: '%s'\n" "$dd_val"
     ((errors++))
   fi
 fi
 
 info ""
-info "=== Immutable File Protection ==="
+info "${CYAN}=== Immutable File Protection ===${RESET}"
 immutable_file="$dir/.evolve/IMMUTABLE.txt"
 if [ -f "$immutable_file" ]; then
   while IFS= read -r line; do
@@ -171,15 +194,15 @@ if [ -f "$immutable_file" ]; then
     if [[ "$line" == */ ]]; then
       # Directory entry
       if [ -d "$path" ]; then
-        info "  ✓ immutable directory $line exists"
+        info "  ${GREEN}✓${RESET} immutable directory $line exists"
       else
-        info "  ℹ immutable directory $line not yet created (ok for fresh template)"
+        info "  ${CYAN}ℹ${RESET} immutable directory $line not yet created (ok for fresh template)"
       fi
     else
       if [ -f "$path" ]; then
-        info "  ✓ immutable file $line exists"
+        info "  ${GREEN}✓${RESET} immutable file $line exists"
       else
-        echo "  ✗ immutable file $line is listed but missing"
+        printf "  ${RED}✗${RESET} immutable file %s is listed but missing\n" "$line"
         ((errors++))
       fi
     fi
@@ -188,9 +211,9 @@ fi
 
 info ""
 if [ "$errors" -gt 0 ]; then
-  echo "RESULT: $errors check(s) failed"
+  printf "${BOLD}${RED}RESULT: %d check(s) failed${RESET}\n" "$errors"
   exit 1
 else
-  echo "RESULT: all checks passed"
+  printf "${BOLD}${GREEN}RESULT: all checks passed${RESET}\n"
   exit 0
 fi

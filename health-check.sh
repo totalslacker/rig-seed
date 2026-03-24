@@ -26,6 +26,7 @@ set -euo pipefail
 quiet=false
 watch=false
 watch_interval=60
+use_color=auto
 dir=""
 
 while [ $# -gt 0 ]; do
@@ -38,6 +39,8 @@ while [ $# -gt 0 ]; do
       echo "Options:"
       echo "  -q, --quiet              Only print problems and the final result"
       echo "  -w, --watch [seconds]    Re-run continuously (default: 60s)"
+      echo "  --color                  Force colored output"
+      echo "  --no-color               Disable colored output"
       echo "  -h, --help               Show this help message"
       echo ""
       echo "Arguments:"
@@ -46,6 +49,7 @@ while [ $# -gt 0 ]; do
       echo "Environment variables:"
       echo "  MAX_COMMIT_AGE_DAYS    Days before stale commit warning (default: 7)"
       echo "  MAX_JOURNAL_AGE_DAYS   Days before stale journal warning (default: 7)"
+      echo "  NO_COLOR               Disable colored output (see https://no-color.org/)"
       echo ""
       echo "Exit codes:"
       echo "  0  Project appears healthy (warnings are non-fatal)"
@@ -65,6 +69,14 @@ while [ $# -gt 0 ]; do
         shift
       fi
       ;;
+    --color)
+      use_color=always
+      shift
+      ;;
+    --no-color)
+      use_color=never
+      shift
+      ;;
     *)
       dir="$1"
       shift
@@ -74,26 +86,40 @@ done
 
 dir="${dir:-.}"
 
+# --- Color setup ---
+
+setup_colors() {
+  if [ "$use_color" = "never" ] || [ -n "${NO_COLOR:-}" ]; then
+    RED="" GREEN="" YELLOW="" CYAN="" BOLD="" RESET=""
+  elif [ "$use_color" = "always" ] || [ -t 1 ]; then
+    RED='\033[31m' GREEN='\033[32m' YELLOW='\033[33m'
+    CYAN='\033[36m' BOLD='\033[1m' RESET='\033[0m'
+  else
+    RED="" GREEN="" YELLOW="" CYAN="" BOLD="" RESET=""
+  fi
+}
+setup_colors
+
 # --- Helpers ---
 
 info() {
   if [ "$quiet" = false ]; then
-    echo "$1"
+    printf '%b\n' "$1"
   fi
 }
 
 warn() {
-  echo "  ⚠ $1"
+  printf "  ${YELLOW}⚠${RESET} %s\n" "$1"
   warnings=$((warnings + 1))
 }
 
 fail() {
-  echo "  ✗ $1"
+  printf "  ${RED}✗${RESET} %s\n" "$1"
   errors=$((errors + 1))
 }
 
 ok() {
-  info "  ✓ $1"
+  info "  ${GREEN}✓${RESET} $1"
 }
 
 # --- Configuration ---
@@ -118,7 +144,7 @@ run_health_check() {
 
   # --- 1. SESSION_COUNT is present and non-zero ---
 
-  info "=== Evolution Progress ==="
+  info "${CYAN}=== Evolution Progress ===${RESET}"
   day_file="$dir/SESSION_COUNT"
   if [ ! -f "$day_file" ]; then
     fail "SESSION_COUNT file missing"
@@ -136,7 +162,7 @@ run_health_check() {
   # --- 2. Journal has entries ---
 
   info ""
-  info "=== Journal Activity ==="
+  info "${CYAN}=== Journal Activity ===${RESET}"
   journal_file="$dir/JOURNAL.md"
   if [ ! -f "$journal_file" ]; then
     fail "JOURNAL.md missing"
@@ -173,7 +199,7 @@ run_health_check() {
   # --- 3. Recent git activity ---
 
   info ""
-  info "=== Git Activity ==="
+  info "${CYAN}=== Git Activity ===${RESET}"
   if [ -d "$dir/.git" ] || git -C "$dir" rev-parse --git-dir &>/dev/null; then
     last_commit_epoch=$(git -C "$dir" log -1 --format='%ct' 2>/dev/null || echo "0")
     if [ "$last_commit_epoch" -eq 0 ]; then
@@ -202,7 +228,7 @@ run_health_check() {
   # --- 4. SPECS.md has content ---
 
   info ""
-  info "=== Project Configuration ==="
+  info "${CYAN}=== Project Configuration ===${RESET}"
   specs_file="$dir/SPECS.md"
   if [ ! -f "$specs_file" ]; then
     fail "SPECS.md missing"
@@ -232,7 +258,7 @@ run_health_check() {
   # --- 5. Validate template structure ---
 
   info ""
-  info "=== Template Validation ==="
+  info "${CYAN}=== Template Validation ===${RESET}"
   if [ -x "$dir/validate.sh" ]; then
     if "$dir/validate.sh" "$dir" > /dev/null 2>&1; then
       ok "validate.sh passes"
@@ -246,15 +272,15 @@ run_health_check() {
   # --- Summary ---
 
   info ""
-  echo "================================"
+  printf '%b\n' "${CYAN}================================${RESET}"
   if [ "$errors" -gt 0 ]; then
-    echo "RESULT: $errors error(s), $warnings warning(s) — project needs attention"
+    printf "${BOLD}${RED}RESULT: %d error(s), %d warning(s) — project needs attention${RESET}\n" "$errors" "$warnings"
     return 1
   elif [ "$warnings" -gt 0 ]; then
-    echo "RESULT: $warnings warning(s) — project is evolving but has concerns"
+    printf "${BOLD}${YELLOW}RESULT: %d warning(s) — project is evolving but has concerns${RESET}\n" "$warnings"
     return 0
   else
-    echo "RESULT: all checks passed — project is healthy"
+    printf "${BOLD}${GREEN}RESULT: all checks passed — project is healthy${RESET}\n"
     return 0
   fi
 }
