@@ -6,15 +6,15 @@ planning intent.
 
 ## Priority (do these first)
 
-- [ ] Add `--color`/`--no-color` flags to remaining scripts (check.sh, dashboard.sh, lint-workflows.sh, rollback.sh) — Script Quality phase, pattern established in Session 25
-- [ ] Add a "session recap" script that summarizes the latest journal entry — useful for quick status checks
-- [ ] Add `--format=table|csv|json` to metrics.sh — replace the separate -q and --json modes with a unified format flag
+- [ ] Add a post-session hook example that runs the integration sync scripts automatically — extends the hooks ecosystem
+- [ ] Add validation for .beads-external-map.json in validate.sh (warn if present but malformed) — catches broken integration configs
+- [ ] Consider a new roadmap phase (Automation? Observability?) for post-Script-Quality work — all current phases are complete
 
 ## Suggested (consider these)
 
-- [ ] Add a post-session hook example that runs the integration sync scripts automatically
-- [ ] Add validation for .beads-external-map.json in validate.sh (warn if present but malformed)
-- [ ] Consider a new roadmap phase (Automation? Observability?) for post-Script-Quality work
+- [ ] Add `--color`/`--no-color` to metrics.sh (currently the only script without color support)
+- [ ] Add a `--diff` mode to recap.sh that shows the git diff from the latest session
+- [ ] Add shellcheck annotations or `# shellcheck disable=` directives to any flagged patterns
 
 ## Deferred (not now, but don't forget)
 

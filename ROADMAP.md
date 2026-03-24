@@ -112,6 +112,6 @@ Living document. Updated each evolution session. Items come from three sources:
 
 - [x] Add script output conventions doc (docs/SCRIPT-CONVENTIONS.md)
 - [x] Add `--color`/`--no-color` flags to validate.sh and health-check.sh
-- [ ] Add `--color`/`--no-color` flags to remaining scripts (check.sh, dashboard.sh, etc.)
-- [ ] Add a "session recap" script that summarizes the latest journal entry
-- [ ] Add `--format=table|csv|json` to metrics.sh for flexible output
+- [x] Add `--color`/`--no-color` flags to remaining scripts (check.sh, dashboard.sh, lint-workflows.sh, rollback.sh)
+- [x] Add a "session recap" script that summarizes the latest journal entry (scripts/recap.sh)
+- [x] Add `--format=table|csv|json|kv` to metrics.sh for flexible output

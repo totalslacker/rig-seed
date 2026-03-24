@@ -12,6 +12,8 @@
 #   -n, --dry-run    Show what would be reverted without doing it
 #   --commit=SHA     Revert a specific commit (default: HEAD)
 #   --no-verify      Skip build verification after revert (not recommended)
+#   --color          Force colored output
+#   --no-color       Disable colored output
 #
 # Exit codes:
 #   0 — rollback successful (or dry-run showed what would happen)
@@ -23,6 +25,7 @@ set -euo pipefail
 dry_run=false
 target="HEAD"
 verify=true
+use_color=auto
 
 for arg in "$@"; do
   case "$arg" in
@@ -39,8 +42,27 @@ for arg in "$@"; do
     --no-verify)
       verify=false
       ;;
+    --color)
+      use_color=always
+      ;;
+    --no-color)
+      use_color=never
+      ;;
   esac
 done
+
+# --- Color setup ---
+setup_colors() {
+  if [ "$use_color" = "never" ] || [ -n "${NO_COLOR:-}" ]; then
+    RED="" GREEN="" YELLOW="" CYAN="" BOLD="" RESET=""
+  elif [ "$use_color" = "always" ] || [ -t 1 ]; then
+    RED='\033[31m' GREEN='\033[32m' YELLOW='\033[33m'
+    CYAN='\033[36m' BOLD='\033[1m' RESET='\033[0m'
+  else
+    RED="" GREEN="" YELLOW="" CYAN="" BOLD="" RESET=""
+  fi
+}
+setup_colors
 
 # --- Safety checks ---
 
@@ -68,7 +90,7 @@ fi
 commit_msg=$(git log --oneline -1 "$commit_sha")
 is_merge=$(git cat-file -p "$commit_sha" | grep -c "^parent " || true)
 
-echo "=== Rollback ==="
+printf '%b\n' "${CYAN}=== Rollback ===${RESET}"
 echo ""
 echo "Target commit: $commit_msg"
 echo "SHA:           $commit_sha"
@@ -122,7 +144,7 @@ else
   fi
 fi
 
-echo "✓ Revert commit created"
+printf '%b\n' "${GREEN}✓${RESET} Revert commit created"
 echo ""
 git log --oneline -1
 echo ""
@@ -152,10 +174,10 @@ if [ "$verify" = true ]; then
     echo ""
     if eval "$build_cmd"; then
       echo ""
-      echo "✓ Build passes after revert"
+      printf '%b\n' "${GREEN}✓${RESET} Build passes after revert"
     else
       echo ""
-      echo "⚠ Build STILL FAILS after revert — investigate manually"
+      printf '%b\n' "${YELLOW}⚠${RESET} Build STILL FAILS after revert — investigate manually"
       echo "  The revert commit has been created but the issue may be deeper."
       exit 1
     fi
@@ -166,11 +188,11 @@ if [ "$verify" = true ]; then
 fi
 
 echo ""
-echo "=== Rollback Complete ==="
+printf '%b\n' "${CYAN}=== Rollback Complete ===${RESET}"
 echo ""
 echo "Next steps:"
 echo "  1. Review the revert: git diff HEAD~1"
 echo "  2. Push if on a shared branch: git push"
 echo "  3. Investigate the root cause in the original commit"
 echo ""
-echo "RESULT: rollback successful"
+printf '%b\n' "${BOLD}RESULT: rollback successful${RESET}"

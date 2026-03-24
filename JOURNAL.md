@@ -4,6 +4,41 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Day 8 — Session 26 (2026-03-24)
+
+**Goal**: Complete all three NEXT_STEPS.md Priority items — color flags for remaining scripts, session recap script, and metrics --format flag.
+
+**Work Selection**: All three Priority items from NEXT_STEPS.md were concrete and independent. No new
+community issues (#8 and #9 remain, both Gas Town internals). Script Quality roadmap phase had three
+unchecked items; this session addresses all of them, completing the phase.
+
+Three deliverables:
+
+1. **`--color`/`--no-color` flags** for check.sh, dashboard.sh, lint-workflows.sh, and rollback.sh —
+   All four scripts now support the same terminal-aware color pattern established in Session 25 for
+   validate.sh and health-check.sh. Colors auto-detect TTY, respect `NO_COLOR`, and can be forced
+   with `--color`/`--no-color`. Green for passing checks, red for failures, yellow for warnings,
+   cyan for section headers and info markers, bold for RESULT lines. Output functions switched from
+   `echo` to `printf '%b\n'` for proper escape sequence handling. Completes the Script Quality phase.
+
+2. **Session recap script** (scripts/recap.sh) — Extracts the most recent journal entry and displays
+   it. Three modes: full entry (default, with colored headers), `--short` (just Goal and Next Steps
+   lines), and `--json` (structured output with header, goal, next_steps, and full_entry fields).
+   Supports `--color`/`--no-color` flags. Useful for quick status checks: "what did the last session
+   do?"
+
+3. **`--format=table|csv|json|kv` for metrics.sh** — Replaces the separate `-q` and `--json` modes
+   with a unified `--format` flag. Four formats: `table` (human-readable, default), `kv` (key=value
+   pairs, same as `-q`), `csv` (header+data rows for spreadsheets), `json` (single object with all
+   metrics). The `-q` flag is preserved as an alias for `--format=kv` for backwards compatibility.
+
+Also: Updated migrate.sh with Session 26 feature detection for all new flags and scripts. Updated
+README with Session Recap section and metrics --format documentation.
+
+**Next Steps**: See NEXT_STEPS.md.
+
+---
+
 ## Day 8 — Session 25 (2026-03-24)
 
 **Goal**: Complete all three NEXT_STEPS.md Priority items — script conventions doc, color flags, and Linear/Jira integration.

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # metrics.sh — Summarize evolution history for a rig-seed project.
 #
-# Usage: ./metrics.sh [-q|--quiet] [-p|--plan] [-h|--help] [directory]
+# Usage: ./metrics.sh [-q|--quiet] [-p|--plan] [--format=FORMAT] [-h|--help] [directory]
 #
 # Outputs:
 #   - Total sessions and current day count
@@ -19,7 +19,7 @@ set -euo pipefail
 
 # --- Options ---
 
-quiet=false
+format=table
 plan=false
 dir=""
 
@@ -31,22 +31,41 @@ for arg in "$@"; do
       echo "Summarize evolution history for a rig-seed project."
       echo ""
       echo "Options:"
-      echo "  -q, --quiet   Machine-readable output (key=value pairs)"
-      echo "  -p, --plan    Show planning-relevant info (unchecked roadmap, next steps)"
-      echo "  -h, --help    Show this help message"
+      echo "  -q, --quiet           Machine-readable output (alias for --format=kv)"
+      echo "  --format=FORMAT       Output format: table (default), kv, csv, json"
+      echo "  -p, --plan            Show planning-relevant info (unchecked roadmap, next steps)"
+      echo "  -h, --help            Show this help message"
+      echo ""
+      echo "Formats:"
+      echo "  table   Human-readable aligned output (default)"
+      echo "  kv      Key=value pairs, one per line (same as -q)"
+      echo "  csv     Comma-separated with header row"
+      echo "  json    JSON object with all metrics"
       echo ""
       echo "Arguments:"
       echo "  directory     Path to the rig-seed project root (default: current directory)"
       echo ""
       echo "Examples:"
-      echo "  ./metrics.sh              # Human-readable summary"
-      echo "  ./metrics.sh -q           # key=value output for scripting"
-      echo "  ./metrics.sh -p           # Planning-focused output"
-      echo "  ./metrics.sh ~/my-project # Check a different project"
+      echo "  ./metrics.sh                   # Human-readable summary"
+      echo "  ./metrics.sh -q                # key=value output for scripting"
+      echo "  ./metrics.sh --format=json     # JSON output"
+      echo "  ./metrics.sh --format=csv      # CSV for spreadsheets"
+      echo "  ./metrics.sh -p                # Planning-focused output"
+      echo "  ./metrics.sh ~/my-project      # Check a different project"
       exit 0
       ;;
     -q|--quiet)
-      quiet=true
+      format=kv
+      ;;
+    --format=*)
+      format="${arg#*=}"
+      case "$format" in
+        table|kv|csv|json) ;;
+        *)
+          echo "Error: unknown format '$format' (expected: table, kv, csv, json)" >&2
+          exit 1
+          ;;
+      esac
       ;;
     -p|--plan)
       plan=true
@@ -68,15 +87,24 @@ fi
 
 # --- Helpers ---
 
+# Accumulate metrics for csv/json output
+metric_keys=()
+metric_values=()
+
 print_metric() {
   local label="$1"
   local key="$2"
   local value="$3"
-  if [ "$quiet" = true ]; then
+  # Accumulate for csv/json
+  metric_keys+=("$key")
+  metric_values+=("$value")
+  # Print immediately for table/kv formats
+  if [ "$format" = "kv" ]; then
     echo "${key}=${value}"
-  else
+  elif [ "$format" = "table" ]; then
     printf "  %-30s %s\n" "$label" "$value"
   fi
+  # csv and json are emitted at the end
 }
 
 # --- Gather metrics ---
@@ -154,11 +182,15 @@ fi
 
 # --- Output ---
 
-if [ "$quiet" = false ]; then
-  echo "=== Evolution Metrics ==="
-  echo ""
-  echo "Progress:"
-fi
+section() {
+  if [ "$format" = "table" ]; then
+    echo "$@"
+  fi
+}
+
+section "=== Evolution Metrics ==="
+section ""
+section "Progress:"
 
 print_metric "Day count:" "day_count" "$day_count"
 print_metric "Session count:" "session_counter" "$session_counter"
@@ -166,28 +198,22 @@ print_metric "Total journal entries:" "session_count" "$session_count"
 print_metric "Total commits:" "total_commits" "$total_commits"
 print_metric "Commits per session:" "commits_per_session" "$commits_per_session"
 
-if [ "$quiet" = false ]; then
-  echo ""
-  echo "Velocity:"
-fi
+section ""
+section "Velocity:"
 
 print_metric "Project age (days):" "age_days" "$age_days"
 print_metric "Sessions per week:" "sessions_per_week" "$sessions_per_week"
 print_metric "First commit:" "first_commit_date" "${first_commit_date:-n/a}"
 print_metric "Last commit:" "last_commit_date" "${last_commit_date:-n/a}"
 
-if [ "$quiet" = false ]; then
-  echo ""
-  echo "Codebase:"
-fi
+section ""
+section "Codebase:"
 
 print_metric "Files in repo:" "files_in_repo" "$files_in_repo"
 print_metric "Total lines:" "total_lines" "$total_lines"
 
-if [ "$quiet" = false ]; then
-  echo ""
-  echo "Roadmap:"
-fi
+section ""
+section "Roadmap:"
 
 print_metric "Items completed:" "roadmap_checked" "$roadmap_checked"
 print_metric "Items remaining:" "roadmap_unchecked" "$roadmap_unchecked"
@@ -196,32 +222,74 @@ if [ "$roadmap_total" -gt 0 ]; then
   print_metric "Completion:" "roadmap_pct" "${pct}%"
 fi
 
-if [ "$quiet" = false ]; then
-  echo ""
-  echo "Knowledge:"
-fi
+section ""
+section "Knowledge:"
 
 print_metric "Learnings recorded:" "learnings_count" "$learnings_count"
 
-if [ "$quiet" = false ]; then
-  echo ""
-  echo "================================"
+section ""
+section "================================"
+
+# --- CSV output ---
+if [ "$format" = "csv" ]; then
+  # Header row
+  csv_header=""
+  for key in "${metric_keys[@]}"; do
+    if [ -n "$csv_header" ]; then
+      csv_header="$csv_header,$key"
+    else
+      csv_header="$key"
+    fi
+  done
+  echo "$csv_header"
+  # Data row
+  csv_row=""
+  for value in "${metric_values[@]}"; do
+    # Quote values containing commas or percent signs
+    if [ -n "$csv_row" ]; then
+      csv_row="$csv_row,$value"
+    else
+      csv_row="$value"
+    fi
+  done
+  echo "$csv_row"
+fi
+
+# --- JSON output ---
+if [ "$format" = "json" ]; then
+  printf '{'
+  first=true
+  for i in "${!metric_keys[@]}"; do
+    key="${metric_keys[$i]}"
+    value="${metric_values[$i]}"
+    if [ "$first" = true ]; then
+      first=false
+    else
+      printf ','
+    fi
+    # Emit numbers as bare values, strings as quoted
+    if [[ "$value" =~ ^[0-9]+$ ]]; then
+      printf '"%s":%s' "$key" "$value"
+    elif [[ "$value" =~ ^[0-9]+%$ ]]; then
+      # Strip % for JSON, store as number
+      printf '"%s":%s' "$key" "${value%\%}"
+    else
+      printf '"%s":"%s"' "$key" "$value"
+    fi
+  done
+  printf '}\n'
 fi
 
 # --- Planning output (--plan) ---
 
 if [ "$plan" = true ]; then
-  if [ "$quiet" = false ]; then
-    echo ""
-    echo "=== Planning Context ==="
-  fi
+  section ""
+  section "=== Planning Context ==="
 
   # Unchecked roadmap items by phase
   if [ -f "$dir/ROADMAP.md" ]; then
-    if [ "$quiet" = false ]; then
-      echo ""
-      echo "Unchecked roadmap items:"
-    fi
+    section ""
+    section "Unchecked roadmap items:"
     current_phase=""
     while IFS= read -r line; do
       if [[ "$line" =~ ^##\  ]]; then
@@ -229,9 +297,9 @@ if [ "$plan" = true ]; then
         current_phase="${current_phase#\#\# }"
       elif [[ "$line" =~ ^-\ \[\ \] ]]; then
         item="${line#- \[ \] }"
-        if [ "$quiet" = true ]; then
+        if [ "$format" = "kv" ]; then
           echo "roadmap_unchecked_item=${item}"
-        else
+        elif [ "$format" = "table" ]; then
           echo "  [$current_phase] $item"
         fi
       fi
@@ -242,10 +310,8 @@ if [ "$plan" = true ]; then
   if [ -f "$dir/NEXT_STEPS.md" ]; then
     # Count items by category
     priority_count=$(grep -c '^\- \[ \]' "$dir/NEXT_STEPS.md" 2>/dev/null || echo "0")
-    if [ "$quiet" = false ]; then
-      echo ""
-      echo "Next steps ($priority_count items):"
-    fi
+    section ""
+    section "Next steps ($priority_count items):"
     print_metric "Next steps items:" "next_steps_count" "$priority_count"
 
     current_section=""
@@ -261,9 +327,9 @@ if [ "$plan" = true ]; then
           status="open"
           item="${line#- \[ \] }"
         fi
-        if [ "$quiet" = true ]; then
+        if [ "$format" = "kv" ]; then
           echo "next_step_${status}=${item}"
-        else
+        elif [ "$format" = "table" ]; then
           if [ "$status" = "done" ]; then
             echo "  [x] ($current_section) $item"
           else
@@ -273,9 +339,9 @@ if [ "$plan" = true ]; then
       fi
     done < "$dir/NEXT_STEPS.md"
   else
-    if [ "$quiet" = true ]; then
+    if [ "$format" = "kv" ]; then
       echo "next_steps_count=0"
-    else
+    elif [ "$format" = "table" ]; then
       echo ""
       echo "NEXT_STEPS.md: not found"
     fi
@@ -287,8 +353,6 @@ if [ "$plan" = true ]; then
     print_metric "Open GitHub issues:" "open_issues" "$open_issues"
   fi
 
-  if [ "$quiet" = false ]; then
-    echo ""
-    echo "================================"
-  fi
+  section ""
+  section "================================"
 fi

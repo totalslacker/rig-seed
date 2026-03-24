@@ -332,6 +332,32 @@ fi
 echo "  ok"
 echo ""
 
+# Session 26: Color flags for remaining scripts, session recap, metrics --format
+echo "Session 26 enhancements:"
+check_executable "scripts/recap.sh" "Session recap script" "$source_root/scripts/recap.sh"
+if [ -f "$dir/scripts/check.sh" ] && ! grep -q '\-\-no-color' "$dir/scripts/check.sh" 2>/dev/null; then
+  echo "  NOTE: scripts/check.sh missing --color/--no-color flags (added Session 26)"
+  echo "        Compare with upstream to add terminal-aware color output."
+fi
+if [ -f "$dir/scripts/dashboard.sh" ] && ! grep -q '\-\-no-color' "$dir/scripts/dashboard.sh" 2>/dev/null; then
+  echo "  NOTE: scripts/dashboard.sh missing --color/--no-color flags (added Session 26)"
+  echo "        Compare with upstream to add terminal-aware color output."
+fi
+if [ -f "$dir/scripts/lint-workflows.sh" ] && ! grep -q '\-\-no-color' "$dir/scripts/lint-workflows.sh" 2>/dev/null; then
+  echo "  NOTE: scripts/lint-workflows.sh missing --color/--no-color flags (added Session 26)"
+  echo "        Compare with upstream to add terminal-aware color output."
+fi
+if [ -f "$dir/scripts/rollback.sh" ] && ! grep -q '\-\-no-color' "$dir/scripts/rollback.sh" 2>/dev/null; then
+  echo "  NOTE: scripts/rollback.sh missing --color/--no-color flags (added Session 26)"
+  echo "        Compare with upstream to add terminal-aware color output."
+fi
+if [ -f "$dir/metrics.sh" ] && ! grep -q '\-\-format=' "$dir/metrics.sh" 2>/dev/null; then
+  echo "  NOTE: metrics.sh missing --format flag (added Session 26)"
+  echo "        Compare with upstream to add table/csv/json/kv output format support."
+fi
+echo "  ok"
+echo ""
+
 # --- Summary ---
 
 echo "================================"

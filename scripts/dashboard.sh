@@ -8,9 +8,11 @@
 # JOURNAL.md, etc.).
 #
 # Options:
-#   -q, --quiet   Machine-readable key=value output
-#   --json        JSON output (one object per project)
-#   -h, --help    Show this help message
+#   -q, --quiet    Machine-readable key=value output
+#   --json         JSON output (one object per project)
+#   --color        Force colored output
+#   --no-color     Disable colored output
+#   -h, --help     Show this help message
 #
 # Exit codes:
 #   0 — metrics computed successfully
@@ -22,6 +24,7 @@ set -euo pipefail
 
 quiet=false
 json=false
+use_color=auto
 dirs=()
 
 for arg in "$@"; do
@@ -33,9 +36,11 @@ Usage: dashboard.sh [options] <dir1> [dir2] ...
 Aggregate evolution metrics across multiple rig-seed projects.
 
 Options:
-  -q, --quiet   Machine-readable key=value output (one block per project)
-  --json        JSON array output (for dashboards and APIs)
-  -h, --help    Show this help message
+  -q, --quiet    Machine-readable key=value output (one block per project)
+  --json         JSON array output (for dashboards and APIs)
+  --color        Force colored output
+  --no-color     Disable colored output
+  -h, --help     Show this help message
 
 Arguments:
   dir1, dir2    Paths to rig-seed project roots
@@ -58,11 +63,30 @@ HELP
     --json)
       json=true
       ;;
+    --color)
+      use_color=always
+      ;;
+    --no-color)
+      use_color=never
+      ;;
     *)
       dirs+=("$arg")
       ;;
   esac
 done
+
+# --- Color setup ---
+setup_colors() {
+  if [ "$use_color" = "never" ] || [ -n "${NO_COLOR:-}" ]; then
+    RED="" GREEN="" YELLOW="" CYAN="" BOLD="" RESET=""
+  elif [ "$use_color" = "always" ] || [ -t 1 ]; then
+    RED='\033[31m' GREEN='\033[32m' YELLOW='\033[33m'
+    CYAN='\033[36m' BOLD='\033[1m' RESET='\033[0m'
+  else
+    RED="" GREEN="" YELLOW="" CYAN="" BOLD="" RESET=""
+  fi
+}
+setup_colors
 
 if [ ${#dirs[@]} -eq 0 ]; then
   echo "Error: No project directories specified." >&2
@@ -194,9 +218,9 @@ for dir in "${dirs[@]}"; do
     gather_metrics "$dir"
   else
     if [ "$first" = true ] && [ "$quiet" = false ]; then
-      echo "=== Multi-Project Evolution Dashboard ==="
+      printf '%b\n' "${CYAN}=== Multi-Project Evolution Dashboard ===${RESET}"
       echo ""
-      printf "  %-20s %4s %8s %7s %11s %5s %8s   %-10s %s\n" \
+      printf "  ${BOLD}%-20s %4s %8s %7s %11s %5s %8s   %-10s %s${RESET}\n" \
         "PROJECT" "DAYS" "SESSIONS" "COMMITS" "ROADMAP" "PCT" "LEARNS" "LAST" "VEL/WK"
       printf "  %-20s %4s %8s %7s %11s %5s %8s   %-10s %s\n" \
         "-------" "----" "--------" "-------" "-------" "---" "------" "----" "------"
@@ -221,5 +245,5 @@ if [ "$quiet" = false ] && [ "$json" = false ] && [ "$valid_count" -gt 1 ]; then
   echo ""
   echo "  $valid_count projects tracked"
   echo ""
-  echo "================================"
+  printf '%b\n' "${CYAN}================================${RESET}"
 fi

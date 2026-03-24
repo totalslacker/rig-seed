@@ -10,6 +10,8 @@
 # Flags:
 #   -h, --help     Show this help
 #   -q, --quiet    Only show errors and the result line
+#   --color        Force colored output
+#   --no-color     Disable colored output
 #
 # Exit codes:
 #   0 — all checks passed (or no workflow files found)
@@ -18,6 +20,7 @@
 set -euo pipefail
 
 quiet=false
+use_color=auto
 
 for arg in "$@"; do
   case "$arg" in
@@ -28,6 +31,12 @@ for arg in "$@"; do
     -q|--quiet)
       quiet=true
       ;;
+    --color)
+      use_color=always
+      ;;
+    --no-color)
+      use_color=never
+      ;;
   esac
 done
 
@@ -35,7 +44,7 @@ done
 args=()
 for arg in "$@"; do
   case "$arg" in
-    -h|--help|-q|--quiet) ;;
+    -h|--help|-q|--quiet|--color|--no-color) ;;
     *) args+=("$arg") ;;
   esac
 done
@@ -43,8 +52,21 @@ done
 dir="${args[0]:-.}"
 cd "$dir"
 
+# --- Color setup ---
+setup_colors() {
+  if [ "$use_color" = "never" ] || [ -n "${NO_COLOR:-}" ]; then
+    RED="" GREEN="" YELLOW="" CYAN="" BOLD="" RESET=""
+  elif [ "$use_color" = "always" ] || [ -t 1 ]; then
+    RED='\033[31m' GREEN='\033[32m' YELLOW='\033[33m'
+    CYAN='\033[36m' BOLD='\033[1m' RESET='\033[0m'
+  else
+    RED="" GREEN="" YELLOW="" CYAN="" BOLD="" RESET=""
+  fi
+}
+setup_colors
+
 info() {
-  [ "$quiet" = true ] || echo "$@"
+  [ "$quiet" = true ] || printf '%b\n' "$*"
 }
 
 errors=0
@@ -73,22 +95,22 @@ if [ ${#files[@]} -eq 0 ]; then
   exit 0
 fi
 
-info "=== Workflow Lint ==="
+info "${CYAN}=== Workflow Lint ===${RESET}"
 info ""
 
 for wf in "${files[@]}"; do
   ((checked++))
   wf_name=$(basename "$wf")
-  info "--- $wf_name ---"
+  info "${CYAN}--- $wf_name ---${RESET}"
 
   # 1. YAML syntax check
   if command -v python3 &>/dev/null; then
     if ! python3 -c "import yaml; yaml.safe_load(open('$wf'))" 2>/dev/null; then
-      echo "  ✗ Invalid YAML syntax: $wf"
+      printf '%b\n' "  ${RED}✗${RESET} Invalid YAML syntax: $wf"
       ((errors++))
       continue  # Can't check further if YAML is broken
     else
-      info "  ✓ YAML syntax valid"
+      info "  ${GREEN}✓${RESET} YAML syntax valid"
     fi
   fi
 
@@ -96,7 +118,7 @@ for wf in "${files[@]}"; do
   # Every workflow needs 'name', 'on', and 'jobs'
   for key in name on jobs; do
     if ! grep -qE "^${key}:" "$wf"; then
-      echo "  ✗ Missing required top-level key: '$key'"
+      printf '%b\n' "  ${RED}✗${RESET} Missing required top-level key: '$key'"
       ((errors++))
     fi
   done
@@ -105,7 +127,7 @@ for wf in "${files[@]}"; do
   # Check for actions/checkout@v1, v2, v3 (v4 is current)
   if grep -qE 'actions/checkout@v[123](\s|$)' "$wf"; then
     version=$(grep -oE 'actions/checkout@v[0-9]+' "$wf" | head -1)
-    echo "  ⚠ Deprecated action: $version (current: v4)"
+    printf '%b\n' "  ${YELLOW}⚠${RESET} Deprecated action: $version (current: v4)"
     ((warnings++))
   fi
 
@@ -113,7 +135,7 @@ for wf in "${files[@]}"; do
   for action in setup-node setup-python setup-go; do
     if grep -qE "actions/${action}@v[12](\s|$)" "$wf"; then
       version=$(grep -oE "actions/${action}@v[0-9]+" "$wf" | head -1)
-      echo "  ⚠ Deprecated action: $version (check for newer major version)"
+      printf '%b\n' "  ${YELLOW}⚠${RESET} Deprecated action: $version (check for newer major version)"
       ((warnings++))
     fi
   done
@@ -121,33 +143,33 @@ for wf in "${files[@]}"; do
   # 4. Security: using pull_request_target without explicit permissions
   if grep -qE 'pull_request_target' "$wf"; then
     if ! grep -qE '^permissions:' "$wf"; then
-      echo "  ✗ Uses pull_request_target without explicit permissions (security risk)"
+      printf '%b\n' "  ${RED}✗${RESET} Uses pull_request_target without explicit permissions (security risk)"
       ((errors++))
     else
-      info "  ✓ pull_request_target has explicit permissions"
+      info "  ${GREEN}✓${RESET} pull_request_target has explicit permissions"
     fi
   fi
 
   # 5. Security: workflow_dispatch without input validation
   # Just a warning — it's common and not always needed
   if grep -qE 'workflow_dispatch:' "$wf" && ! grep -qE 'inputs:' "$wf"; then
-    info "  ℹ workflow_dispatch has no inputs defined (ok if intentional)"
+    info "  ${CYAN}ℹ${RESET} workflow_dispatch has no inputs defined (ok if intentional)"
   fi
 
   # 6. Best practice: runs-on should use a specific runner
   if grep -qE 'runs-on:.*\$\{' "$wf"; then
-    info "  ℹ Dynamic runs-on detected — ensure the expression resolves to a valid runner"
+    info "  ${CYAN}ℹ${RESET} Dynamic runs-on detected — ensure the expression resolves to a valid runner"
   fi
 
   # 7. Check for hardcoded secrets in env blocks (obvious patterns)
   if grep -qiE '(password|token|secret|api_key)\s*[:=]\s*["\x27][^$]' "$wf"; then
-    echo "  ✗ Possible hardcoded secret detected (use GitHub secrets instead)"
+    printf '%b\n' "  ${RED}✗${RESET} Possible hardcoded secret detected (use GitHub secrets instead)"
     ((errors++))
   fi
 
   # 8. Check for 'continue-on-error: true' at job level (can hide failures)
   if grep -qE '^\s+continue-on-error:\s*true' "$wf"; then
-    echo "  ⚠ continue-on-error: true detected — may hide build failures"
+    printf '%b\n' "  ${YELLOW}⚠${RESET} continue-on-error: true detected — may hide build failures"
     ((warnings++))
   fi
 
@@ -155,17 +177,15 @@ for wf in "${files[@]}"; do
 done
 
 # --- Summary ---
-info "=== Lint Summary ==="
+info "${CYAN}=== Lint Summary ===${RESET}"
 info "  Files checked: $checked"
 info "  Errors:        $errors"
 info "  Warnings:      $warnings"
 
 if [ $errors -gt 0 ]; then
-  echo ""
-  echo "RESULT: $errors error(s) found — fix before submitting"
+  printf '\n%b\n' "${BOLD}RESULT: $errors error(s) found — fix before submitting${RESET}"
   exit 1
 else
-  echo ""
-  echo "RESULT: all workflow checks passed ($warnings warning(s))"
+  printf '\n%b\n' "${BOLD}RESULT: all workflow checks passed ($warnings warning(s))${RESET}"
   exit 0
 fi

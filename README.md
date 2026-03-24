@@ -97,7 +97,18 @@ View a summary of your project's evolution history:
 ```
 
 Shows session count, commits per session, velocity, roadmap progress, and more.
-Use `./metrics.sh -q` for machine-readable key=value output.
+Use `./metrics.sh -q` for machine-readable key=value output, or
+`./metrics.sh --format=json` for JSON, `--format=csv` for spreadsheet-friendly CSV.
+
+## Session Recap
+
+Quickly see what the last evolution session did:
+
+```bash
+scripts/recap.sh              # Full latest journal entry
+scripts/recap.sh --short      # Just Goal and Next Steps
+scripts/recap.sh --json       # JSON output for tooling
+```
 
 ## Multi-Project Dashboard
 
