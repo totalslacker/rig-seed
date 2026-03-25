@@ -6,6 +6,7 @@ Pre-built git hooks for rig-seed projects.
 
 | Hook | Purpose |
 |------|---------|
+| [pre-session](pre-session) | Runs health-check.sh before starting an evolution session |
 | [pre-commit](pre-commit) | Runs validate.sh and checks immutable file protection before each commit |
 | [post-session](post-session) | Posts journal diffs to Slack or Discord after each evolution session |
 | [post-session-sync](post-session-sync) | Runs Linear/Jira integration sync after each session |
@@ -20,6 +21,33 @@ chmod +x .git/hooks/pre-commit
 # For post-session notifications (install as post-merge hook):
 cp docs/examples/hooks/post-session .git/hooks/post-merge
 chmod +x .git/hooks/post-merge
+```
+
+## What the Pre-Session Hook Does
+
+Runs health-check.sh before an evolution session begins, catching structural
+problems (missing files, invalid SESSION_COUNT) and stale activity early.
+
+**Configuration:**
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `PRE_SESSION_STRICT` | No | Set to `"1"` to fail on warnings, not just errors |
+| `PRE_SESSION_QUIET` | No | Set to `"1"` to suppress info output |
+| `HEALTH_CHECK_SCRIPT` | No | Path to health-check.sh (auto-detected) |
+
+**Usage:**
+
+```bash
+# Run directly before starting work:
+./docs/examples/hooks/pre-session
+
+# Or install as a git hook (called by evolution formula):
+cp docs/examples/hooks/pre-session .git/hooks/pre-session
+chmod +x .git/hooks/pre-session
+
+# Strict mode — also fail on warnings:
+PRE_SESSION_STRICT=1 ./docs/examples/hooks/pre-session
 ```
 
 ## What the Pre-Commit Hook Does

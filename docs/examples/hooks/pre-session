@@ -1,0 +1,89 @@
+#!/usr/bin/env bash
+# pre-session — Run health checks before starting an evolution session.
+#
+# This hook runs health-check.sh to verify the project is in a good state
+# before the agent begins work. It catches structural problems (missing
+# files, invalid SESSION_COUNT) and stale activity early, so the session
+# can address them before doing other work.
+#
+# Installation:
+#   cp docs/examples/hooks/pre-session .git/hooks/pre-session
+#   chmod +x .git/hooks/pre-session
+#
+# Or call it from your evolution formula's first step:
+#   ./docs/examples/hooks/pre-session
+#
+# Environment variables:
+#   PRE_SESSION_STRICT    Set to "1" to fail on warnings (not just errors)
+#   PRE_SESSION_QUIET     Set to "1" to suppress info output
+#   HEALTH_CHECK_SCRIPT   Path to health-check.sh (auto-detected)
+#
+# Exit codes:
+#   0 — health checks passed (or only warnings in non-strict mode)
+#   1 — health checks found errors; session should address them first
+
+set -euo pipefail
+
+# --- Configuration ---
+strict="${PRE_SESSION_STRICT:-0}"
+quiet="${PRE_SESSION_QUIET:-0}"
+
+info() {
+  if [ "$quiet" != "1" ]; then
+    echo "$@"
+  fi
+}
+
+# --- Locate health-check.sh ---
+script_dir="$(cd "$(dirname "$0")" && pwd)"
+
+# Try common locations relative to the hook
+if [ -n "${HEALTH_CHECK_SCRIPT:-}" ] && [ -x "$HEALTH_CHECK_SCRIPT" ]; then
+  health_check="$HEALTH_CHECK_SCRIPT"
+elif [ -x "$script_dir/../../../scripts/health-check.sh" ]; then
+  # Installed in .git/hooks/ — project root is three levels up
+  health_check="$script_dir/../../../scripts/health-check.sh"
+elif [ -x "$script_dir/../../../scripts/health-check.sh" ]; then
+  health_check="$script_dir/../../../scripts/health-check.sh"
+elif [ -x "scripts/health-check.sh" ]; then
+  # Running from project root
+  health_check="scripts/health-check.sh"
+else
+  echo "Error: health-check.sh not found" >&2
+  echo "Set HEALTH_CHECK_SCRIPT to the path of health-check.sh" >&2
+  exit 1
+fi
+
+info "Pre-session: running health checks..."
+
+# --- Run health check ---
+output=""
+exit_code=0
+
+if [ "$quiet" = "1" ]; then
+  output=$("$health_check" --quiet 2>&1) || exit_code=$?
+else
+  output=$("$health_check" 2>&1) || exit_code=$?
+  echo "$output"
+fi
+
+# --- Evaluate results ---
+if [ "$exit_code" -ne 0 ]; then
+  echo ""
+  echo "FAIL: Pre-session health check found errors."
+  echo "Fix the issues above before starting the session."
+  exit 1
+fi
+
+# In strict mode, also fail on warnings
+if [ "$strict" = "1" ]; then
+  warning_count=$(echo "$output" | grep -ci "warn" || true)
+  if [ "$warning_count" -gt 0 ]; then
+    echo ""
+    echo "FAIL: Pre-session health check found $warning_count warning(s) (strict mode)."
+    exit 1
+  fi
+fi
+
+info "Pre-session: health checks passed."
+exit 0

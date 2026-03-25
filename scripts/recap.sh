@@ -8,6 +8,7 @@
 #
 # Options:
 #   -s, --short    Only show Goal and Next Steps lines
+#   -d, --diff     Show the git diff from the latest session's commits
 #   --json         Output as JSON object
 #   --color        Force colored output
 #   --no-color     Disable colored output
@@ -21,6 +22,7 @@ set -euo pipefail
 
 # --- Parse arguments ---
 short=false
+diff_mode=false
 json=false
 use_color=auto
 dir=""
@@ -34,6 +36,7 @@ for arg in "$@"; do
       echo ""
       echo "Options:"
       echo "  -s, --short    Only show Goal and Next Steps lines"
+      echo "  -d, --diff     Show the git diff from the latest session's commits"
       echo "  --json         Output as JSON object"
       echo "  --color        Force colored output"
       echo "  --no-color     Disable colored output"
@@ -44,6 +47,7 @@ for arg in "$@"; do
       exit 0
       ;;
     -s|--short) short=true ;;
+    -d|--diff) diff_mode=true ;;
     --json) json=true ;;
     --color) use_color=always ;;
     --no-color) use_color=never ;;
@@ -56,11 +60,13 @@ dir="${dir:-.}"
 # --- Color setup ---
 setup_colors() {
   if [ "$use_color" = "never" ] || [ -n "${NO_COLOR:-}" ]; then
+    # shellcheck disable=SC2034  # Color vars used in output sections
     RED="" GREEN="" YELLOW="" CYAN="" BOLD="" RESET=""
   elif [ "$use_color" = "always" ] || [ -t 1 ]; then
     RED='\033[31m' GREEN='\033[32m' YELLOW='\033[33m'
     CYAN='\033[36m' BOLD='\033[1m' RESET='\033[0m'
   else
+    # shellcheck disable=SC2034  # Color vars used in output sections
     RED="" GREEN="" YELLOW="" CYAN="" BOLD="" RESET=""
   fi
 }
@@ -116,6 +122,62 @@ next_steps=$(echo "$entry" | sed -n '/^\*\*Next Steps\*\*/,$ p' | tail -n +1 | h
 
 # Session info from header
 session_info="$header"
+
+# --- Diff mode ---
+if [ "$diff_mode" = true ]; then
+  if ! command -v git >/dev/null 2>&1; then
+    echo "Error: git is required for --diff mode" >&2
+    exit 1
+  fi
+
+  # Extract session number from header (e.g., "## Day 9 — Session 27 (2026-03-24)")
+  session_num=$(echo "$header" | grep -oP 'Session \K[0-9]+' || true)
+  if [ -z "$session_num" ]; then
+    echo "Error: could not extract session number from journal header" >&2
+    exit 1
+  fi
+
+  # Find commits from this session by matching commit messages
+  # Session commits typically contain "Session N" in the message
+  session_commits=$(cd "$dir" && git log --oneline --all --grep="Session $session_num" 2>/dev/null) || true
+
+  if [ -z "$session_commits" ]; then
+    # Fallback: use the date from the header to find commits
+    session_date=$(echo "$header" | grep -oP '\d{4}-\d{2}-\d{2}' || true)
+    if [ -n "$session_date" ]; then
+      session_commits=$(cd "$dir" && git log --oneline --after="${session_date}T00:00:00" --before="${session_date}T23:59:59" 2>/dev/null) || true
+    fi
+  fi
+
+  if [ -z "$session_commits" ]; then
+    printf '%b\n' "${YELLOW}No commits found for Session $session_num${RESET}"
+    exit 0
+  fi
+
+  printf '%b\n' "${BOLD}${session_info##\#\# }${RESET}"
+  echo ""
+  printf '%b\n' "${CYAN}Commits:${RESET}"
+  echo "$session_commits"
+  echo ""
+
+  # Show the combined diff: from the parent of the oldest commit to the newest
+  oldest_sha=$(echo "$session_commits" | tail -1 | cut -d' ' -f1)
+  newest_sha=$(echo "$session_commits" | head -1 | cut -d' ' -f1)
+  parent_sha=$(cd "$dir" && git rev-parse "${oldest_sha}^" 2>/dev/null || echo "$oldest_sha")
+
+  printf '%b\n' "${CYAN}Diff (${oldest_sha}..${newest_sha}):${RESET}"
+  echo ""
+  if [ "$use_color" = "never" ] || [ -n "${NO_COLOR:-}" ]; then
+    (cd "$dir" && git diff --stat "$parent_sha".."$newest_sha" 2>/dev/null) || true
+    echo ""
+    (cd "$dir" && git diff "$parent_sha".."$newest_sha" 2>/dev/null) || true
+  else
+    (cd "$dir" && git diff --stat --color=always "$parent_sha".."$newest_sha" 2>/dev/null) || true
+    echo ""
+    (cd "$dir" && git diff --color=always "$parent_sha".."$newest_sha" 2>/dev/null) || true
+  fi
+  exit 0
+fi
 
 # --- Output ---
 if [ "$json" = true ]; then

@@ -78,11 +78,13 @@ done
 # --- Color setup ---
 setup_colors() {
   if [ "$use_color" = "never" ] || [ -n "${NO_COLOR:-}" ]; then
+    # shellcheck disable=SC2034  # Color vars used in output sections
     RED="" GREEN="" YELLOW="" CYAN="" BOLD="" RESET=""
   elif [ "$use_color" = "always" ] || [ -t 1 ]; then
     RED='\033[31m' GREEN='\033[32m' YELLOW='\033[33m'
     CYAN='\033[36m' BOLD='\033[1m' RESET='\033[0m'
   else
+    # shellcheck disable=SC2034  # Color vars used in output sections
     RED="" GREEN="" YELLOW="" CYAN="" BOLD="" RESET=""
   fi
 }

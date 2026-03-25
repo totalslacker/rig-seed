@@ -372,6 +372,16 @@ fi
 echo "  ok"
 echo ""
 
+# Session 28: recap.sh --diff mode, shellcheck annotations, pre-session hook
+echo "Session 28 enhancements:"
+check_executable "docs/examples/hooks/pre-session" "Pre-session health check hook" "$source_root/docs/examples/hooks/pre-session"
+if [ -f "$dir/scripts/recap.sh" ] && ! grep -q '\-\-diff' "$dir/scripts/recap.sh" 2>/dev/null; then
+  echo "  NOTE: scripts/recap.sh missing --diff flag (added Session 28)"
+  echo "        Compare with upstream to add git diff display mode."
+fi
+echo "  ok"
+echo ""
+
 # --- Summary ---
 
 echo "================================"
