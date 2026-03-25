@@ -4,6 +4,41 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Day 11 — Session 30 (2026-03-25 14:03 PDT)
+
+**Goal**: Address open GitHub issues — bundle the mol-evolve formula, add time to journal format, add pre-submit state validation, and add acceptance evaluation step.
+
+**Work Selection**: Four open GitHub issues (#19, #20, #21, #22) are all actionable template improvements.
+Issues #8 and #9 are about Gas Town refinery internals and belong in the gastown rig. Selected all four
+addressable issues since they are independent and focused.
+
+Four deliverables:
+
+1. **Bundle mol-evolve.formula.toml** (Issue #22) — Copied the formula into `formulas/` so forks have it
+   without depending on town-level config. Updated quickstart.sh to warn if missing and validate.sh to
+   check it as a required component. This was the root cause of the "embedded formula not found" warnings
+   that caused polecats to skip critical steps.
+
+2. **Time and timezone in journal format** (Issue #20) — Updated EVOLUTION.md Step 8 and the bundled formula
+   to use `## Day D — Session N (YYYY-MM-DD HH:MM TZ)` format. Multiple same-day sessions are now
+   distinguishable at a glance.
+
+3. **Pre-submit state validation** (Issue #21) — Added `scripts/check-evolve-state.sh` that compares the
+   branch diff against required state files (JOURNAL.md, NEXT_STEPS.md, SESSION_COUNT). Warns on missing
+   optional files (ROADMAP.md, DAY_COUNT, DAY_DATE). Follows project script conventions with --help,
+   --color/--no-color, --quiet, and RESULT line.
+
+4. **Acceptance evaluation step** (Issue #19) — Added Step 6b to both EVOLUTION.md and the bundled formula.
+   Requires polecats to re-read each addressed issue, demonstrate the fix works, and only close when all
+   complaints have corresponding changes. Prevents false closures.
+
+Also: Updated README with formula in template files table and new Evolution State Check section. Updated
+migrate.sh with Session 30 feature detection.
+
+**Next Steps**: See NEXT_STEPS.md.
+
+---
+
 ## Day 11 — Session 29 (2026-03-25)
 
 **Goal**: Complete all three NEXT_STEPS.md Priority items — validate.sh --lint mode, metrics.sh --watch mode, and post-session-sync CI workflow example.

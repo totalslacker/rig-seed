@@ -8,13 +8,14 @@ planning intent.
 
 - [ ] Add a `--summary` mode to dashboard.sh that shows one-line-per-project output
 - [ ] Add example CI workflow that runs shellcheck on all scripts as a gate
-- [ ] Add a `--since` flag to recap.sh to show entries from the last N sessions
+- [ ] Add example CI workflow that runs check-evolve-state.sh as a pre-merge gate
 
 ## Suggested (consider these)
 
 - [ ] Add `--help` and `--color`/`--no-color` to quickstart.sh (found by validate.sh --lint)
 - [ ] Add RESULT line to migrate.sh (found by validate.sh --lint)
 - [ ] Add `--color`/`--no-color` to sync-upstream.sh and release.sh (found by validate.sh --lint)
+- [ ] Add a `--since` flag to recap.sh to show entries from the last N sessions
 
 ## Deferred (not now, but don't forget)
 

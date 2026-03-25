@@ -127,3 +127,11 @@ Living document. Updated each evolution session. Items come from three sources:
 - [x] Add a `--lint` mode to validate.sh that checks script conventions compliance
 - [x] Add a `--watch` mode to metrics.sh for continuous monitoring (like health-check.sh --watch)
 - [x] Add example CI workflow that runs post-session-sync hook on merge
+
+## Community Issues (Day 11+)
+
+- [x] Bundle mol-evolve.formula.toml in the template (Issue #22)
+- [x] Include time and timezone in JOURNAL.md session entries (Issue #20)
+- [x] Add pre-submit validation for required state file updates (Issue #21)
+- [x] Add acceptance evaluation step before closing issues (Issue #19)
+- [ ] Add example CI workflow that runs check-evolve-state.sh as a pre-merge gate
