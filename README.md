@@ -3,6 +3,11 @@
 A template for building autonomously-evolving software projects with
 [Gas Town](https://github.com/anthropics/gas-town).
 
+## Inspired By
+
+[yoyo-evolve](https://github.com/yologdev/yoyo-evolve) — a self-evolving coding
+agent that grows one commit at a time.
+
 ## What Is This?
 
 rig-seed is a scaffold you fork to create a new project that evolves itself.
@@ -272,11 +277,6 @@ evolution session.
 - [Planning Investigation](docs/PLANNING.md) — How evolution sessions choose work and how to improve it
 - [Troubleshooting](docs/TROUBLESHOOTING.md) — Common problems and how to fix them
 - [Project Plan](docs/PLAN.md) — Architecture and design decisions
-
-## Inspired By
-
-[yoyo-evolve](https://github.com/yologdev/yoyo-evolve) — a self-evolving coding
-agent that grows one commit at a time.
 
 ## License
 
