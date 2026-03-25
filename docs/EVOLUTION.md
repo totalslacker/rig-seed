@@ -129,8 +129,10 @@ project's memory. Skipping it means the next agent has no context for what
 happened.
 
 - **JOURNAL.md** — Write a new entry at the top. Use the dual-counter format:
-  `## Day <D> — Session <N> (YYYY-MM-DD)` where `<N>` is the current
-  SESSION_COUNT value and `<D>` is the current DAY_COUNT value.
+  `## Day <D> — Session <N> (YYYY-MM-DD HH:MM TZ)` where `<N>` is the current
+  SESSION_COUNT value and `<D>` is the current DAY_COUNT value. Include the
+  time and timezone (e.g., `2026-03-25 14:07 PDT`) so multiple same-day
+  sessions are distinguishable and can be correlated with external events.
   Every entry MUST include:
   - **Goal**: First line after the heading. States intent before describing work.
   - **Work Selection**: 2-3 bullets explaining why these items were chosen and

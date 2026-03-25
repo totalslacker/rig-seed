@@ -378,10 +378,11 @@ Update the project's evolution state.
 
 Follow PERSONALITY.md voice guidelines. Format:
 ```markdown
-## Day N — [short title]
+## Day N — Session M (YYYY-MM-DD HH:MM TZ)
 
 [2-4 sentences: what you tried, what worked, what didn't, what's next]
 ```
+Include time and timezone so multiple same-day sessions are distinguishable.
 
 Insert AFTER the `---` separator line at the top of JOURNAL.md, BEFORE
 previous entries.
