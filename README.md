@@ -80,6 +80,7 @@ one manually by creating a bead with the `mol-evolve` formula.
 | `SESSION_COUNT` | Current evolution session number | Auto-incremented |
 | `.evolve/config.toml` | Evolution settings (frequency, limits) | Yes |
 | `.evolve/IMMUTABLE.txt` | Files the agent cannot modify | Human only |
+| `formulas/mol-evolve.formula.toml` | Evolution workflow formula | Yes (rarely) |
 | `.claude/CLAUDE.md` | Instructions for evolution workers | Yes |
 
 ## Validation
@@ -165,6 +166,19 @@ subdirectories like `frontend/`). Also runs any commands configured in the
 `[build]` section of `.evolve/config.toml`. This is the same script the
 evolution agent runs during Step 7 (Build Check) — a broken build is never
 submitted.
+
+## Evolution State Check
+
+Verify that a mol-evolve session updated all required state files before
+submitting:
+
+```bash
+scripts/check-evolve-state.sh
+```
+
+Checks that JOURNAL.md, NEXT_STEPS.md, and SESSION_COUNT were modified.
+Warns if ROADMAP.md, DAY_COUNT, or DAY_DATE are missing from the diff.
+Run this before `gt done` to catch missing updates early.
 
 ## Upstream Sync
 
