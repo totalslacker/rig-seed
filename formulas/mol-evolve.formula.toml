@@ -325,9 +325,33 @@ bd close <task-bead-1> <task-bead-2> ...
 **Exit criteria:** Changes are clean and ready for build check."""
 
 [[steps]]
+id = "acceptance-eval"
+title = "Acceptance evaluation for addressed issues"
+needs = ["self-review"]
+description = """
+Verify your work actually solves each addressed issue — not just that code was written.
+
+**For each GitHub issue or bead addressed this session:**
+
+1. **Re-read the original issue description.** Don't rely on memory.
+2. **For each specific complaint or request:**
+   - Demonstrate the fix works (run the tool, show output, before/after)
+   - If behavioral: show the changed behavior
+   - If structural: show the new file/format/config exists
+3. **Self-close criteria — only close when ALL of:**
+   - Every specific complaint has a corresponding code change
+   - The change is demonstrably working
+   - You can articulate what changed from the user's perspective
+4. **If any complaint is NOT addressed:**
+   - Leave the issue open
+   - Note what remains in a comment
+
+**Exit criteria:** Each addressed issue verified. Only verified issues will be closed."""
+
+[[steps]]
 id = "build-check"
 title = "Final build and test verification"
-needs = ["self-review"]
+needs = ["acceptance-eval"]
 description = """
 Run the full build/test/lint suite before submitting.
 

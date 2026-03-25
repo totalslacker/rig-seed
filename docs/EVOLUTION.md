@@ -89,6 +89,26 @@ Before submitting, the agent reviews its own diff:
 - Did any tests break?
 - Is the code quality acceptable?
 
+### Step 6b: Acceptance Evaluation
+
+For each GitHub issue or bead addressed in this session, verify the work
+actually solves the stated problem — not just that code was written.
+
+1. **Re-read the original issue description.** Don't rely on memory.
+2. **For each specific complaint or request in the issue:**
+   - Show that the fix works (run the tool, show output, before/after)
+   - If the fix is behavioral: demonstrate the changed behavior
+   - If the fix is structural: show the new file/format/config exists
+3. **Self-close criteria** — only close an issue when ALL of:
+   - Every specific complaint has a corresponding code change
+   - The change is demonstrably working (not just "I edited the file")
+   - You can articulate what changed from the user's perspective
+4. **If any complaint is NOT addressed:** leave the issue open and note
+   what remains in a comment.
+
+This step prevents false closures where a polecat claims to fix an issue
+but the actual problem persists.
+
 ### Step 7: Build Check
 
 Run **ALL** of the project's build, test, and lint commands — not just the
