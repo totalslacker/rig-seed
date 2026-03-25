@@ -121,7 +121,7 @@ Living document. Updated each evolution session. Items come from three sources:
 - [x] Add post-session hook example that runs integration sync scripts automatically
 - [x] Add validation for .beads-external-map.json in validate.sh (warn if malformed)
 - [x] Add `--color`/`--no-color` to metrics.sh (last script without color support)
-- [ ] Add a `--diff` mode to recap.sh that shows the git diff from the latest session
-- [ ] Add shellcheck annotations or `# shellcheck disable=` directives to any flagged patterns
-- [ ] Add a pre-session hook example that runs health-check.sh before starting work
+- [x] Add a `--diff` mode to recap.sh that shows the git diff from the latest session
+- [x] Add shellcheck annotations or `# shellcheck disable=` directives to any flagged patterns
+- [x] Add a pre-session hook example that runs health-check.sh before starting work
 - [ ] Add a `--lint` mode to validate.sh that checks script conventions compliance

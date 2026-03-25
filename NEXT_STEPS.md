@@ -6,15 +6,15 @@ planning intent.
 
 ## Priority (do these first)
 
-- [ ] Add a `--diff` mode to recap.sh that shows the git diff from the latest session — quick session review
-- [ ] Add shellcheck annotations or `# shellcheck disable=` directives to any flagged patterns — code quality
-- [ ] Add a pre-session hook example that runs health-check.sh before starting work — extends the hooks ecosystem
-
-## Suggested (consider these)
-
 - [ ] Add a `--lint` mode to validate.sh that checks script conventions compliance
 - [ ] Add a `--watch` mode to metrics.sh for continuous monitoring (like health-check.sh --watch)
 - [ ] Add example CI workflow that runs post-session-sync hook on merge
+
+## Suggested (consider these)
+
+- [ ] Add a `--summary` mode to dashboard.sh that shows one-line-per-project output
+- [ ] Add example CI workflow that runs shellcheck on all scripts as a gate
+- [ ] Add a `--since` flag to recap.sh to show entries from the last N sessions
 
 ## Deferred (not now, but don't forget)
 

@@ -4,6 +4,39 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Day 10 — Session 28 (2026-03-25)
+
+**Goal**: Complete all three NEXT_STEPS.md Priority items — recap.sh --diff mode, shellcheck annotations, and pre-session hook example.
+
+**Work Selection**: All three Priority items from NEXT_STEPS.md were concrete and independent. The Automation
+roadmap phase had three unchecked items; this session addresses all of them, completing the phase.
+
+Three deliverables:
+
+1. **`--diff` mode for recap.sh** — New `-d`/`--diff` flag that shows the git diff from the latest session's
+   commits. Finds commits by matching "Session N" in commit messages, with a fallback to date-based search
+   using the journal header's date. Shows a commit list, diffstat summary, and full diff. Respects
+   `--color`/`--no-color` flags. Useful for quick code review: "what changed in the last session?"
+
+2. **Shellcheck annotations** — Ran shellcheck across all scripts and resolved all findings. The only
+   issues were SC2034 (unused variable) false positives for color variables defined in `setup_colors()` but
+   used conditionally in other code paths. Added `# shellcheck disable=SC2034` with explanatory comments
+   to dashboard.sh, recap.sh, and rollback.sh. Also fixed SC2015 (A && B || C) patterns in the new diff
+   mode code. All scripts now pass shellcheck clean.
+
+3. **Pre-session hook** (docs/examples/hooks/pre-session) — Runs health-check.sh before an evolution
+   session begins. Auto-detects the health-check script location (works from .git/hooks/ or project root).
+   Supports PRE_SESSION_STRICT (fail on warnings), PRE_SESSION_QUIET (suppress info output), and
+   HEALTH_CHECK_SCRIPT (custom path) environment variables. Non-strict mode (default) only fails on
+   errors, allowing warnings to pass.
+
+Also: Updated migrate.sh with Session 28 feature detection. Updated hooks README with pre-session hook
+documentation. Completed the Automation roadmap phase.
+
+**Next Steps**: See NEXT_STEPS.md.
+
+---
+
 ## Day 9 — Session 27 (2026-03-24)
 
 **Goal**: Complete all three NEXT_STEPS.md Priority items — post-session sync hook, validate.sh integration check, and new Automation roadmap phase — plus the Suggested metrics.sh color flag.
