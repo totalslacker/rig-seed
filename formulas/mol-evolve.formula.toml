@@ -1,0 +1,506 @@
+description = """
+Autonomous evolution session for a rig-seed project.
+
+Guides a polecat through one complete evolution cycle: read project state,
+self-assess, select improvements, implement, test, journal, and submit for
+merge. Designed for projects using the rig-seed template.
+
+## Evolution Contract
+
+You are an evolution worker. Each session you:
+1. Read the project's identity, specs, roadmap, journal, and learnings
+2. Assess the current state of the codebase
+3. Pick 1-3 focused improvements
+4. Implement them (tests first where possible)
+5. Journal what happened (honestly)
+6. Submit your work for merge
+
+## Bootstrap Mode
+
+If SPECS.md is empty or contains only the placeholder, you are in bootstrap
+mode. Your first job is to read project requirements from the bead description
+and write them to SPECS.md. Then set up the project structure.
+
+## Safety Rails
+
+- NEVER modify files listed in .evolve/IMMUTABLE.txt
+- Every change must pass the build. If it breaks, fix it or revert.
+- Never delete existing tests
+- Commit after each logical unit of work
+- If stuck for >15 minutes on one thing, journal it and move on
+
+## Variables
+
+| Variable | Source | Description |
+|----------|--------|-------------|
+| issue | hook_bead | The evolution bead ID |
+| base_branch | sling vars | Branch to rebase on (default: main) |
+| setup_command | rig config | Setup/install command. Empty = skip. |
+| test_command | rig config | Test command. Empty = skip. |
+| lint_command | rig config | Lint command. Empty = skip. |
+| build_command | rig config | Build command. Empty = skip. |"""
+formula = "mol-evolve"
+version = 1
+
+[vars]
+[vars.issue]
+description = "The evolution bead ID assigned to this polecat"
+required = true
+
+[vars.base_branch]
+description = "The base branch to rebase on"
+default = "main"
+
+[vars.setup_command]
+description = "Setup/install command. Empty = skip."
+default = ""
+
+[vars.test_command]
+description = "Test command. Empty = skip."
+default = ""
+
+[vars.lint_command]
+description = "Lint command. Empty = skip."
+default = ""
+
+[vars.build_command]
+description = "Build command. Empty = skip."
+default = ""
+
+[[steps]]
+id = "load-state"
+title = "Load project state and understand context"
+description = """
+Read the project's evolution state files and understand your assignment.
+
+**1. Prime your environment:**
+```bash
+gt prime
+bd prime
+```
+
+**2. Check your hook:**
+```bash
+gt hook
+```
+
+The hook_bead is your evolution assignment. Read it:
+```bash
+bd show {{issue}}
+```
+
+**3. Read evolution state files (in this order):**
+```bash
+# Read these files from the repo root:
+cat IDENTITY.md          # Who this project is (immutable constitution)
+cat SPECS.md             # What we're building
+cat DAY_COUNT            # Current evolution day
+cat JOURNAL.md           # Recent history (first 50 lines = last few sessions)
+cat ROADMAP.md           # Current priorities
+cat LEARNINGS.md         # Accumulated knowledge
+cat .evolve/config.toml  # Evolution settings
+cat .evolve/IMMUTABLE.txt # Files you must not touch
+```
+
+**4. Check inbox for context:**
+```bash
+gt mail inbox
+```
+
+**5. Determine mode:**
+- If SPECS.md is empty/placeholder → **Bootstrap mode**: your priority is
+  getting specs and setting up the project structure.
+- If SPECS.md has content → **Normal mode**: assess and improve.
+
+**6. Read the current day:**
+Read DAY_COUNT and remember it for journal entries. DAY_COUNT tracks
+calendar days, NOT sessions — multiple evolutions on the same day share
+the same day number. Only increment if today is a new calendar day
+(compare against the latest journal entry's date).
+
+**Exit criteria:** You understand the project, its current state, and whether
+you're in bootstrap or normal mode."""
+
+[[steps]]
+id = "self-assess"
+title = "Assess the current state of the codebase"
+needs = ["load-state"]
+description = """
+Read the codebase critically and identify what needs improvement.
+
+**Bootstrap mode (SPECS.md empty):**
+Skip deep assessment. Focus on reading the bead description for project
+requirements. Your assessment is: "project needs bootstrapping."
+
+**Normal mode:**
+
+**1. Read all source code:**
+```bash
+# List all source files
+find . -type f -not -path './.git/*' -not -path './node_modules/*' \
+  -not -path './target/*' -not -path './dist/*' | head -50
+# Then read key files
+```
+
+**2. Try using the project (if it has a runnable artifact):**
+- Build it, run it, exercise edge cases
+- Note crashes, bad error messages, missing features
+
+**3. Check what ROADMAP.md says is next:**
+- What's the current level/phase?
+- What items are unchecked?
+
+**4. Check JOURNAL.md for recent failures:**
+- Did a previous session fail at something? Don't repeat the same mistake.
+- Did a previous session leave a "next time" note?
+
+**5. Write assessment (persist to bead for crash safety):**
+```bash
+bd update {{issue}} --notes "SELF-ASSESSMENT Day N:
+1. [CRITICAL/HIGH/MEDIUM/LOW] Description
+2. ...
+Bootstrap needed: yes/no
+Community issues: N pending"
+```
+
+**Exit criteria:** Assessment written. You know what needs work."""
+
+[[steps]]
+id = "fetch-community"
+title = "Review community input"
+needs = ["self-assess"]
+description = """
+Check for community input from GitHub issues.
+
+**1. Read GitHub issues from the bead description:**
+The Deacon plugin embeds open GitHub issues in the evolution bead's description.
+Read them from `bd show {{issue}}`.
+
+**2. If no issues embedded, check directly (if gh CLI available):**
+```bash
+gh issue list --state open --label agent-input --limit 10 \
+  --json number,title,body,reactionGroups 2>/dev/null || echo "No gh access"
+```
+
+**3. Prioritize by reactions:**
+Issues with more thumbs-up reactions get higher priority.
+
+**4. Note actionable issues:**
+Which issues can you address in this session? Add them to your work
+selection in the next step.
+
+**Exit criteria:** Community input reviewed. Actionable issues identified."""
+
+[[steps]]
+id = "select-work"
+title = "Select improvements for this session"
+needs = ["fetch-community"]
+description = """
+Pick 1-3 concrete improvements to make this session.
+
+**Priority order:**
+1. Self-discovered crash or data loss bug (CRITICAL)
+2. Community issue with most reactions (if actionable today)
+3. Self-discovered UX friction or missing error handling
+4. Planned roadmap item at current level
+
+**Bootstrap mode:** Your selection is predetermined:
+- Write SPECS.md from bead description
+- Set up project structure (language, build system, directories)
+- Write initial ROADMAP.md based on specs
+- Create initial build/test configuration
+
+**Normal mode:**
+Read .evolve/config.toml for max_improvements_per_session (default: 3).
+
+**Create beads for each selected task:**
+```bash
+bd create --title "Day N: <improvement description>" --type task --priority 2
+bd update <id> --claim
+```
+
+**Persist selection to evolution bead:**
+```bash
+bd update {{issue}} --notes "SELECTED WORK Day N:
+1. <task> (bead: rs-xxx) — reason: <why this matters>
+2. <task> (bead: rs-yyy) — reason: <why>
+3. <task> (bead: rs-zzz) — reason: <why>"
+```
+
+**Exit criteria:** 1-3 improvements selected, beads created and claimed."""
+
+[[steps]]
+id = "implement"
+title = "Implement selected improvements"
+needs = ["select-work"]
+description = """
+Do the actual work. For each selected improvement:
+
+**1. Set up your branch:**
+```bash
+git fetch origin
+git checkout -b polecat/evolve-day-N origin/{{base_branch}}
+```
+
+**2. For each improvement, follow this cycle:**
+
+a. **Write tests first** (where possible):
+   - What should the improvement do?
+   - Write a test that validates it
+   - Verify the test fails (it should, since you haven't implemented yet)
+
+b. **Implement the change:**
+   - Use surgical edits (edit_file), not full rewrites
+   - Follow existing code conventions
+   - Keep changes focused on this one improvement
+
+c. **Verify it works:**
+   ```bash
+   {{build_command}}     # Must compile (if configured)
+   {{test_command}}      # Must pass (if configured)
+   ```
+
+d. **Commit:**
+   ```bash
+   git add <files>
+   git commit -m "Day N: <short description of improvement>"
+   ```
+
+e. **If build fails:**
+   - Try to fix it (up to 3 attempts per improvement)
+   - If you can't fix it, revert: `git checkout -- .`
+   - Journal the failure and move to the next improvement
+
+f. **Move to the next improvement.**
+
+**3. Check IMMUTABLE.txt compliance:**
+```bash
+cat .evolve/IMMUTABLE.txt
+git diff origin/{{base_branch}}..HEAD --name-only
+# Verify no immutable files were changed
+```
+
+If you modified an immutable file, revert those specific changes:
+```bash
+git checkout origin/{{base_branch}} -- <immutable-file>
+git commit -m "revert: undo accidental change to immutable file"
+```
+
+**Exit criteria:** All selected improvements implemented (or reverted if broken).
+At least one commit ahead of origin/{{base_branch}}."""
+
+[[steps]]
+id = "self-review"
+title = "Review changes before submission"
+needs = ["implement"]
+description = """
+Review your own work before submitting.
+
+**1. Review the full diff:**
+```bash
+git diff origin/{{base_branch}}...HEAD
+git log --oneline origin/{{base_branch}}..HEAD
+```
+
+**2. Check for common issues:**
+- Off-by-one errors, null handling, edge cases
+- Security issues (injection, exposed secrets)
+- Commented-out code, debug prints, TODOs
+- Unintended file changes
+
+**3. Verify IMMUTABLE.txt compliance (again):**
+```bash
+# Cross-reference changed files against immutable list
+git diff --name-only origin/{{base_branch}}..HEAD
+cat .evolve/IMMUTABLE.txt
+```
+
+**4. Fix any issues found.** Don't just note them — fix them now.
+
+**5. Close completed task beads:**
+```bash
+bd close <task-bead-1> <task-bead-2> ...
+```
+
+**Exit criteria:** Changes are clean and ready for build check."""
+
+[[steps]]
+id = "build-check"
+title = "Final build and test verification"
+needs = ["self-review"]
+description = """
+Run the full build/test/lint suite before submitting.
+
+**1. Run all configured gates:**
+
+If setup_command is set:
+```bash
+{{setup_command}}
+```
+
+If build_command is set:
+```bash
+{{build_command}}
+```
+
+If test_command is set:
+```bash
+{{test_command}}
+```
+
+If lint_command is set:
+```bash
+{{lint_command}}
+```
+
+**2. If any command is empty but CLAUDE.md documents build commands:**
+Read .claude/CLAUDE.md for project-specific instructions and run those.
+
+**3. If build fails:**
+- Fix the issue, commit the fix
+- Re-run the failing check
+- After 3 failed attempts: revert all changes, journal the failure
+  ```bash
+  git checkout origin/{{base_branch}} -- .
+  git commit -m "Day N: reverted — build failures after 3 fix attempts"
+  ```
+
+**Exit criteria:** All configured gates pass (or changes reverted on failure)."""
+
+[[steps]]
+id = "update-state"
+title = "Update evolution state files"
+needs = ["build-check"]
+description = """
+Update the project's evolution state.
+
+**1. Write journal entry at the TOP of JOURNAL.md:**
+
+Follow PERSONALITY.md voice guidelines. Format:
+```markdown
+## Day N — [short title]
+
+[2-4 sentences: what you tried, what worked, what didn't, what's next]
+```
+
+Insert AFTER the `---` separator line at the top of JOURNAL.md, BEFORE
+previous entries.
+
+**2. Update ROADMAP.md:**
+- Check off completed items: `- [ ]` → `- [x] ... (Day N)`
+- Add newly discovered items to the appropriate section
+- If you completed all items in a section, note it
+
+**3. Update LEARNINGS.md (if applicable):**
+If you learned something technical that would save time in future sessions,
+add it here.
+
+**4. Update DAY_COUNT (only if new calendar day):**
+Only increment if today is a new day compared to the latest journal entry.
+Multiple evolutions on the same day share the same day number.
+```bash
+# Only if this is a new calendar day:
+echo "N" > DAY_COUNT    # Where N = previous value + 1
+```
+
+**5. Update .claude/CLAUDE.md (if build/test commands changed):**
+If you set up a build system during bootstrap, update the Build & Test
+Commands section in .claude/CLAUDE.md.
+
+**6. Commit state updates:**
+```bash
+git add JOURNAL.md ROADMAP.md LEARNINGS.md DAY_COUNT .claude/CLAUDE.md
+git commit -m "Day N: session wrap-up"
+```
+
+**Exit criteria:** Journal written, roadmap updated, day counter incremented."""
+
+[[steps]]
+id = "pre-verify"
+title = "Pre-merge rebase verification"
+needs = ["update-state"]
+description = """
+Rebase onto the target branch and run the full gate suite.
+
+**1. Fetch and rebase:**
+```bash
+git fetch origin {{base_branch}}
+git rebase origin/{{base_branch}}
+```
+
+If conflicts: resolve carefully, re-run build to verify.
+
+**2. Run full gate suite on rebased result:**
+Run all configured commands (build, test, lint) one more time.
+
+**3. If all pass:** Ready for `gt done --pre-verified` in next step.
+**4. If any fail:** Fix, commit, re-run from step 1.
+
+**Exit criteria:** Branch rebased, all gates pass."""
+
+[[steps]]
+id = "submit-mr"
+title = "Submit MR to merge queue"
+needs = ["pre-verify"]
+description = """
+Submit your work to the merge queue.
+
+**Pre-flight: Verify commits exist:**
+```bash
+git log origin/{{base_branch}}..HEAD --oneline
+```
+Must show at least 1 commit. If empty, do NOT submit.
+
+**Push and submit:**
+```bash
+git push origin HEAD
+gt mq submit {{issue}}
+```
+
+**Exit criteria:** MR submitted, polecat in awaiting_verdict state."""
+
+[[steps]]
+id = "await-verdict"
+title = "Wait for refinery verdict"
+needs = ["submit-mr"]
+description = """
+Wait for the refinery to process your MR.
+
+**Check for verdict:**
+```bash
+gt mail inbox
+```
+
+If no verdict yet:
+```bash
+gt mol step await-signal --agent-bead <your-agent-bead> \
+  --backoff-base 30s --backoff-mult 2 --backoff-max 5m
+```
+
+**On MERGED:** Proceed to self-clean.
+
+**On FIX_NEEDED:**
+1. Read failure details from mail
+2. Fix the code
+3. Commit, rebase, push
+4. `gt mq submit {{issue}} --resubmit`
+5. Loop back to await-verdict
+
+**Max retries:** After 3 fix attempts, escalate to Witness.
+
+**Exit criteria:** Received MERGED signal."""
+
+[[steps]]
+id = "self-clean"
+title = "Self-clean after merge"
+needs = ["await-verdict"]
+description = """
+Merge confirmed. Clean up and exit.
+
+```bash
+gt done --pre-verified
+```
+
+You are gone after this. The refinery merged your work. `gt done` is cleanup.
+
+**Exit criteria:** Sandbox nuked, session exited."""
