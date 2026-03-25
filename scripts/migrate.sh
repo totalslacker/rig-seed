@@ -382,6 +382,20 @@ fi
 echo "  ok"
 echo ""
 
+# Session 29: validate.sh --lint, metrics.sh --watch, post-session-sync CI workflow
+echo "Session 29 enhancements:"
+check_file "docs/examples/workflows/post-session-sync.yml" "Post-session sync CI workflow" "$source_root/docs/examples/workflows/post-session-sync.yml"
+if [ -f "$dir/validate.sh" ] && ! grep -q '\-\-lint' "$dir/validate.sh" 2>/dev/null; then
+  echo "  NOTE: validate.sh missing --lint flag (added Session 29)"
+  echo "        Compare with upstream to add script conventions linting."
+fi
+if [ -f "$dir/metrics.sh" ] && ! grep -q '\-\-watch' "$dir/metrics.sh" 2>/dev/null; then
+  echo "  NOTE: metrics.sh missing --watch flag (added Session 29)"
+  echo "        Compare with upstream to add continuous monitoring mode."
+fi
+echo "  ok"
+echo ""
+
 # --- Summary ---
 
 echo "================================"

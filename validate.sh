@@ -14,6 +14,7 @@ set -euo pipefail
 
 quiet=false
 use_color=auto
+lint=false
 dir=""
 
 for arg in "$@"; do
@@ -25,6 +26,7 @@ for arg in "$@"; do
       echo ""
       echo "Options:"
       echo "  -q, --quiet    Only print failures and the final result"
+      echo "  -l, --lint     Check script conventions compliance"
       echo "  --color        Force colored output"
       echo "  --no-color     Disable colored output"
       echo "  -h, --help     Show this help message"
@@ -39,6 +41,9 @@ for arg in "$@"; do
       ;;
     -q|--quiet)
       quiet=true
+      ;;
+    -l|--lint)
+      lint=true
       ;;
     --color)
       use_color=always
@@ -82,7 +87,7 @@ check_file() {
   local label="${2:-$1}"
   if [ ! -f "$path" ]; then
     printf "  ${RED}✗${RESET} missing %s (%s)\n" "$label" "$1"
-    ((errors++))
+    errors=$((errors + 1))
   else
     info "  ${GREEN}✓${RESET} $label"
   fi
@@ -93,7 +98,7 @@ check_dir() {
   local label="${2:-$1}"
   if [ ! -d "$path" ]; then
     printf "  ${RED}✗${RESET} missing directory %s (%s)\n" "$label" "$1"
-    ((errors++))
+    errors=$((errors + 1))
   else
     info "  ${GREEN}✓${RESET} $label"
   fi
@@ -104,7 +109,7 @@ check_nonempty() {
   local label="${2:-$1}"
   if [ ! -f "$path" ]; then
     printf "  ${RED}✗${RESET} missing %s (%s)\n" "$label" "$1"
-    ((errors++))
+    errors=$((errors + 1))
   elif [ ! -s "$path" ]; then
     printf "  ${YELLOW}⚠${RESET} %s exists but is empty (%s)\n" "$label" "$1"
   else
@@ -152,7 +157,7 @@ if [ -f "$session_count_file" ]; then
     info "  ${GREEN}✓${RESET} SESSION_COUNT is a valid integer ($day_val)"
   else
     printf "  ${RED}✗${RESET} SESSION_COUNT must contain a single integer, got: '%s'\n" "$day_val"
-    ((errors++))
+    errors=$((errors + 1))
   fi
 fi
 
@@ -165,7 +170,7 @@ if [ -f "$day_count_file" ]; then
     info "  ${GREEN}✓${RESET} DAY_COUNT is a valid integer ($dc_val)"
   else
     printf "  ${RED}✗${RESET} DAY_COUNT must contain a single integer, got: '%s'\n" "$dc_val"
-    ((errors++))
+    errors=$((errors + 1))
   fi
 fi
 
@@ -178,7 +183,7 @@ if [ -f "$day_date_file" ]; then
     info "  ${GREEN}✓${RESET} DAY_DATE is a valid date ($dd_val)"
   else
     printf "  ${RED}✗${RESET} DAY_DATE must contain a YYYY-MM-DD date, got: '%s'\n" "$dd_val"
-    ((errors++))
+    errors=$((errors + 1))
   fi
 fi
 
@@ -227,10 +232,71 @@ if [ -f "$immutable_file" ]; then
         info "  ${GREEN}✓${RESET} immutable file $line exists"
       else
         printf "  ${RED}✗${RESET} immutable file %s is listed but missing\n" "$line"
-        ((errors++))
+        errors=$((errors + 1))
       fi
     fi
   done < "$immutable_file"
+fi
+
+# --- Script Conventions Lint (--lint) ---
+
+if [ "$lint" = true ]; then
+  info ""
+  info "${CYAN}=== Script Conventions Lint ===${RESET}"
+
+  # Find all .sh files in project root and scripts/
+  lint_files=()
+  while IFS= read -r -d '' f; do
+    lint_files+=("$f")
+  done < <(find "$dir" -maxdepth 1 -name '*.sh' -print0 2>/dev/null)
+  while IFS= read -r -d '' f; do
+    lint_files+=("$f")
+  done < <(find "$dir/scripts" -maxdepth 1 -name '*.sh' -print0 2>/dev/null)
+
+  if [ ${#lint_files[@]} -eq 0 ]; then
+    info "  ${CYAN}ℹ${RESET} no .sh files found to lint"
+  else
+    for script in "${lint_files[@]}"; do
+      rel="${script#"$dir"/}"
+      script_errors=0
+
+      # Check shebang
+      if ! head -1 "$script" | grep -q '^#!/usr/bin/env bash\|^#!/bin/bash'; then
+        printf "  ${RED}✗${RESET} %s: missing bash shebang\n" "$rel"
+        script_errors=1
+      fi
+
+      # Check --help / -h
+      if ! grep -q '\-\-help\|\-h)' "$script" 2>/dev/null; then
+        printf "  ${RED}✗${RESET} %s: missing --help flag\n" "$rel"
+        script_errors=1
+      fi
+
+      # Check set -euo pipefail
+      if ! grep -q 'set -euo pipefail' "$script" 2>/dev/null; then
+        printf "  ${YELLOW}⚠${RESET} %s: missing 'set -euo pipefail'\n" "$rel"
+      fi
+
+      # Check --color/--no-color
+      if ! grep -q '\-\-no-color' "$script" 2>/dev/null; then
+        printf "  ${YELLOW}⚠${RESET} %s: missing --color/--no-color flags\n" "$rel"
+      fi
+
+      # Check RESULT line (only for validation/check scripts, not all scripts)
+      # Look for scripts that do checks (have error counters or check functions)
+      if grep -q 'errors=' "$script" 2>/dev/null || grep -q 'check_' "$script" 2>/dev/null; then
+        if ! grep -q 'RESULT:' "$script" 2>/dev/null; then
+          printf "  ${YELLOW}⚠${RESET} %s: check-style script missing RESULT line\n" "$rel"
+        fi
+      fi
+
+      if [ "$script_errors" -gt 0 ]; then
+        errors=$((errors + 1))
+      else
+        info "  ${GREEN}✓${RESET} $rel"
+      fi
+    done
+  fi
 fi
 
 info ""

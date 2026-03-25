@@ -1,0 +1,55 @@
+# post-session-sync.yml — Run integration sync after evolution session merges
+#
+# Triggers the post-session-sync hook when evolution session commits land on main,
+# syncing beads/roadmap changes to Linear or Jira.
+#
+# To use: copy to .github/workflows/post-session-sync.yml
+#
+# Prerequisites:
+#   - SYNC_TARGET secret set to "linear" or "jira"
+#   - SYNC_API_KEY secret with the appropriate API key
+#   - The sync scripts (scripts/sync-linear.sh or scripts/sync-jira.sh) exist
+
+name: Post-Session Sync
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'JOURNAL.md'
+      - 'SESSION_COUNT'
+      - 'ROADMAP.md'
+      - '.beads-external-map.json'
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    # Only run if the commit message looks like an evolution session
+    if: contains(github.event.head_commit.message, 'Session') || contains(github.event.head_commit.message, 'evolve')
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run post-session-sync hook
+        run: |
+          if [ -x docs/examples/hooks/post-session-sync ]; then
+            docs/examples/hooks/post-session-sync
+          else
+            echo "Post-session-sync hook not found or not executable, skipping"
+          fi
+        env:
+          SYNC_TARGET: ${{ secrets.SYNC_TARGET }}
+          SYNC_API_KEY: ${{ secrets.SYNC_API_KEY }}
+          SYNC_DIRECTION: push
+          # Set SYNC_DRY_RUN to 1 for testing:
+          # SYNC_DRY_RUN: 1
+
+      - name: Report sync result
+        if: always()
+        run: |
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "Integration sync completed successfully"
+          else
+            echo "::warning::Integration sync failed — check logs above"
+            echo "This is non-blocking; the merge has already landed."
+          fi

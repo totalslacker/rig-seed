@@ -6,15 +6,15 @@ planning intent.
 
 ## Priority (do these first)
 
-- [ ] Add a `--lint` mode to validate.sh that checks script conventions compliance
-- [ ] Add a `--watch` mode to metrics.sh for continuous monitoring (like health-check.sh --watch)
-- [ ] Add example CI workflow that runs post-session-sync hook on merge
-
-## Suggested (consider these)
-
 - [ ] Add a `--summary` mode to dashboard.sh that shows one-line-per-project output
 - [ ] Add example CI workflow that runs shellcheck on all scripts as a gate
 - [ ] Add a `--since` flag to recap.sh to show entries from the last N sessions
+
+## Suggested (consider these)
+
+- [ ] Add `--help` and `--color`/`--no-color` to quickstart.sh (found by validate.sh --lint)
+- [ ] Add RESULT line to migrate.sh (found by validate.sh --lint)
+- [ ] Add `--color`/`--no-color` to sync-upstream.sh and release.sh (found by validate.sh --lint)
 
 ## Deferred (not now, but don't forget)
 

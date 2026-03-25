@@ -165,3 +165,16 @@ skip any value that doesn't match `^[0-9.]+$`. Prometheus expects numeric gauge
 values — non-numeric entries simply aren't exportable and that's fine. Also strip
 units like `%` from values before emitting, since Prometheus metrics carry units
 in the metric name or HELP text, not in values.
+
+---
+
+### Avoid `((var++))` with `set -e` — use `var=$((var + 1))` instead
+
+In bash, `((expr))` returns exit code 1 when the expression evaluates to 0.
+With post-increment `((errors++))`, when `errors=0`, the old value (0) is the
+expression result, so bash returns exit code 1. Under `set -e`, this kills the
+script. The fix is `errors=$((errors + 1))`, which is an assignment (always
+returns 0) rather than an arithmetic command. This is especially insidious
+because the bug only triggers on the *first* increment — subsequent increments
+from non-zero values return truthy, so the script appears to work as long as
+errors are found after the first one.

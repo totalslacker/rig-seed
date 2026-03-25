@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # metrics.sh — Summarize evolution history for a rig-seed project.
 #
-# Usage: ./metrics.sh [-q|--quiet] [-p|--plan] [--format=FORMAT] [--color|--no-color] [-h|--help] [directory]
+# Usage: ./metrics.sh [-q|--quiet] [-p|--plan] [-w|--watch [secs]] [--format=FORMAT] [--color|--no-color] [-h|--help] [directory]
 #
 # Outputs:
 #   - Total sessions and current day count
@@ -21,11 +21,13 @@ set -euo pipefail
 
 format=table
 plan=false
+watch=false
+watch_interval=60
 use_color=auto
 dir=""
 
-for arg in "$@"; do
-  case "$arg" in
+while [ $# -gt 0 ]; do
+  case "$1" in
     -h|--help)
       echo "Usage: metrics.sh [options] [directory]"
       echo ""
@@ -35,6 +37,7 @@ for arg in "$@"; do
       echo "  -q, --quiet           Machine-readable output (alias for --format=kv)"
       echo "  --format=FORMAT       Output format: table (default), kv, csv, json"
       echo "  -p, --plan            Show planning-relevant info (unchecked roadmap, next steps)"
+      echo "  -w, --watch [seconds] Re-run continuously (default: 60s)"
       echo "  --color               Force colored output"
       echo "  --no-color            Disable colored output"
       echo "  -h, --help            Show this help message"
@@ -54,14 +57,16 @@ for arg in "$@"; do
       echo "  ./metrics.sh --format=json     # JSON output"
       echo "  ./metrics.sh --format=csv      # CSV for spreadsheets"
       echo "  ./metrics.sh -p                # Planning-focused output"
+      echo "  ./metrics.sh -w 30             # Refresh every 30 seconds"
       echo "  ./metrics.sh ~/my-project      # Check a different project"
       exit 0
       ;;
     -q|--quiet)
       format=kv
+      shift
       ;;
     --format=*)
-      format="${arg#*=}"
+      format="${1#*=}"
       case "$format" in
         table|kv|csv|json) ;;
         *)
@@ -69,18 +74,32 @@ for arg in "$@"; do
           exit 1
           ;;
       esac
+      shift
       ;;
     -p|--plan)
       plan=true
+      shift
+      ;;
+    -w|--watch)
+      watch=true
+      shift
+      # If next arg is a number, use it as the interval
+      if [ $# -gt 0 ] && [[ "$1" =~ ^[0-9]+$ ]]; then
+        watch_interval="$1"
+        shift
+      fi
       ;;
     --color)
       use_color=always
+      shift
       ;;
     --no-color)
       use_color=never
+      shift
       ;;
     *)
-      dir="$arg"
+      dir="$1"
+      shift
       ;;
   esac
 done
@@ -107,6 +126,10 @@ if [ ! -f "$dir/SESSION_COUNT" ] || [ ! -f "$dir/JOURNAL.md" ]; then
   echo "Error: $dir does not appear to be a rig-seed project (missing SESSION_COUNT or JOURNAL.md)" >&2
   exit 1
 fi
+
+# --- Metrics function (for --watch support) ---
+
+run_metrics() {
 
 # --- Helpers ---
 
@@ -212,6 +235,9 @@ section() {
 }
 
 section "${CYAN}=== Evolution Metrics ===${RESET}"
+if [ "$watch" = true ]; then
+  section "  ($(date '+%Y-%m-%d %H:%M:%S'))"
+fi
 section ""
 section "${BOLD}Progress:${RESET}"
 
@@ -378,4 +404,20 @@ if [ "$plan" = true ]; then
 
   section ""
   section "${CYAN}================================${RESET}"
+fi
+
+} # end run_metrics
+
+# --- Main ---
+
+if [ "$watch" = true ]; then
+  echo "Watching $dir every ${watch_interval}s (Ctrl+C to stop)"
+  echo ""
+  while true; do
+    run_metrics
+    echo ""
+    sleep "$watch_interval"
+  done
+else
+  run_metrics
 fi

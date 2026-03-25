@@ -4,6 +4,41 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Day 11 — Session 29 (2026-03-25)
+
+**Goal**: Complete all three NEXT_STEPS.md Priority items — validate.sh --lint mode, metrics.sh --watch mode, and post-session-sync CI workflow example.
+
+**Work Selection**: All three Priority items from NEXT_STEPS.md were concrete and independent. The Automation
+roadmap phase had two unchecked items; this session completes them plus adds the CI workflow, completing
+all planned Automation work.
+
+Three deliverables:
+
+1. **`--lint` mode for validate.sh** — New `-l`/`--lint` flag that checks all .sh files (in project root
+   and scripts/) for compliance with SCRIPT-CONVENTIONS.md. Checks: bash shebang present, --help flag
+   supported, set -euo pipefail used, --color/--no-color flags present, RESULT line in check-style scripts.
+   Errors (missing shebang, missing --help) count toward the failure total; warnings (missing color flags,
+   missing pipefail) are non-fatal. Also fixed a latent `((errors++))` bug across validate.sh where
+   arithmetic expansion returns exit code 1 when incrementing from 0, which `set -e` would catch.
+
+2. **`--watch` mode for metrics.sh** — New `-w`/`--watch [seconds]` flag that re-runs metrics on a loop
+   (default: 60s), matching the pattern from health-check.sh. Shows a timestamp on each iteration.
+   Required refactoring the metrics gathering and output into a `run_metrics()` function. Argument parsing
+   switched from `for arg` to `while [ $# -gt 0 ]` to support `--watch` consuming an optional next arg.
+
+3. **Post-session-sync CI workflow** (docs/examples/workflows/post-session-sync.yml) — GitHub Actions
+   workflow that triggers on pushes to main when evolution state files change (JOURNAL.md, SESSION_COUNT,
+   ROADMAP.md, .beads-external-map.json). Filters by commit message to only run on session-like commits.
+   Executes the post-session-sync hook with configurable SYNC_TARGET and SYNC_API_KEY secrets. Non-blocking:
+   sync failures produce warnings but don't fail the workflow.
+
+Also: Updated migrate.sh with Session 29 feature detection. Updated workflows README with post-session-sync
+entry. Fixed `((errors++))` arithmetic expansion bug throughout validate.sh (7 occurrences).
+
+**Next Steps**: See NEXT_STEPS.md.
+
+---
+
 ## Day 10 — Session 28 (2026-03-25)
 
 **Goal**: Complete all three NEXT_STEPS.md Priority items — recap.sh --diff mode, shellcheck annotations, and pre-session hook example.
