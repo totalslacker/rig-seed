@@ -31,6 +31,13 @@ if ! "$dir/validate.sh" "$dir" > /dev/null 2>&1; then
   exit 1
 fi
 echo "  All template files present."
+
+# Check for bundled formula
+if [ ! -f "$dir/formulas/mol-evolve.formula.toml" ]; then
+  echo "  WARNING: formulas/mol-evolve.formula.toml not found."
+  echo "  Polecats need this formula for evolution workflow steps."
+  echo "  Copy it from your Gas Town installation or re-fork rig-seed."
+fi
 echo ""
 
 # --- Step 2: Reset counters ---

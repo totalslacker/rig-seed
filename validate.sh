@@ -141,6 +141,10 @@ check_nonempty ".evolve/config.toml"  "Evolution settings"
 check_nonempty ".evolve/IMMUTABLE.txt" "Immutable file list"
 
 info ""
+info "${CYAN}=== Formula ===${RESET}"
+check_nonempty "formulas/mol-evolve.formula.toml" "Evolution formula"
+
+info ""
 info "${CYAN}=== Project Infrastructure ===${RESET}"
 check_file     "README.md"       "README"
 check_file     "LICENSE"         "License file"
