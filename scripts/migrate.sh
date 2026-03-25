@@ -396,6 +396,19 @@ fi
 echo "  ok"
 echo ""
 
+# Session 30: bundled formula, check-evolve-state.sh, acceptance evaluation step
+echo "Session 30 enhancements:"
+if [ ! -f "$dir/formulas/mol-evolve.formula.toml" ]; then
+  echo "  NOTE: formulas/mol-evolve.formula.toml missing (added Session 30)"
+  echo "        Copy from upstream rig-seed to bundle the evolution formula."
+fi
+if [ ! -f "$dir/scripts/check-evolve-state.sh" ]; then
+  echo "  NOTE: scripts/check-evolve-state.sh missing (added Session 30)"
+  echo "        Pre-submit validation for required state file updates."
+fi
+echo "  ok"
+echo ""
+
 # --- Summary ---
 
 echo "================================"
