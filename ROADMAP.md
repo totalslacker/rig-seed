@@ -147,3 +147,7 @@ Living document. Updated each evolution session. Items come from three sources:
 - [x] Add `--check` mode to quickstart.sh for dry-run validation (Day 13)
 - [x] Add `--projects DIR` flag to dashboard.sh for auto-discovery (Day 13)
 - [x] Add `--since N` flag to metrics.sh --plan for recent session goals (Day 13)
+- [x] Add `--top N` flag to recap.sh for limiting displayed entries (Day 13)
+- [x] Add `--depth N` flag to dashboard.sh --projects for search depth control (Day 13)
+- [x] Add integration tests for --check, --top, --projects, --depth flags (Day 13)
+- [x] Fix integration test assertions for quickstart Day 1 behavior (Day 13)

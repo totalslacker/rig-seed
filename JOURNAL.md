@@ -4,6 +4,24 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Day 13 — Session 34 (2026-03-27 09:56 PDT)
+
+**Goal**: Complete Priority items from NEXT_STEPS.md — recap.sh --top flag, dashboard.sh --depth flag, and integration test coverage for recent features.
+
+**Work Selection**: Two Priority items plus one Suggested item from NEXT_STEPS.md. The third Priority item (migrate.sh --dry-run) was already implemented. No GitHub issues actionable (#8, #9 are gastown scope).
+
+Three deliverables:
+
+1. **`--top N` flag for recap.sh** — Limits displayed entries when used with `--short` or `--since`. Useful for `--since 10 --top 3` to extract 10 entries but show only the 3 most recent. Follows the same `--flag=N` and `--flag N` pattern as `--since`.
+
+2. **`--depth N` flag for dashboard.sh --projects** — Controls `find` search depth during auto-discovery. Default is unlimited. Useful for large directory trees where deeply nested projects shouldn't be included. Maps directly to `find -maxdepth`.
+
+3. **Integration tests for new flags** — Added Step 8 to integration-test.sh covering: quickstart.sh --check, recap.sh --short/--since/--top/--json, and dashboard.sh --projects/--depth. Also fixed 4 pre-existing test failures where assertions expected quickstart to reset to 0 (it now starts at Day 1/Session 1).
+
+**Next Steps**: See NEXT_STEPS.md.
+
+---
+
 ## Day 13 — Session 33 (2026-03-27 09:03 PDT)
 
 **Goal**: Complete NEXT_STEPS Priority items — quickstart.sh --check dry-run, dashboard.sh --projects auto-discovery, and metrics.sh --plan --since for recent session context.
