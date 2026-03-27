@@ -6,15 +6,15 @@ planning intent.
 
 ## Priority (do these first)
 
-- [ ] Add `--color`/`--no-color` to sync-upstream.sh and release.sh (found by validate.sh --lint)
-- [ ] Add a `--since` flag to recap.sh to show entries from the last N sessions
-- [ ] Add a `--summary` flag to metrics.sh for quick one-line output (mirrors dashboard.sh --summary)
-
-## Suggested (consider these)
-
 - [ ] Add a `--check` mode to quickstart.sh that validates without resetting (dry-run validation)
 - [ ] Add a `--projects` flag to dashboard.sh that auto-discovers rig-seed projects under a directory
 - [ ] Add `set -euo pipefail` audit across all scripts (some may be missing pipefail)
+
+## Suggested (consider these)
+
+- [ ] Add a `--since` flag to metrics.sh --plan to show planning context from last N sessions
+- [ ] Add a `--top N` flag to recap.sh --short for showing just the N most recent goals
+- [ ] Add integration test coverage for new --since and --summary flags
 
 ## Deferred (not now, but don't forget)
 

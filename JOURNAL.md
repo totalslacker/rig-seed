@@ -4,6 +4,24 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Day 13 — Session 32 (2026-03-27 08:44 PDT)
+
+**Goal**: Complete all three Priority items from NEXT_STEPS.md — script color flag compliance, recap.sh --since, and metrics.sh --summary.
+
+**Work Selection**: All three Priority items from NEXT_STEPS.md. No GitHub issues actionable (both #8 and #9 are Gas Town refinery internals, not rig-seed). All three tasks are independent script improvements.
+
+Three deliverables:
+
+1. **`--color`/`--no-color` for sync-upstream.sh and release.sh** (lint compliance) — Both scripts were flagged by `validate.sh --lint` for missing color flags. Added standard color setup pattern, argument parsing, and colorized output for headers, status indicators, and key values. Also modernized release.sh argument parsing to support flags in any order.
+
+2. **`--since N` flag for recap.sh** — New flag to display the last N journal sessions instead of just the most recent. Works with all existing modes: `--short` shows goals-only for each entry, `--json` returns an array, and full mode shows complete entries with separators. Useful for quick context when returning after a break.
+
+3. **`--summary`/`-s` flag for metrics.sh** — One-line output format showing day, session count, roadmap progress percentage, commit count, and last commit date. Mirrors the compact style of `dashboard.sh --summary`. Ideal for quick status checks or embedding in other scripts.
+
+**Next Steps**: See NEXT_STEPS.md.
+
+---
+
 ## Day 12 — Session 31 (2026-03-26 17:39 PDT)
 
 **Goal**: Complete three Priority items from NEXT_STEPS.md — dashboard summary mode, check-evolve-state CI workflow, and script quality improvements.

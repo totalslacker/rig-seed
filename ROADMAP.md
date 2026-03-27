@@ -138,3 +138,9 @@ Living document. Updated each evolution session. Items come from three sources:
 - [x] Add `--summary` mode to dashboard.sh for one-line-per-project output
 - [x] Add `--help` and `--color`/`--no-color` flags to quickstart.sh
 - [x] Add RESULT line to migrate.sh
+
+## Usability (Day 13+)
+
+- [x] Add `--color`/`--no-color` to sync-upstream.sh and release.sh (Day 13)
+- [x] Add `--since N` flag to recap.sh for multi-session recaps (Day 13)
+- [x] Add `--summary`/`-s` flag to metrics.sh for one-line output (Day 13)
