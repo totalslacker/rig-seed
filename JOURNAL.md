@@ -4,6 +4,7 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+<<<<<<< HEAD
 ## Day 13 — Session 34 (2026-03-27 09:56 PDT)
 
 **Goal**: Complete Priority items from NEXT_STEPS.md — recap.sh --top flag, dashboard.sh --depth flag, and integration test coverage for recent features.
@@ -77,6 +78,41 @@ Four deliverables:
 Also: Updated migrate.sh with Session 31 feature detection. Updated workflows README with check-evolve-state entry. Updated README dashboard section to mention `--summary`. Updated ROADMAP with completed items.
 
 **Next Steps**: See NEXT_STEPS.md.
+
+---
+
+## Day 12 — Infra Fix (2026-03-27 09:45 PDT)
+
+**Goal**: Diagnose and fix why autonomous evolution stopped running for rigseed and cv.
+
+**Root Cause**: The evolve plugin (`plugins/evolve/plugin.md`) had been broken since creation due to
+three compounding bugs, all in Gas Town (gastown rig):
+
+1. **Wrong frontmatter delimiters** — Plugin used YAML-style `---` but the scanner requires TOML `+++`.
+   The scanner silently returned nil, so the plugin was never discovered. Zero evolution beads were ever
+   auto-created by the deacon.
+
+2. **Wrong gate field name** — Plugin used `interval = "24h"` but the Gate struct expects `duration`.
+   The value was silently dropped by TOML parsing into an unmatched field.
+
+3. **No cooldown recording** — `dispatchPlugins()` in the daemon handler never called `RecordRun()` after
+   dispatching a plugin to a dog. `CountRunsSince()` always returned 0, so cooldown gates never engaged.
+   Once bugs #1 and #2 were fixed, the plugin fired on every patrol cycle (~3 min) instead of every 24h,
+   spawning 7 duplicate evolution sessions before the recording fix was deployed.
+
+**Fixes** (all in gastown, committed and pushed):
+- `cafe596` — Scanner skips `.disabled` suffix directories
+- `4cce0ae` — Scanner validates frontmatter delimiters and gate fields with clear error messages
+- `2c2564f` — Handler records plugin dispatch so cooldown gates work
+- Upstream PR: steveyegge/gastown#3347
+
+**Impact**: The evolve plugin now runs correctly on a 24h cycle. Both rigseed and cv received their
+first auto-dispatched evolution sessions today (Day 12 for rigseed, Day 26 for cv). All prior 30
+sessions were manually dispatched by the mayor.
+
+**Lesson**: Silent failures in plugin discovery are dangerous — the system looked healthy while a core
+feature was completely non-functional. The new validation ensures future plugin authoring mistakes
+produce clear errors instead of silent skips.
 
 ---
 
