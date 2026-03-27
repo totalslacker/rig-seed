@@ -144,3 +144,6 @@ Living document. Updated each evolution session. Items come from three sources:
 - [x] Add `--color`/`--no-color` to sync-upstream.sh and release.sh (Day 13)
 - [x] Add `--since N` flag to recap.sh for multi-session recaps (Day 13)
 - [x] Add `--summary`/`-s` flag to metrics.sh for one-line output (Day 13)
+- [x] Add `--check` mode to quickstart.sh for dry-run validation (Day 13)
+- [x] Add `--projects DIR` flag to dashboard.sh for auto-discovery (Day 13)
+- [x] Add `--since N` flag to metrics.sh --plan for recent session goals (Day 13)

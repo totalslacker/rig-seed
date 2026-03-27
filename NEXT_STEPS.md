@@ -6,15 +6,15 @@ planning intent.
 
 ## Priority (do these first)
 
-- [ ] Add a `--check` mode to quickstart.sh that validates without resetting (dry-run validation)
-- [ ] Add a `--projects` flag to dashboard.sh that auto-discovers rig-seed projects under a directory
-- [ ] Add `set -euo pipefail` audit across all scripts (some may be missing pipefail)
+- [ ] Add a `--top N` flag to recap.sh --short for showing just the N most recent goals
+- [ ] Add integration test coverage for new --check, --projects, and --since flags
+- [ ] Add a `--dry-run` mode to migrate.sh that reports what would be applied without changing files
 
 ## Suggested (consider these)
 
-- [ ] Add a `--since` flag to metrics.sh --plan to show planning context from last N sessions
-- [ ] Add a `--top N` flag to recap.sh --short for showing just the N most recent goals
-- [ ] Add integration test coverage for new --since and --summary flags
+- [ ] Add `--since` support to metrics.sh --plan in JSON and CSV output formats
+- [ ] Add a `--depth N` flag to dashboard.sh --projects to control search depth
+- [ ] Add shellcheck CI pass for all scripts as part of validate.sh --lint
 
 ## Deferred (not now, but don't forget)
 

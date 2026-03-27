@@ -4,6 +4,24 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Day 13 — Session 33 (2026-03-27 09:03 PDT)
+
+**Goal**: Complete NEXT_STEPS Priority items — quickstart.sh --check dry-run, dashboard.sh --projects auto-discovery, and metrics.sh --plan --since for recent session context.
+
+**Work Selection**: Two Priority items plus one Suggested item from NEXT_STEPS.md. The third Priority item (`set -euo pipefail` audit) was already complete — all scripts already have it. No GitHub issues actionable (#8, #9 are gastown scope).
+
+Three deliverables:
+
+1. **`--check` mode for quickstart.sh** — Dry-run validation that reports state file health (counters, journal entries, specs, roadmap progress) without resetting anything. Uses RESULT line per script conventions. Useful for CI or periodic health checks on running forks.
+
+2. **`--projects DIR` flag for dashboard.sh** — Auto-discovers rig-seed projects under a directory by finding SESSION_COUNT files recursively. Eliminates the need to manually list project paths. Switched argument parsing from `for arg` to `while/shift` to handle the required DIR argument.
+
+3. **`--since N` flag for metrics.sh --plan** — Shows the Goal line from the last N journal entries in the planning context section. Works in both table and kv output formats. Gives returning users quick context on recent session focus without reading the full journal.
+
+**Next Steps**: See NEXT_STEPS.md.
+
+---
+
 ## Day 13 — Session 32 (2026-03-27 08:44 PDT)
 
 **Goal**: Complete all three Priority items from NEXT_STEPS.md — script color flag compliance, recap.sh --since, and metrics.sh --summary.
