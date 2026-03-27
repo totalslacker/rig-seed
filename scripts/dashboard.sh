@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # dashboard.sh — Aggregate evolution metrics across multiple rig-seed projects.
 #
-# Usage: dashboard.sh [-q|--quiet] [-h|--help] [--json] [--summary] [--projects DIR] <dir1> [dir2] ...
+# Usage: dashboard.sh [-q|--quiet] [-h|--help] [--json] [--summary] [--projects DIR] [--depth N] <dir1> [dir2] ...
 #
 # Outputs a table comparing evolution metrics across projects. Each argument
 # should be a path to a rig-seed project root (containing SESSION_COUNT,
@@ -12,6 +12,7 @@
 #   --json            JSON output (one object per project)
 #   --summary         One-line-per-project compact output
 #   --projects DIR    Auto-discover rig-seed projects under DIR (recursive)
+#   --depth N         Limit --projects search depth (default: unlimited)
 #   --color           Force colored output
 #   --no-color        Disable colored output
 #   -h, --help        Show this help message
@@ -29,6 +30,7 @@ json=false
 summary=false
 use_color=auto
 projects_dir=""
+max_depth=""
 dirs=()
 
 while [ $# -gt 0 ]; do
@@ -44,6 +46,7 @@ Options:
   --json            JSON array output (for dashboards and APIs)
   --summary         One-line-per-project compact output
   --projects DIR    Auto-discover rig-seed projects under DIR (recursive)
+  --depth N         Limit --projects search depth (default: unlimited)
   --color           Force colored output
   --no-color        Disable colored output
   -h, --help        Show this help message
@@ -57,6 +60,9 @@ Examples:
 
   # Auto-discover all rig-seed projects under a directory
   ./dashboard.sh --projects ~/projects
+
+  # Limit auto-discovery to 3 directory levels deep
+  ./dashboard.sh --projects ~/projects --depth 3
 
   # JSON output for all rigs in a Gas Town workspace
   ./dashboard.sh --json ~/gt/*/repo
@@ -88,6 +94,23 @@ HELP
         exit 1
       fi
       projects_dir="$1"
+      shift
+      ;;
+    --depth)
+      shift
+      if [ $# -eq 0 ] || ! [[ "$1" =~ ^[0-9]+$ ]]; then
+        echo "Error: --depth requires a numeric argument." >&2
+        exit 1
+      fi
+      max_depth="$1"
+      shift
+      ;;
+    --depth=*)
+      max_depth="${1#*=}"
+      if ! [[ "$max_depth" =~ ^[0-9]+$ ]]; then
+        echo "Error: --depth requires a numeric argument." >&2
+        exit 1
+      fi
       shift
       ;;
     --color)
@@ -127,9 +150,13 @@ if [ -n "$projects_dir" ]; then
     exit 1
   fi
   # Find directories containing SESSION_COUNT (rig-seed marker)
+  depth_args=()
+  if [ -n "$max_depth" ]; then
+    depth_args=(-maxdepth "$max_depth")
+  fi
   while IFS= read -r session_file; do
     dirs+=("$(dirname "$session_file")")
-  done < <(find "$projects_dir" -name SESSION_COUNT -not -path '*/.git/*' -not -path '*/node_modules/*' 2>/dev/null | sort)
+  done < <(find "$projects_dir" "${depth_args[@]}" -name SESSION_COUNT -not -path '*/.git/*' -not -path '*/node_modules/*' 2>/dev/null | sort)
   if [ ${#dirs[@]} -eq 0 ]; then
     echo "Error: No rig-seed projects found under $projects_dir" >&2
     exit 1
