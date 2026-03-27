@@ -4,6 +4,28 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Day 12 — Session 31 (2026-03-26 17:39 PDT)
+
+**Goal**: Complete three Priority items from NEXT_STEPS.md — dashboard summary mode, check-evolve-state CI workflow, and script quality improvements.
+
+**Work Selection**: Three Priority items plus two Suggested quick wins. The shellcheck CI workflow was already done (Session 24), so replaced it with quickstart.sh flags and migrate.sh RESULT line from the Suggested list.
+
+Four deliverables:
+
+1. **`--summary` mode for dashboard.sh** — New `--summary`/`-s` flag that outputs one compact line per project: status indicator, name, days/sessions, roadmap progress, and last commit date. Ideal for quick overviews of many projects without the full table. The status indicator shows green dot for active projects, yellow circle for zero-session projects.
+
+2. **CI workflow for check-evolve-state.sh** (Roadmap item) — Added `docs/examples/workflows/check-evolve-state.yml` that runs the pre-submit state validation as a pull request gate. Uses `fetch-depth: 0` to get full history for branch comparison. Passes `--no-color` for clean CI logs.
+
+3. **`--help` and `--color`/`--no-color` for quickstart.sh** (Suggested item) — Added help text, argument parsing, and color support matching project conventions. Added shellcheck annotations for color variable definitions.
+
+4. **RESULT line for migrate.sh** (Suggested item) — Added RESULT: PASS output at the end of migration runs, reporting counts of added files and manual review items. Follows the SCRIPT-CONVENTIONS.md pattern for check-style scripts.
+
+Also: Updated migrate.sh with Session 31 feature detection. Updated workflows README with check-evolve-state entry. Updated README dashboard section to mention `--summary`. Updated ROADMAP with completed items.
+
+**Next Steps**: See NEXT_STEPS.md.
+
+---
+
 ## Day 11 — Session 30 (2026-03-25 14:03 PDT)
 
 **Goal**: Address open GitHub issues — bundle the mol-evolve formula, add time to journal format, add pre-submit state validation, and add acceptance evaluation step.

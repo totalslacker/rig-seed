@@ -134,4 +134,7 @@ Living document. Updated each evolution session. Items come from three sources:
 - [x] Include time and timezone in JOURNAL.md session entries (Issue #20)
 - [x] Add pre-submit validation for required state file updates (Issue #21)
 - [x] Add acceptance evaluation step before closing issues (Issue #19)
-- [ ] Add example CI workflow that runs check-evolve-state.sh as a pre-merge gate
+- [x] Add example CI workflow that runs check-evolve-state.sh as a pre-merge gate
+- [x] Add `--summary` mode to dashboard.sh for one-line-per-project output
+- [x] Add `--help` and `--color`/`--no-color` flags to quickstart.sh
+- [x] Add RESULT line to migrate.sh

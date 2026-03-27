@@ -25,4 +25,5 @@ cp docs/examples/workflows/lint-markdown.yml .github/workflows/
 | `metrics-pr-comment.yml` | Runs `metrics.sh` and posts evolution metrics as a PR comment |
 | `pre-submit-ci.yml` | Runs full build/test suite on branches before merge to main |
 | `shellcheck.yml` | Lints shell scripts with ShellCheck to catch common bash pitfalls |
+| `check-evolve-state.yml` | Pre-merge gate verifying required state files were updated |
 | `post-session-sync.yml` | Runs integration sync (Linear/Jira) after evolution session merges |

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # dashboard.sh — Aggregate evolution metrics across multiple rig-seed projects.
 #
-# Usage: dashboard.sh [-q|--quiet] [-h|--help] [--json] <dir1> [dir2] ...
+# Usage: dashboard.sh [-q|--quiet] [-h|--help] [--json] [--summary] <dir1> [dir2] ...
 #
 # Outputs a table comparing evolution metrics across projects. Each argument
 # should be a path to a rig-seed project root (containing SESSION_COUNT,
@@ -10,6 +10,7 @@
 # Options:
 #   -q, --quiet    Machine-readable key=value output
 #   --json         JSON output (one object per project)
+#   --summary      One-line-per-project compact output
 #   --color        Force colored output
 #   --no-color     Disable colored output
 #   -h, --help     Show this help message
@@ -24,6 +25,7 @@ set -euo pipefail
 
 quiet=false
 json=false
+summary=false
 use_color=auto
 dirs=()
 
@@ -38,6 +40,7 @@ Aggregate evolution metrics across multiple rig-seed projects.
 Options:
   -q, --quiet    Machine-readable key=value output (one block per project)
   --json         JSON array output (for dashboards and APIs)
+  --summary      One-line-per-project compact output
   --color        Force colored output
   --no-color     Disable colored output
   -h, --help     Show this help message
@@ -54,6 +57,9 @@ Examples:
 
   # Machine-readable for scripting
   ./dashboard.sh -q ~/projects/*/
+
+  # Quick one-line-per-project overview
+  ./dashboard.sh --summary ~/gt/*/repo
 HELP
       exit 0
       ;;
@@ -62,6 +68,9 @@ HELP
       ;;
     --json)
       json=true
+      ;;
+    --summary|-s)
+      summary=true
       ;;
     --color)
       use_color=always
@@ -168,6 +177,16 @@ gather_metrics() {
   fi
 
   # Output based on format
+  if [ "$summary" = true ]; then
+    local status_icon="${GREEN}●${RESET}"
+    if [ "$session_counter" -eq 0 ]; then
+      status_icon="${YELLOW}○${RESET}"
+    fi
+    printf '%b %s  %dd/%ds  %d/%d roadmap (%d%%)  last: %s\n' \
+      "$status_icon" "$name" "$day_count" "$session_counter" \
+      "$roadmap_done" "$roadmap_total" "$roadmap_pct" "$last_commit"
+    return
+  fi
   if [ "$json" = true ]; then
     printf '{"name":"%s","day_count":%d,"sessions":%d,"commits":%d,"roadmap_done":%d,"roadmap_total":%d,"roadmap_pct":%d,"learnings":%d,"last_commit":"%s","velocity":"%s"}' \
       "$name" "$day_count" "$session_counter" "$total_commits" \
@@ -218,6 +237,9 @@ for dir in "${dirs[@]}"; do
       echo ","
     fi
     gather_metrics "$dir"
+  elif [ "$summary" = true ]; then
+    gather_metrics "$dir"
+    first=false
   else
     if [ "$first" = true ] && [ "$quiet" = false ]; then
       printf '%b\n' "${CYAN}=== Multi-Project Evolution Dashboard ===${RESET}"

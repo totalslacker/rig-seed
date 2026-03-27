@@ -125,8 +125,9 @@ scripts/dashboard.sh ~/projects/my-cli ~/projects/my-api ~/projects/my-lib
 ```
 
 Outputs a table with day count, sessions, commits, roadmap progress, learnings,
-and velocity for each project. Supports `--json` for dashboard integrations and
-`-q` for machine-readable key=value output.
+and velocity for each project. Supports `--summary` for one-line-per-project
+output, `--json` for dashboard integrations, and `-q` for machine-readable
+key=value output.
 
 ## Health Check
 

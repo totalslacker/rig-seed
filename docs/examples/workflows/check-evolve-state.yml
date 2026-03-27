@@ -1,0 +1,29 @@
+# check-evolve-state.yml — Pre-merge gate for evolution state files
+#
+# Verifies that mol-evolve sessions updated all required state files
+# (JOURNAL.md, NEXT_STEPS.md, SESSION_COUNT) before allowing merge.
+#
+# To use: copy to .github/workflows/check-evolve-state.yml
+#
+# Prerequisites:
+#   - scripts/check-evolve-state.sh must exist in the repo
+
+name: Evolution State Check
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  check-evolve-state:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Fetch enough history to compare against base branch
+          fetch-depth: 0
+
+      - name: Check evolution state files
+        run: |
+          chmod +x scripts/check-evolve-state.sh
+          ./scripts/check-evolve-state.sh --no-color main

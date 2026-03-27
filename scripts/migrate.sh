@@ -409,14 +409,32 @@ fi
 echo "  ok"
 echo ""
 
+# Session 31: dashboard.sh --summary, check-evolve-state CI workflow, quickstart.sh flags
+echo "Session 31 enhancements:"
+check_file "docs/examples/workflows/check-evolve-state.yml" "Check-evolve-state CI workflow" "$source_root/docs/examples/workflows/check-evolve-state.yml"
+if [ -f "$dir/scripts/dashboard.sh" ] && ! grep -q '\-\-summary' "$dir/scripts/dashboard.sh" 2>/dev/null; then
+  echo "  NOTE: scripts/dashboard.sh missing --summary flag (added Session 31)"
+  echo "        Compare with upstream to add one-line-per-project output mode."
+fi
+if [ -f "$dir/quickstart.sh" ] && ! grep -q '\-\-help' "$dir/quickstart.sh" 2>/dev/null; then
+  echo "  NOTE: quickstart.sh missing --help flag (added Session 31)"
+  echo "        Compare with upstream to add help and color flag support."
+fi
+echo "  ok"
+echo ""
+
 # --- Summary ---
 
 echo "================================"
 if [ "$added" -eq 0 ] && [ "$skipped" -eq 0 ]; then
   echo "Your fork is up to date with rig-seed."
+  echo ""
+  echo "RESULT: PASS (up to date)"
 elif [ "$dry_run" = true ]; then
   echo "Would add $added file(s). $skipped item(s) need manual review."
   echo "Run without --dry-run to apply changes."
+  echo ""
+  echo "RESULT: PASS ($added to add, $skipped manual)"
 else
   echo "Added $added file(s). $skipped item(s) need manual review."
   echo ""
@@ -424,4 +442,6 @@ else
   echo "  1. Review the added files and customize as needed"
   echo "  2. Run ./validate.sh to confirm everything is valid"
   echo "  3. Commit: git add -A && git commit -m 'chore: migrate to latest rig-seed'"
+  echo ""
+  echo "RESULT: PASS ($added added, $skipped manual)"
 fi

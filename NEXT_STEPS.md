@@ -6,16 +6,15 @@ planning intent.
 
 ## Priority (do these first)
 
-- [ ] Add a `--summary` mode to dashboard.sh that shows one-line-per-project output
-- [ ] Add example CI workflow that runs shellcheck on all scripts as a gate
-- [ ] Add example CI workflow that runs check-evolve-state.sh as a pre-merge gate
+- [ ] Add `--color`/`--no-color` to sync-upstream.sh and release.sh (found by validate.sh --lint)
+- [ ] Add a `--since` flag to recap.sh to show entries from the last N sessions
+- [ ] Add a `--summary` flag to metrics.sh for quick one-line output (mirrors dashboard.sh --summary)
 
 ## Suggested (consider these)
 
-- [ ] Add `--help` and `--color`/`--no-color` to quickstart.sh (found by validate.sh --lint)
-- [ ] Add RESULT line to migrate.sh (found by validate.sh --lint)
-- [ ] Add `--color`/`--no-color` to sync-upstream.sh and release.sh (found by validate.sh --lint)
-- [ ] Add a `--since` flag to recap.sh to show entries from the last N sessions
+- [ ] Add a `--check` mode to quickstart.sh that validates without resetting (dry-run validation)
+- [ ] Add a `--projects` flag to dashboard.sh that auto-discovers rig-seed projects under a directory
+- [ ] Add `set -euo pipefail` audit across all scripts (some may be missing pipefail)
 
 ## Deferred (not now, but don't forget)
 

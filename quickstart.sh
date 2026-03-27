@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # quickstart.sh — Initialize a freshly forked rig-seed project.
 #
-# Usage: ./quickstart.sh
+# Usage: ./quickstart.sh [-h|--help] [--color|--no-color]
 #
 # This script:
 #   1. Validates that all required template files exist
@@ -9,12 +9,72 @@
 #   3. Clears JOURNAL.md (keeps header), ROADMAP.md, and LEARNINGS.md
 #   4. Prompts you to write SPECS.md if it's empty
 #   5. Runs the full validation suite
+#
+# Options:
+#   --color        Force colored output
+#   --no-color     Disable colored output
+#   -h, --help     Show this help message
+#
+# Exit codes:
+#   0 — quickstart complete
+#   1 — validation failed
 
 set -euo pipefail
 
+# --- Options ---
+use_color=auto
+
+for arg in "$@"; do
+  case "$arg" in
+    -h|--help)
+      cat <<'HELP'
+Usage: quickstart.sh [options]
+
+Initialize a freshly forked rig-seed project.
+
+Steps performed:
+  1. Validates all required template files exist
+  2. Resets SESSION_COUNT, DAY_COUNT, DAY_DATE to initial values
+  3. Clears JOURNAL.md, ROADMAP.md, LEARNINGS.md (keeps headers)
+  4. Initializes NEXT_STEPS.md with bootstrap items
+  5. Checks SPECS.md and suggests examples if empty
+  6. Runs final validation
+
+Options:
+  --color        Force colored output
+  --no-color     Disable colored output
+  -h, --help     Show this help message
+
+Exit codes:
+  0   Quickstart completed successfully
+  1   Validation failed (missing template files)
+HELP
+      exit 0
+      ;;
+    --color) use_color=always ;;
+    --no-color) use_color=never ;;
+  esac
+done
+
+# --- Color setup ---
+setup_colors() {
+  if [ "$use_color" = "never" ] || [ -n "${NO_COLOR:-}" ]; then
+    # shellcheck disable=SC2034  # Color vars used in output sections
+    GREEN="" YELLOW="" CYAN="" BOLD="" RESET=""
+  elif [ "$use_color" = "always" ] || [ -t 1 ]; then
+    GREEN=$'\033[0;32m' YELLOW=$'\033[0;33m' CYAN=$'\033[0;36m'
+    BOLD=$'\033[1m' RESET=$'\033[0m'
+  else
+    # shellcheck disable=SC2034  # Color vars used in output sections
+    GREEN="" YELLOW="" CYAN="" BOLD="" RESET=""
+  fi
+}
+# shellcheck disable=SC2034  # Color vars used in output sections
+setup_colors
+
 dir="$(cd "$(dirname "$0")" && pwd)"
 
-echo "=== rig-seed quickstart ==="
+echo "${CYAN}=== rig-seed quickstart ===${RESET}"
 echo ""
 echo "Initializing project in: $dir"
 echo ""
