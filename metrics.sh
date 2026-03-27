@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # metrics.sh — Summarize evolution history for a rig-seed project.
 #
-# Usage: ./metrics.sh [-q|--quiet] [-s|--summary] [-p|--plan] [-w|--watch [secs]] [--format=FORMAT] [--color|--no-color] [-h|--help] [directory]
+# Usage: ./metrics.sh [-q|--quiet] [-s|--summary] [-p|--plan [--since N]] [-w|--watch [secs]] [--format=FORMAT] [--color|--no-color] [-h|--help] [directory]
 #
 # Outputs:
 #   - Total sessions and current day count
@@ -21,6 +21,7 @@ set -euo pipefail
 
 format=table
 plan=false
+plan_since=0
 summary=false
 watch=false
 watch_interval=60
@@ -39,6 +40,7 @@ while [ $# -gt 0 ]; do
       echo "  -s, --summary         One-line summary output"
       echo "  --format=FORMAT       Output format: table (default), kv, csv, json"
       echo "  -p, --plan            Show planning-relevant info (unchecked roadmap, next steps)"
+      echo "  --since N             With --plan: show journal goals from last N sessions"
       echo "  -w, --watch [seconds] Re-run continuously (default: 60s)"
       echo "  --color               Force colored output"
       echo "  --no-color            Disable colored output"
@@ -60,6 +62,7 @@ while [ $# -gt 0 ]; do
       echo "  ./metrics.sh --format=json     # JSON output"
       echo "  ./metrics.sh --format=csv      # CSV for spreadsheets"
       echo "  ./metrics.sh -p                # Planning-focused output"
+      echo "  ./metrics.sh -p --since 3      # Planning context with last 3 session goals"
       echo "  ./metrics.sh -w 30             # Refresh every 30 seconds"
       echo "  ./metrics.sh ~/my-project      # Check a different project"
       exit 0
@@ -85,6 +88,15 @@ while [ $# -gt 0 ]; do
       ;;
     -p|--plan)
       plan=true
+      shift
+      ;;
+    --since)
+      shift
+      if [ $# -eq 0 ] || ! [[ "$1" =~ ^[0-9]+$ ]]; then
+        echo "Error: --since requires a numeric argument" >&2
+        exit 1
+      fi
+      plan_since="$1"
       shift
       ;;
     -w|--watch)
@@ -415,6 +427,34 @@ if [ "$plan" = true ]; then
       echo ""
       echo "NEXT_STEPS.md: not found"
     fi
+  fi
+
+  # Recent session goals (--since N)
+  if [ "$plan_since" -gt 0 ] && [ -f "$dir/JOURNAL.md" ]; then
+    section ""
+    section "Recent session goals (last $plan_since):"
+    count=0
+    while IFS= read -r line; do
+      if [[ "$line" =~ ^##\ (Day|Session)\  ]]; then
+        count=$((count + 1))
+        if [ "$count" -gt "$plan_since" ]; then
+          break
+        fi
+        current_header="$line"
+        goal_line=""
+      elif [ "$count" -gt 0 ] && [ "$count" -le "$plan_since" ]; then
+        if [[ "$line" =~ ^\*\*Goal\*\*: ]]; then
+          goal_line="${line#\*\*Goal\*\*: }"
+          header_short="${current_header#\#\# }"
+          if [ "$format" = "kv" ]; then
+            echo "recent_goal_${count}=${header_short}: ${goal_line}"
+          elif [ "$format" = "table" ]; then
+            echo "  ${header_short}"
+            echo "    Goal: ${goal_line}"
+          fi
+        fi
+      fi
+    done < "$dir/JOURNAL.md"
   fi
 
   # Open GitHub issues count (if gh is available)
