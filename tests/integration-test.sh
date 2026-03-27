@@ -95,31 +95,31 @@ run_test "quickstart.sh completes successfully" "$WORK_DIR/quickstart.sh"
 
 # Verify quickstart results
 day_val=$(tr -d '[:space:]' < "$WORK_DIR/SESSION_COUNT")
-if [ "$day_val" = "0" ]; then
-  pass "SESSION_COUNT reset to 0"
+if [ "$day_val" = "1" ]; then
+  pass "SESSION_COUNT set to 1 (Day 1)"
 else
-  fail "SESSION_COUNT should be 0 after quickstart, got: '$day_val'"
+  fail "SESSION_COUNT should be 1 after quickstart, got: '$day_val'"
 fi
 
 dc_val=$(tr -d '[:space:]' < "$WORK_DIR/DAY_COUNT")
-if [ "$dc_val" = "0" ]; then
-  pass "DAY_COUNT reset to 0"
+if [ "$dc_val" = "1" ]; then
+  pass "DAY_COUNT set to 1 (Day 1)"
 else
-  fail "DAY_COUNT should be 0 after quickstart, got: '$dc_val'"
+  fail "DAY_COUNT should be 1 after quickstart, got: '$dc_val'"
 fi
 
 dd_val=$(tr -d '[:space:]' < "$WORK_DIR/DAY_DATE")
-if [ "$dd_val" = "0000-00-00" ]; then
-  pass "DAY_DATE reset to 0000-00-00"
+if [[ "$dd_val" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+  pass "DAY_DATE set to today's date ($dd_val)"
 else
-  fail "DAY_DATE should be 0000-00-00 after quickstart, got: '$dd_val'"
+  fail "DAY_DATE should be a valid date after quickstart, got: '$dd_val'"
 fi
 
-journal_lines=$(wc -l < "$WORK_DIR/JOURNAL.md")
-if [ "$journal_lines" -le 6 ]; then
-  pass "JOURNAL.md cleared to header only"
+# Quickstart writes a Day 1 spawn journal entry (not header-only)
+if grep -q '## Day 1 — Session 1' "$WORK_DIR/JOURNAL.md"; then
+  pass "JOURNAL.md has Day 1 spawn entry"
 else
-  fail "JOURNAL.md should be header-only after quickstart ($journal_lines lines)"
+  fail "JOURNAL.md should have Day 1 spawn entry after quickstart"
 fi
 
 if grep -q '^\- \[ \]' "$WORK_DIR/ROADMAP.md"; then
@@ -208,6 +208,81 @@ else
 fi
 mv "$WORK_DIR/SPECS.md.bak" "$WORK_DIR/SPECS.md"
 
+echo ""
+
+# --- Step 8: Test new script flags ---
+
+echo "--- Step 8: Test new script flags ---"
+
+# Test quickstart.sh --check
+run_test "quickstart.sh --check passes on valid project" "$WORK_DIR/quickstart.sh" --check
+echo ""
+
+# Test recap.sh --since and --top
+echo "--- Step 8b: recap.sh flags ---"
+run_test "recap.sh --short shows output" "$WORK_DIR/scripts/recap.sh" -s "$WORK_DIR"
+run_test "recap.sh --since 1 shows one entry" "$WORK_DIR/scripts/recap.sh" --since 1 "$WORK_DIR"
+run_test "recap.sh --short --top 1 limits to 1 entry" "$WORK_DIR/scripts/recap.sh" --short --top 1 "$WORK_DIR"
+run_test "recap.sh --json produces valid output" "$WORK_DIR/scripts/recap.sh" --json "$WORK_DIR"
+echo ""
+
+# Test dashboard.sh --projects and --depth
+echo "--- Step 8c: dashboard.sh --projects and --depth ---"
+# Create a nested structure with two rig-seed projects
+DASH_DIR=$(mktemp -d "$TMPDIR_BASE/rigseed-dash-XXXXXX")
+mkdir -p "$DASH_DIR/proj-a" "$DASH_DIR/proj-b" "$DASH_DIR/deep/nested/proj-c"
+echo "1" > "$DASH_DIR/proj-a/SESSION_COUNT"
+cat > "$DASH_DIR/proj-a/JOURNAL.md" << 'J'
+# Journal
+
+---
+
+## Day 1 — Session 1 (2026-01-01)
+
+**Goal**: Test project A.
+
+---
+J
+echo "1" > "$DASH_DIR/proj-b/SESSION_COUNT"
+cat > "$DASH_DIR/proj-b/JOURNAL.md" << 'J'
+# Journal
+
+---
+
+## Day 1 — Session 1 (2026-01-01)
+
+**Goal**: Test project B.
+
+---
+J
+echo "1" > "$DASH_DIR/deep/nested/proj-c/SESSION_COUNT"
+cat > "$DASH_DIR/deep/nested/proj-c/JOURNAL.md" << 'J'
+# Journal
+
+---
+
+## Day 1 — Session 1 (2026-01-01)
+
+**Goal**: Test project C.
+
+---
+J
+# Initialize git repos so dashboard can read git metrics
+for p in "$DASH_DIR/proj-a" "$DASH_DIR/proj-b" "$DASH_DIR/deep/nested/proj-c"; do
+  (cd "$p" && git init -q && git add -A && git commit -q -m "init")
+done
+
+run_test "dashboard.sh --projects finds all projects" "$WORK_DIR/scripts/dashboard.sh" --summary --projects "$DASH_DIR" --no-color
+
+# --depth 2 should find proj-a and proj-b but NOT deep/nested/proj-c
+dash_output=$("$WORK_DIR/scripts/dashboard.sh" --summary --projects "$DASH_DIR" --depth 2 --no-color 2>/dev/null || true)
+if echo "$dash_output" | grep -q "proj-a" && echo "$dash_output" | grep -q "proj-b" && ! echo "$dash_output" | grep -q "proj-c"; then
+  pass "dashboard.sh --depth 2 excludes deeply nested projects"
+else
+  fail "dashboard.sh --depth 2 should find proj-a/b but not deep/nested/proj-c"
+fi
+
+rm -rf "$DASH_DIR"
 echo ""
 
 # --- Summary ---
