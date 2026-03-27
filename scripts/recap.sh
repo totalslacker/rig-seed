@@ -10,6 +10,7 @@
 #   -s, --short    Only show Goal and Next Steps lines
 #   -d, --diff     Show the git diff from the latest session's commits
 #   --since N      Show the last N sessions (default: 1)
+#   --top N        Limit output to the N most recent entries (use with --short)
 #   --json         Output as JSON object
 #   --color        Force colored output
 #   --no-color     Disable colored output
@@ -27,6 +28,7 @@ diff_mode=false
 json=false
 use_color=auto
 since=1
+top=0
 dir=""
 
 while [ $# -gt 0 ]; do
@@ -40,6 +42,7 @@ while [ $# -gt 0 ]; do
       echo "  -s, --short    Only show Goal and Next Steps lines"
       echo "  -d, --diff     Show the git diff from the latest session's commits"
       echo "  --since N      Show the last N sessions (default: 1)"
+      echo "  --top N        Limit output to the N most recent entries (use with --short)"
       echo "  --json         Output as JSON object"
       echo "  --color        Force colored output"
       echo "  --no-color     Disable colored output"
@@ -52,6 +55,7 @@ while [ $# -gt 0 ]; do
       echo "  ./scripts/recap.sh                # Latest session"
       echo "  ./scripts/recap.sh --since 3      # Last 3 sessions"
       echo "  ./scripts/recap.sh --since 5 -s   # Last 5 sessions, goals only"
+      echo "  ./scripts/recap.sh --short --top 3 --since 10  # Top 3 from last 10"
       exit 0
       ;;
     -s|--short) short=true ;;
@@ -68,6 +72,21 @@ while [ $# -gt 0 ]; do
       since="${1#*=}"
       if ! [[ "$since" =~ ^[0-9]+$ ]]; then
         echo "Error: --since requires a numeric argument" >&2
+        exit 1
+      fi
+      ;;
+    --top)
+      shift
+      if [ $# -eq 0 ] || ! [[ "$1" =~ ^[0-9]+$ ]]; then
+        echo "Error: --top requires a numeric argument" >&2
+        exit 1
+      fi
+      top="$1"
+      ;;
+    --top=*)
+      top="${1#*=}"
+      if ! [[ "$top" =~ ^[0-9]+$ ]]; then
+        echo "Error: --top requires a numeric argument" >&2
         exit 1
       fi
       ;;
@@ -150,6 +169,11 @@ fi
 if [ "${#entries[@]}" -eq 0 ]; then
   echo "Error: no journal entries found in $journal" >&2
   exit 1
+fi
+
+# Apply --top limit (truncate entries array)
+if [ "$top" -gt 0 ] && [ "${#entries[@]}" -gt "$top" ]; then
+  entries=("${entries[@]:0:$top}")
 fi
 
 # For single-entry compatibility, set entry/header/goal/next_steps from first entry
