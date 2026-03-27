@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # metrics.sh — Summarize evolution history for a rig-seed project.
 #
-# Usage: ./metrics.sh [-q|--quiet] [-p|--plan] [-w|--watch [secs]] [--format=FORMAT] [--color|--no-color] [-h|--help] [directory]
+# Usage: ./metrics.sh [-q|--quiet] [-s|--summary] [-p|--plan] [-w|--watch [secs]] [--format=FORMAT] [--color|--no-color] [-h|--help] [directory]
 #
 # Outputs:
 #   - Total sessions and current day count
@@ -21,6 +21,7 @@ set -euo pipefail
 
 format=table
 plan=false
+summary=false
 watch=false
 watch_interval=60
 use_color=auto
@@ -35,6 +36,7 @@ while [ $# -gt 0 ]; do
       echo ""
       echo "Options:"
       echo "  -q, --quiet           Machine-readable output (alias for --format=kv)"
+      echo "  -s, --summary         One-line summary output"
       echo "  --format=FORMAT       Output format: table (default), kv, csv, json"
       echo "  -p, --plan            Show planning-relevant info (unchecked roadmap, next steps)"
       echo "  -w, --watch [seconds] Re-run continuously (default: 60s)"
@@ -53,6 +55,7 @@ while [ $# -gt 0 ]; do
       echo ""
       echo "Examples:"
       echo "  ./metrics.sh                   # Human-readable summary"
+      echo "  ./metrics.sh -s                # One-line quick summary"
       echo "  ./metrics.sh -q                # key=value output for scripting"
       echo "  ./metrics.sh --format=json     # JSON output"
       echo "  ./metrics.sh --format=csv      # CSV for spreadsheets"
@@ -63,6 +66,10 @@ while [ $# -gt 0 ]; do
       ;;
     -q|--quiet)
       format=kv
+      shift
+      ;;
+    -s|--summary)
+      summary=true
       shift
       ;;
     --format=*)
@@ -224,6 +231,20 @@ roadmap_total=$((roadmap_checked + roadmap_unchecked))
 learnings_count=0
 if [ -f "$dir/LEARNINGS.md" ]; then
   learnings_count=$(grep -c '^### ' "$dir/LEARNINGS.md" 2>/dev/null || echo "0")
+fi
+
+# --- Summary output (--summary) ---
+
+if [ "$summary" = true ]; then
+  # One-line output: Day D | Session S | Roadmap X/Y (Z%) | N commits | last: DATE
+  if [ "$roadmap_total" -gt 0 ]; then
+    pct=$(( roadmap_checked * 100 / roadmap_total ))
+    roadmap_info="roadmap ${roadmap_checked}/${roadmap_total} (${pct}%)"
+  else
+    roadmap_info="roadmap n/a"
+  fi
+  printf '%b\n' "Day ${BOLD}${day_count}${RESET} | Session ${BOLD}${session_counter}${RESET} | ${roadmap_info} | ${total_commits} commits | last: ${last_commit_date:-n/a}"
+  return 0 2>/dev/null || exit 0
 fi
 
 # --- Output ---
