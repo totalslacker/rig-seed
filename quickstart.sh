@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # quickstart.sh — Initialize a freshly forked rig-seed project.
 #
-# Usage: ./quickstart.sh [-h|--help] [--color|--no-color]
+# Usage: ./quickstart.sh [-h|--help] [--check] [--color|--no-color]
 #
 # This script:
 #   1. Validates that all required template files exist
@@ -11,18 +11,20 @@
 #   5. Runs the full validation suite
 #
 # Options:
+#   --check        Dry-run: validate without resetting any files
 #   --color        Force colored output
 #   --no-color     Disable colored output
 #   -h, --help     Show this help message
 #
 # Exit codes:
-#   0 — quickstart complete
+#   0 — quickstart complete (or --check passed)
 #   1 — validation failed
 
 set -euo pipefail
 
 # --- Options ---
 use_color=auto
+check_only=false
 
 for arg in "$@"; do
   case "$arg" in
@@ -41,16 +43,18 @@ Steps performed:
   6. Runs final validation
 
 Options:
+  --check        Dry-run: validate the project without resetting any files
   --color        Force colored output
   --no-color     Disable colored output
   -h, --help     Show this help message
 
 Exit codes:
-  0   Quickstart completed successfully
+  0   Quickstart completed successfully (or --check passed)
   1   Validation failed (missing template files)
 HELP
       exit 0
       ;;
+    --check) check_only=true ;;
     --color) use_color=always ;;
     --no-color) use_color=never ;;
   esac
@@ -74,10 +78,17 @@ setup_colors
 
 dir="$(cd "$(dirname "$0")" && pwd)"
 
-echo "${CYAN}=== rig-seed quickstart ===${RESET}"
-echo ""
-echo "Initializing project in: $dir"
-echo ""
+if [ "$check_only" = true ]; then
+  echo "${CYAN}=== rig-seed quickstart --check ===${RESET}"
+  echo ""
+  echo "Dry-run validation for: $dir"
+  echo ""
+else
+  echo "${CYAN}=== rig-seed quickstart ===${RESET}"
+  echo ""
+  echo "Initializing project in: $dir"
+  echo ""
+fi
 
 # --- Step 1: Check required files ---
 echo "Step 1: Checking template files..."
@@ -99,6 +110,103 @@ if [ ! -f "$dir/formulas/mol-evolve.formula.toml" ]; then
   echo "  Copy it from your Gas Town installation or re-fork rig-seed."
 fi
 echo ""
+
+# --- Check mode: validate state and exit ---
+if [ "$check_only" = true ]; then
+  errors=0
+
+  echo "Step 2: Checking state file health..."
+
+  # SESSION_COUNT
+  if [ -f "$dir/SESSION_COUNT" ]; then
+    sc=$(tr -d '[:space:]' < "$dir/SESSION_COUNT")
+    if [[ "$sc" =~ ^[0-9]+$ ]]; then
+      echo "  SESSION_COUNT: $sc"
+    else
+      echo "  ${YELLOW}WARNING${RESET}: SESSION_COUNT contains non-numeric value: $sc"
+      errors=$((errors + 1))
+    fi
+  else
+    echo "  ${YELLOW}WARNING${RESET}: SESSION_COUNT not found"
+    errors=$((errors + 1))
+  fi
+
+  # DAY_COUNT
+  if [ -f "$dir/DAY_COUNT" ]; then
+    dc=$(tr -d '[:space:]' < "$dir/DAY_COUNT")
+    if [[ "$dc" =~ ^[0-9]+$ ]]; then
+      echo "  DAY_COUNT: $dc"
+    else
+      echo "  ${YELLOW}WARNING${RESET}: DAY_COUNT contains non-numeric value: $dc"
+      errors=$((errors + 1))
+    fi
+  else
+    echo "  ${YELLOW}WARNING${RESET}: DAY_COUNT not found"
+    errors=$((errors + 1))
+  fi
+
+  # DAY_DATE
+  if [ -f "$dir/DAY_DATE" ]; then
+    dd=$(tr -d '[:space:]' < "$dir/DAY_DATE")
+    if [[ "$dd" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+      echo "  DAY_DATE: $dd"
+    else
+      echo "  ${YELLOW}WARNING${RESET}: DAY_DATE has unexpected format: $dd"
+      errors=$((errors + 1))
+    fi
+  else
+    echo "  ${YELLOW}WARNING${RESET}: DAY_DATE not found"
+    errors=$((errors + 1))
+  fi
+
+  # JOURNAL.md
+  if [ -f "$dir/JOURNAL.md" ]; then
+    entries=$(grep -c '^## \(Day\|Session\) ' "$dir/JOURNAL.md" 2>/dev/null || echo "0")
+    echo "  JOURNAL.md: $entries entries"
+  else
+    echo "  ${YELLOW}WARNING${RESET}: JOURNAL.md not found"
+    errors=$((errors + 1))
+  fi
+
+  # SPECS.md
+  if [ -f "$dir/SPECS.md" ]; then
+    lines=$(wc -l < "$dir/SPECS.md" | tr -d ' ')
+    if [ "$lines" -lt 5 ]; then
+      echo "  ${YELLOW}WARNING${RESET}: SPECS.md looks empty ($lines lines)"
+    else
+      echo "  SPECS.md: $lines lines"
+    fi
+  else
+    echo "  ${YELLOW}WARNING${RESET}: SPECS.md not found"
+    errors=$((errors + 1))
+  fi
+
+  # ROADMAP.md
+  if [ -f "$dir/ROADMAP.md" ]; then
+    done_count=$(grep -c '^\- \[x\]' "$dir/ROADMAP.md" 2>/dev/null || echo "0")
+    todo_count=$(grep -c '^\- \[ \]' "$dir/ROADMAP.md" 2>/dev/null || echo "0")
+    echo "  ROADMAP.md: $done_count done, $todo_count remaining"
+  else
+    echo "  ${YELLOW}WARNING${RESET}: ROADMAP.md not found"
+  fi
+
+  # NEXT_STEPS.md
+  if [ -f "$dir/NEXT_STEPS.md" ]; then
+    ns_count=$(grep -c '^\- \[ \]' "$dir/NEXT_STEPS.md" 2>/dev/null || echo "0")
+    echo "  NEXT_STEPS.md: $ns_count open items"
+  else
+    echo "  ${YELLOW}WARNING${RESET}: NEXT_STEPS.md not found"
+  fi
+
+  echo ""
+  if [ "$errors" -gt 0 ]; then
+    echo "RESULT: $errors issue(s) found"
+    exit 1
+  else
+    echo "RESULT: all checks passed"
+    exit 0
+  fi
+fi
 
 # --- Step 2: Reset counters ---
 echo "Step 2: Resetting SESSION_COUNT, DAY_COUNT, and DAY_DATE..."
