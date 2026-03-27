@@ -9,6 +9,8 @@
 # Options:
 #   --dry-run     Show what would change without applying
 #   --upstream    Override upstream URL (default: from config.toml or rig-seed GitHub)
+#   --color       Force colored output
+#   --no-color    Disable colored output
 #   -h, --help    Show this help
 #
 # Exit codes:
@@ -24,6 +26,7 @@ UPSTREAM_DEFAULT="https://github.com/totalslacker/rig-seed.git"
 REMOTE_NAME="rig-seed-upstream"
 dry_run=false
 upstream_url=""
+use_color=auto
 
 # --- Options ---
 
@@ -37,6 +40,8 @@ for arg in "$@"; do
       echo "Options:"
       echo "  --dry-run     Show what would change without applying"
       echo "  --upstream    Override upstream URL"
+      echo "  --color       Force colored output"
+      echo "  --no-color    Disable colored output"
       echo "  -h, --help    Show this help"
       echo ""
       echo "Files that sync (template infrastructure):"
@@ -65,8 +70,30 @@ for arg in "$@"; do
     --upstream=*)
       upstream_url="${arg#*=}"
       ;;
+    --color)
+      use_color=always
+      ;;
+    --no-color)
+      use_color=never
+      ;;
   esac
 done
+
+# --- Color setup ---
+
+setup_colors() {
+  if [ "$use_color" = "never" ] || [ -n "${NO_COLOR:-}" ]; then
+    # shellcheck disable=SC2034  # Color vars used in output sections
+    RED="" GREEN="" YELLOW="" CYAN="" BOLD="" RESET=""
+  elif [ "$use_color" = "always" ] || [ -t 1 ]; then
+    RED='\033[31m' GREEN='\033[32m' YELLOW='\033[33m'
+    CYAN='\033[36m' BOLD='\033[1m' RESET='\033[0m'
+  else
+    # shellcheck disable=SC2034  # Color vars used in output sections
+    RED="" GREEN="" YELLOW="" CYAN="" BOLD="" RESET=""
+  fi
+}
+setup_colors
 
 # --- Read upstream URL from config if not overridden ---
 
@@ -89,9 +116,9 @@ if [ -n "$(git status --porcelain)" ]; then
   exit 2
 fi
 
-echo "=== Upstream Sync ==="
-echo "  Upstream: $upstream_url"
-echo "  Mode:     $([ "$dry_run" = true ] && echo 'dry run' || echo 'live')"
+printf '%b\n' "${CYAN}=== Upstream Sync ===${RESET}"
+printf '%b\n' "  Upstream: ${BOLD}$upstream_url${RESET}"
+printf '%b\n' "  Mode:     ${BOLD}$([ "$dry_run" = true ] && echo 'dry run' || echo 'live')${RESET}"
 echo ""
 
 # --- Set up remote ---
@@ -164,14 +191,14 @@ upstream_ref="$REMOTE_NAME/main"
 changes=0
 
 echo ""
-echo "--- Changes Available ---"
+printf '%b\n' "${BOLD}--- Changes Available ---${RESET}"
 for file in "${SYNC_FILES[@]}"; do
   # Check if file differs between local and upstream
   if git diff HEAD "$upstream_ref" -- "$file" &>/dev/null; then
     diff_output=$(git diff HEAD "$upstream_ref" -- "$file" 2>/dev/null)
     if [ -n "$diff_output" ]; then
-      echo "  ↑ $file (changed upstream)"
-      ((changes++))
+      printf '%b\n' "  ${GREEN}↑${RESET} $file (changed upstream)"
+      changes=$((changes + 1))
     fi
   fi
 done
@@ -182,20 +209,20 @@ for file in "${SYNC_FILES[@]}"; do
     continue  # Skip directory entries for new-file check
   fi
   if [ ! -f "$file" ] && git show "$upstream_ref:$file" &>/dev/null 2>&1; then
-    echo "  + $file (new in upstream)"
-    ((changes++))
+    printf '%b\n' "  ${GREEN}+${RESET} $file (new in upstream)"
+    changes=$((changes + 1))
   fi
 done
 
 if [ $changes -eq 0 ]; then
-  echo "  (no changes — already up to date)"
+  printf '%b\n' "  ${GREEN}(no changes — already up to date)${RESET}"
   echo ""
   echo "RESULT: already in sync with upstream"
   exit 0
 fi
 
 echo ""
-echo "$changes file(s) have upstream changes"
+printf '%b\n' "${BOLD}$changes file(s) have upstream changes${RESET}"
 
 if [ "$dry_run" = true ]; then
   echo ""
@@ -206,7 +233,7 @@ fi
 # --- Merge ---
 
 echo ""
-echo "Merging upstream changes..."
+printf '%b\n' "${CYAN}Merging upstream changes...${RESET}"
 
 # Use a merge strategy that favors our version for project-specific files
 # and takes upstream for template infrastructure
@@ -216,7 +243,7 @@ if git merge "$upstream_ref" --no-edit --allow-unrelated-histories 2>/dev/null; 
   exit 0
 else
   echo ""
-  echo "Merge conflicts detected. Project-specific files to keep yours:"
+  printf '%b\n' "${YELLOW}Merge conflicts detected. Project-specific files to keep yours:${RESET}"
   echo ""
   for file in "${NEVER_SYNC[@]}"; do
     if git diff --name-only --diff-filter=U 2>/dev/null | grep -q "^${file}$"; then
