@@ -1,19 +1,20 @@
 #!/usr/bin/env bash
 # dashboard.sh — Aggregate evolution metrics across multiple rig-seed projects.
 #
-# Usage: dashboard.sh [-q|--quiet] [-h|--help] [--json] [--summary] <dir1> [dir2] ...
+# Usage: dashboard.sh [-q|--quiet] [-h|--help] [--json] [--summary] [--projects DIR] <dir1> [dir2] ...
 #
 # Outputs a table comparing evolution metrics across projects. Each argument
 # should be a path to a rig-seed project root (containing SESSION_COUNT,
 # JOURNAL.md, etc.).
 #
 # Options:
-#   -q, --quiet    Machine-readable key=value output
-#   --json         JSON output (one object per project)
-#   --summary      One-line-per-project compact output
-#   --color        Force colored output
-#   --no-color     Disable colored output
-#   -h, --help     Show this help message
+#   -q, --quiet       Machine-readable key=value output
+#   --json            JSON output (one object per project)
+#   --summary         One-line-per-project compact output
+#   --projects DIR    Auto-discover rig-seed projects under DIR (recursive)
+#   --color           Force colored output
+#   --no-color        Disable colored output
+#   -h, --help        Show this help message
 #
 # Exit codes:
 #   0 — metrics computed successfully
@@ -27,23 +28,25 @@ quiet=false
 json=false
 summary=false
 use_color=auto
+projects_dir=""
 dirs=()
 
-for arg in "$@"; do
-  case "$arg" in
+while [ $# -gt 0 ]; do
+  case "$1" in
     -h|--help)
       cat <<'HELP'
-Usage: dashboard.sh [options] <dir1> [dir2] ...
+Usage: dashboard.sh [options] [dir1] [dir2] ...
 
 Aggregate evolution metrics across multiple rig-seed projects.
 
 Options:
-  -q, --quiet    Machine-readable key=value output (one block per project)
-  --json         JSON array output (for dashboards and APIs)
-  --summary      One-line-per-project compact output
-  --color        Force colored output
-  --no-color     Disable colored output
-  -h, --help     Show this help message
+  -q, --quiet       Machine-readable key=value output (one block per project)
+  --json            JSON array output (for dashboards and APIs)
+  --summary         One-line-per-project compact output
+  --projects DIR    Auto-discover rig-seed projects under DIR (recursive)
+  --color           Force colored output
+  --no-color        Disable colored output
+  -h, --help        Show this help message
 
 Arguments:
   dir1, dir2    Paths to rig-seed project roots
@@ -51,6 +54,9 @@ Arguments:
 Examples:
   # Compare two projects
   ./dashboard.sh ~/projects/my-cli ~/projects/my-api
+
+  # Auto-discover all rig-seed projects under a directory
+  ./dashboard.sh --projects ~/projects
 
   # JSON output for all rigs in a Gas Town workspace
   ./dashboard.sh --json ~/gt/*/repo
@@ -65,21 +71,36 @@ HELP
       ;;
     -q|--quiet)
       quiet=true
+      shift
       ;;
     --json)
       json=true
+      shift
       ;;
     --summary|-s)
       summary=true
+      shift
+      ;;
+    --projects)
+      shift
+      if [ $# -eq 0 ]; then
+        echo "Error: --projects requires a directory argument." >&2
+        exit 1
+      fi
+      projects_dir="$1"
+      shift
       ;;
     --color)
       use_color=always
+      shift
       ;;
     --no-color)
       use_color=never
+      shift
       ;;
     *)
-      dirs+=("$arg")
+      dirs+=("$1")
+      shift
       ;;
   esac
 done
@@ -99,9 +120,26 @@ setup_colors() {
 }
 setup_colors
 
+# --- Auto-discover rig-seed projects ---
+if [ -n "$projects_dir" ]; then
+  if [ ! -d "$projects_dir" ]; then
+    echo "Error: --projects directory does not exist: $projects_dir" >&2
+    exit 1
+  fi
+  # Find directories containing SESSION_COUNT (rig-seed marker)
+  while IFS= read -r session_file; do
+    dirs+=("$(dirname "$session_file")")
+  done < <(find "$projects_dir" -name SESSION_COUNT -not -path '*/.git/*' -not -path '*/node_modules/*' 2>/dev/null | sort)
+  if [ ${#dirs[@]} -eq 0 ]; then
+    echo "Error: No rig-seed projects found under $projects_dir" >&2
+    exit 1
+  fi
+fi
+
 if [ ${#dirs[@]} -eq 0 ]; then
   echo "Error: No project directories specified." >&2
   echo "Usage: dashboard.sh [options] <dir1> [dir2] ..." >&2
+  echo "  Use --projects DIR to auto-discover rig-seed projects." >&2
   exit 1
 fi
 
