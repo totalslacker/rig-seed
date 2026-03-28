@@ -1,17 +1,20 @@
 +++
 name = "evolve"
 description = "Autonomous evolution cycle for rig-seed projects"
-version = 1
+version = 2
 
 [gate]
 type = "cooldown"
-duration = "24h"
+duration = "8h"
 +++
 
-# Evolve Plugin — Daily Autonomous Evolution
+# Evolve Plugin — Autonomous Evolution
 
-This plugin triggers daily evolution cycles for rigs that use the rig-seed
+This plugin triggers evolution cycles for rigs that use the rig-seed
 template. It runs during the Deacon's patrol cycle when the cooldown gate opens.
+The plugin runs every 8h but checks each rig's `.evolve/config.toml` for its
+own `schedule.interval` setting — rigs are only evolved when their individual
+interval has elapsed since their last session.
 
 ## Execution
 
@@ -34,11 +37,43 @@ gt rig status <rig>
 
 For each evolution-enabled, active rig:
 
+### 0. Check per-rig interval
+
+Each rig can set its own evolution interval in `.evolve/config.toml`:
+```toml
+[schedule]
+interval = "8h"   # or "24h", "12h", etc.
+```
+
+Read the rig's interval and check if enough time has passed since its last session:
+
+```bash
+RIG_DIR="$GT_ROOT/<rig>/mayor/rig"
+
+# Get interval from .evolve/config.toml (default: 24h)
+INTERVAL=$(grep 'interval' "$RIG_DIR/.evolve/config.toml" 2>/dev/null | head -1 | sed 's/.*= *"\([^"]*\)".*/\1/' || echo "24h")
+
+# Check last session timestamp from JOURNAL.md (first date found)
+LAST_SESSION=$(grep -oP '\d{4}-\d{2}-\d{2} \d{2}:\d{2}' "$RIG_DIR/JOURNAL.md" 2>/dev/null | head -1)
+
+# If LAST_SESSION exists and interval hasn't elapsed → skip this rig
+# Parse interval: strip trailing 'h', multiply by 3600 for seconds
+HOURS=$(echo "$INTERVAL" | sed 's/h$//')
+if [ -n "$LAST_SESSION" ]; then
+  LAST_EPOCH=$(date -d "$LAST_SESSION" +%s 2>/dev/null || echo 0)
+  NOW_EPOCH=$(date +%s)
+  ELAPSED_HOURS=$(( (NOW_EPOCH - LAST_EPOCH) / 3600 ))
+  if [ "$ELAPSED_HOURS" -lt "$HOURS" ]; then
+    echo "Skipping <rig>: last session ${ELAPSED_HOURS}h ago, interval is ${HOURS}h"
+    continue  # Skip to next rig
+  fi
+fi
+```
+
 ### 1. Read evolution state
 
 ```bash
 # Read from the rig's mayor clone
-RIG_DIR="$GT_ROOT/<rig>/mayor/rig"
 DAY=$(cat "$RIG_DIR/DAY_COUNT" 2>/dev/null || echo 0)
 NEXT_DAY=$((DAY + 1))
 
@@ -112,6 +147,8 @@ echo "Evolved: <rig> Day $NEXT_DAY (bead: <id>)"
 ## Notes
 
 - The plugin iterates ALL rigs, not just one. This is intentional — as more
-  rig-seed projects are added, they all evolve on the same schedule.
-- Per-rig interval overrides from `.evolve/config.toml` are a future enhancement.
-  Currently all rigs share the plugin's 24h cooldown.
+  rig-seed projects are added, they all get checked on the same cycle.
+- The plugin cooldown (8h) is the shortest supported interval. Per-rig intervals
+  are checked against each rig's `.evolve/config.toml` `schedule.interval`.
+- Rigs with longer intervals (e.g. 24h) are skipped when the plugin runs and
+  their interval hasn't elapsed yet.

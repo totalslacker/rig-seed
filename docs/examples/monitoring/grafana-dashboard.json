@@ -1,14 +1,4 @@
 {
-  "__inputs": [
-    {
-      "name": "DS_PROMETHEUS",
-      "label": "Prometheus",
-      "description": "Prometheus data source for rig-seed metrics",
-      "type": "datasource",
-      "pluginId": "prometheus",
-      "pluginName": "Prometheus"
-    }
-  ],
   "annotations": {
     "list": []
   },
@@ -29,7 +19,7 @@
       {
         "name": "project",
         "type": "query",
-        "datasource": "${DS_PROMETHEUS}",
+        "datasource": "Prometheus",
         "query": "label_values(rigseed_session_counter, project)",
         "refresh": 2,
         "multi": true,
@@ -46,7 +36,7 @@
       "title": "Session Count",
       "type": "stat",
       "gridPos": { "h": 4, "w": 4, "x": 0, "y": 0 },
-      "datasource": "${DS_PROMETHEUS}",
+      "datasource": "Prometheus",
       "targets": [
         {
           "expr": "rigseed_session_counter{project=~\"$project\"}",
@@ -69,7 +59,7 @@
       "title": "Day Count",
       "type": "stat",
       "gridPos": { "h": 4, "w": 4, "x": 4, "y": 0 },
-      "datasource": "${DS_PROMETHEUS}",
+      "datasource": "Prometheus",
       "targets": [
         {
           "expr": "rigseed_day_count{project=~\"$project\"}",
@@ -81,7 +71,7 @@
       "title": "Roadmap Completion",
       "type": "gauge",
       "gridPos": { "h": 4, "w": 4, "x": 8, "y": 0 },
-      "datasource": "${DS_PROMETHEUS}",
+      "datasource": "Prometheus",
       "targets": [
         {
           "expr": "rigseed_roadmap_pct{project=~\"$project\"}",
@@ -107,7 +97,7 @@
       "title": "Total Commits",
       "type": "stat",
       "gridPos": { "h": 4, "w": 4, "x": 12, "y": 0 },
-      "datasource": "${DS_PROMETHEUS}",
+      "datasource": "Prometheus",
       "targets": [
         {
           "expr": "rigseed_total_commits{project=~\"$project\"}",
@@ -119,7 +109,7 @@
       "title": "Learnings",
       "type": "stat",
       "gridPos": { "h": 4, "w": 4, "x": 16, "y": 0 },
-      "datasource": "${DS_PROMETHEUS}",
+      "datasource": "Prometheus",
       "targets": [
         {
           "expr": "rigseed_learnings_count{project=~\"$project\"}",
@@ -131,7 +121,7 @@
       "title": "Sessions Per Week",
       "type": "stat",
       "gridPos": { "h": 4, "w": 4, "x": 20, "y": 0 },
-      "datasource": "${DS_PROMETHEUS}",
+      "datasource": "Prometheus",
       "targets": [
         {
           "expr": "rigseed_sessions_per_week{project=~\"$project\"}",
@@ -148,7 +138,7 @@
       "title": "Session Count Over Time",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
-      "datasource": "${DS_PROMETHEUS}",
+      "datasource": "Prometheus",
       "targets": [
         {
           "expr": "rigseed_session_counter{project=~\"$project\"}",
@@ -169,7 +159,7 @@
       "title": "Roadmap Progress Over Time",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
-      "datasource": "${DS_PROMETHEUS}",
+      "datasource": "Prometheus",
       "targets": [
         {
           "expr": "rigseed_roadmap_checked{project=~\"$project\"}",
@@ -195,7 +185,7 @@
       "title": "Codebase Size Over Time",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
-      "datasource": "${DS_PROMETHEUS}",
+      "datasource": "Prometheus",
       "targets": [
         {
           "expr": "rigseed_total_lines{project=~\"$project\"}",
@@ -219,7 +209,7 @@
       "title": "Commits Over Time",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
-      "datasource": "${DS_PROMETHEUS}",
+      "datasource": "Prometheus",
       "targets": [
         {
           "expr": "rigseed_total_commits{project=~\"$project\"}",
