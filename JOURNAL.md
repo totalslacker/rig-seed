@@ -4,7 +4,7 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
-## Day 13 — Evolve Plugin v2 (2026-03-28 08:50 PDT)
+## Day 14 — Evolve Plugin v2 (2026-03-28 08:50 PDT)
 
 **Goal**: Fix the evolve plugin to support per-rig evolution intervals.
 
