@@ -1,0 +1,11 @@
+# Auto-provision the rig-seed dashboard from the mounted JSON file.
+apiVersion: 1
+
+providers:
+  - name: rig-seed
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    options:
+      path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: false

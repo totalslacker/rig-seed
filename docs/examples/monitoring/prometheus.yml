@@ -14,7 +14,7 @@ scrape_configs:
     # Override global interval if you want faster/slower scraping
     # scrape_interval: 15m
     static_configs:
-      - targets: ['localhost:9142']
+      - targets: ['host.docker.internal:9142']
         labels:
           # Add a human-friendly label for Grafana filtering
           environment: 'local'

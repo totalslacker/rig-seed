@@ -1,0 +1,41 @@
+# docker-compose.yml — Prometheus + Grafana stack for rig-seed monitoring.
+#
+# Usage: docker compose up -d
+# Or use scripts/grafana.sh for a turnkey experience.
+#
+# Prometheus scrapes the metrics-exporter running on the host.
+# Grafana auto-provisions the rig-seed dashboard on first start.
+
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: rigseed-prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: rigseed-grafana
+    volumes:
+      - ./provisioning:/etc/grafana/provisioning:ro
+      - ./grafana-dashboard.json:/var/lib/grafana/dashboards/rigseed.json:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH=/var/lib/grafana/dashboards/rigseed.json
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+volumes:
+  prometheus-data:
+  grafana-data:
