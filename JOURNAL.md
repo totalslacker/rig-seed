@@ -4,7 +4,25 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
-<<<<<<< HEAD
+## Day 13 — Evolve Plugin v2 (2026-03-28 08:50 PDT)
+
+**Goal**: Fix the evolve plugin to support per-rig evolution intervals.
+
+**Root cause**: The evolve plugin v1 had a single 24h cooldown for all rigs and never read each
+rig's `.evolve/config.toml` `schedule.interval` setting. Rigs that wanted faster evolution (e.g.
+cv at 8h) couldn't get it — the plugin treated all rigs identically.
+
+**What changed**:
+- Plugin cooldown reduced from 24h to 8h (shortest supported interval)
+- Plugin now reads each rig's `.evolve/config.toml` `schedule.interval` before dispatching
+- Rigs whose interval hasn't elapsed since their last journal entry are skipped
+- Bumped plugin to version 2
+
+**Impact**: cv now evolves every 8h (3 sessions/day), rigseed stays at 24h. New rig-seed forks
+get a working evolve plugin that respects per-rig intervals out of the box.
+
+---
+
 ## Day 13 — Session 34 (2026-03-27 09:56 PDT)
 
 **Goal**: Complete Priority items from NEXT_STEPS.md — recap.sh --top flag, dashboard.sh --depth flag, and integration test coverage for recent features.
