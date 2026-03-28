@@ -4,6 +4,22 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Day 14 — Turnkey Grafana Dashboard (2026-03-28 09:16 PDT)
+
+**Goal**: Make the Grafana/Prometheus monitoring example turnkey — one command to start everything.
+
+**What changed**:
+- Added `scripts/grafana.sh` with start/stop/status/logs commands that orchestrate Docker containers and the metrics exporter
+- Created `docs/examples/monitoring/docker-compose.yml` with Prometheus + Grafana, auto-provisioned data source and dashboard
+- Added Grafana provisioning configs so the dashboard loads automatically (no manual import)
+- Updated monitoring README with clear quick-start: `./scripts/grafana.sh start`
+- Updated prometheus.yml to use `host.docker.internal` for Docker-to-host networking
+- Updated dashboard JSON to use provisioned datasource instead of import variables
+
+**Design decisions**: The script manages both containers (via docker compose) and the host-side metrics exporter process. Multi-project support works by running one exporter per directory on sequential ports. Grafana provisioning eliminates the manual dashboard import step that was the main user friction point.
+
+---
+
 ## Day 14 — Evolve Plugin v2 (2026-03-28 08:50 PDT)
 
 **Goal**: Fix the evolve plugin to support per-rig evolution intervals.

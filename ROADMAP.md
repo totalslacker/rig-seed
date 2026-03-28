@@ -151,3 +151,10 @@ Living document. Updated each evolution session. Items come from three sources:
 - [x] Add `--depth N` flag to dashboard.sh --projects for search depth control (Day 13)
 - [x] Add integration tests for --check, --top, --projects, --depth flags (Day 13)
 - [x] Fix integration test assertions for quickstart Day 1 behavior (Day 13)
+
+## Monitoring (Day 14+)
+
+- [x] Add turnkey Grafana setup script (scripts/grafana.sh) with start/stop/status/logs (Day 14)
+- [x] Add working docker-compose.yml for Prometheus + Grafana (Day 14)
+- [x] Add Grafana auto-provisioning (datasource + dashboard, no manual import) (Day 14)
+- [x] Update monitoring README with clear quick-start docs (Day 14)
