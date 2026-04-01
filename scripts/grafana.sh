@@ -249,6 +249,7 @@ cmd_status() {
     prom_state=$($CONTAINER_CMD inspect -f '{{.State.Status}}' rigseed-prometheus 2>/dev/null || echo "unknown")
     if [ "$prom_state" = "running" ]; then
       ok "Prometheus  http://localhost:9090  (running)"
+      # shellcheck disable=SC2034
       prometheus_running=true
     else
       warn "Prometheus  ($prom_state)"
@@ -262,6 +263,7 @@ cmd_status() {
     graf_state=$($CONTAINER_CMD inspect -f '{{.State.Status}}' rigseed-grafana 2>/dev/null || echo "unknown")
     if [ "$graf_state" = "running" ]; then
       ok "Grafana     http://localhost:${GRAFANA_PORT}  (running)"
+      # shellcheck disable=SC2034
       grafana_running=true
     else
       warn "Grafana     ($graf_state)"

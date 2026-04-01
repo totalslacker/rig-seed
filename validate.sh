@@ -301,6 +301,30 @@ if [ "$lint" = true ]; then
       fi
     done
   fi
+
+  # --- Shellcheck pass ---
+  info ""
+  info "${CYAN}=== Shellcheck ===${RESET}"
+  if command -v shellcheck &>/dev/null; then
+    if [ ${#lint_files[@]} -eq 0 ]; then
+      info "  ${CYAN}ℹ${RESET} no .sh files found to check"
+    else
+      for script in "${lint_files[@]}"; do
+        rel="${script#"$dir"/}"
+        if shellcheck -S warning "$script" >/dev/null 2>&1; then
+          info "  ${GREEN}✓${RESET} $rel"
+        else
+          printf "  ${RED}✗${RESET} %s: shellcheck warnings/errors\n" "$rel"
+          if [ "$quiet" = false ]; then
+            shellcheck -S warning -f gcc "$script" 2>&1 | head -10 | sed 's/^/      /'
+          fi
+          errors=$((errors + 1))
+        fi
+      done
+    fi
+  else
+    info "  ${CYAN}ℹ${RESET} shellcheck not installed (install it for shell syntax linting)"
+  fi
 fi
 
 info ""
