@@ -307,7 +307,7 @@ if [ -f "$dir/scripts/check.sh" ] && ! grep -q '\-\-json' "$dir/scripts/check.sh
   echo "  NOTE: scripts/check.sh is missing --json support (added Session 24)"
   echo "        Compare with upstream to add JSON output mode."
 fi
-check_file "docs/examples/workflows/shellcheck.yml" "docs/examples/workflows/shellcheck.yml"
+check_file "docs/examples/workflows/shellcheck.yml" "Shellcheck CI workflow" "$source_root/docs/examples/workflows/shellcheck.yml"
 if [ -f "$dir/health-check.sh" ] && ! grep -q '\-\-watch' "$dir/health-check.sh" 2>/dev/null; then
   echo "  NOTE: health-check.sh is missing --watch mode (added Session 24)"
   echo "        Compare with upstream to add continuous monitoring."
@@ -419,6 +419,53 @@ fi
 if [ -f "$dir/quickstart.sh" ] && ! grep -q '\-\-help' "$dir/quickstart.sh" 2>/dev/null; then
   echo "  NOTE: quickstart.sh missing --help flag (added Session 31)"
   echo "        Compare with upstream to add help and color flag support."
+fi
+echo "  ok"
+echo ""
+
+# Session 32: recap.sh --since, metrics.sh --summary, quickstart.sh --check, dashboard.sh --projects
+echo "Session 32 enhancements (in-file updates):"
+if [ -f "$dir/scripts/recap.sh" ] && ! grep -q '\-\-since' "$dir/scripts/recap.sh" 2>/dev/null; then
+  echo "  NOTE: scripts/recap.sh missing --since flag (added Session 32)"
+  echo "        Compare with upstream to add multi-session recap support."
+fi
+if [ -f "$dir/metrics.sh" ] && ! grep -q '\-\-summary' "$dir/metrics.sh" 2>/dev/null; then
+  echo "  NOTE: metrics.sh missing --summary flag (added Session 32)"
+  echo "        Compare with upstream to add one-line summary output."
+fi
+if [ -f "$dir/quickstart.sh" ] && ! grep -q '\-\-check' "$dir/quickstart.sh" 2>/dev/null; then
+  echo "  NOTE: quickstart.sh missing --check flag (added Session 32)"
+  echo "        Compare with upstream to add dry-run validation mode."
+fi
+if [ -f "$dir/scripts/dashboard.sh" ] && ! grep -q '\-\-projects' "$dir/scripts/dashboard.sh" 2>/dev/null; then
+  echo "  NOTE: scripts/dashboard.sh missing --projects flag (added Session 32)"
+  echo "        Compare with upstream to add auto-discovery mode."
+fi
+echo "  ok"
+echo ""
+
+# Session 33-34: recap.sh --top, dashboard.sh --depth, metrics.sh --plan --since in JSON/CSV
+echo "Session 33-34 enhancements (in-file updates):"
+if [ -f "$dir/scripts/recap.sh" ] && ! grep -q '\-\-top' "$dir/scripts/recap.sh" 2>/dev/null; then
+  echo "  NOTE: scripts/recap.sh missing --top flag (added Session 34)"
+  echo "        Compare with upstream to add entry limit for --since output."
+fi
+if [ -f "$dir/scripts/dashboard.sh" ] && ! grep -q '\-\-depth' "$dir/scripts/dashboard.sh" 2>/dev/null; then
+  echo "  NOTE: scripts/dashboard.sh missing --depth flag (added Session 34)"
+  echo "        Compare with upstream to add search depth control for --projects."
+fi
+echo "  ok"
+echo ""
+
+# Day 14: Grafana turnkey setup, shellcheck in validate.sh --lint
+echo "Day 14+ enhancements:"
+check_executable "scripts/grafana.sh" "Turnkey Grafana dashboard setup" "$source_root/scripts/grafana.sh"
+check_file "docs/examples/monitoring/docker-compose.yml" "Monitoring docker-compose" "$source_root/docs/examples/monitoring/docker-compose.yml"
+check_file "docs/examples/monitoring/provisioning/datasources/prometheus.yml" "Grafana datasource provisioning" "$source_root/docs/examples/monitoring/provisioning/datasources/prometheus.yml"
+check_file "docs/examples/monitoring/provisioning/dashboards/rigseed.yml" "Grafana dashboard provisioning" "$source_root/docs/examples/monitoring/provisioning/dashboards/rigseed.yml"
+if [ -f "$dir/validate.sh" ] && ! grep -q 'shellcheck' "$dir/validate.sh" 2>/dev/null; then
+  echo "  NOTE: validate.sh --lint missing shellcheck integration (added Day 15)"
+  echo "        Compare with upstream to add shell syntax linting."
 fi
 echo "  ok"
 echo ""
