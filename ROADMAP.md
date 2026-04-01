@@ -158,3 +158,6 @@ Living document. Updated each evolution session. Items come from three sources:
 - [x] Add working docker-compose.yml for Prometheus + Grafana (Day 14)
 - [x] Add Grafana auto-provisioning (datasource + dashboard, no manual import) (Day 14)
 - [x] Update monitoring README with clear quick-start docs (Day 14)
+- [x] Add `--plan --since` support to metrics.sh JSON and CSV output formats (Day 15)
+- [x] Add shellcheck integration to validate.sh --lint (Day 15)
+- [x] Add migrate.sh detection for Session 32-34 and Day 14 features (Day 15)

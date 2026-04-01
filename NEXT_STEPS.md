@@ -6,15 +6,15 @@ planning intent.
 
 ## Priority (do these first)
 
-- [ ] Add `--since` support to metrics.sh --plan in JSON and CSV output formats
-- [ ] Add shellcheck CI pass for all scripts as part of validate.sh --lint
-- [ ] Add migrate.sh detection for Session 32-34 features (--since, --summary, --check, --top, --depth, --projects)
+- [ ] Add a `--format` flag to recap.sh (table/csv/json/kv) matching metrics.sh conventions
+- [ ] Add `--no-color` flag to migrate.sh output
+- [ ] Add integration test coverage for migrate.sh --dry-run and Session 32-34 feature detection
 
 ## Suggested (consider these)
 
-- [ ] Add a `--format` flag to recap.sh (table/csv/json/kv) matching metrics.sh conventions
-- [ ] Add `--no-color` flag to migrate.sh output
-- [ ] Add integration test coverage for migrate.sh --dry-run
+- [ ] Add integration test for metrics.sh --plan --since in JSON and CSV formats
+- [ ] Add `--fix` mode to validate.sh --lint that auto-applies shellcheck suggestions
+- [ ] Add migrate.sh detection for Day 15 features (metrics.sh plan JSON/CSV, shellcheck lint)
 
 ## Deferred (not now, but don't forget)
 

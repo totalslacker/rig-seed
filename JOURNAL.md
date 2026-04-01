@@ -4,6 +4,21 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Day 15 — Plan Output & Shellcheck (2026-03-31 11:25 PDT)
+
+**Goal**: Complete NEXT_STEPS.md Priority items — metrics.sh plan output in all formats, shellcheck integration, and migrate.sh feature detection.
+
+**What changed**:
+- metrics.sh `--plan --since N` now outputs roadmap items, next steps, and recent goals in JSON and CSV formats (previously only table/kv)
+- validate.sh `--lint` now runs shellcheck on all scripts when available, surfacing real shell syntax issues alongside convention checks
+- migrate.sh detects Session 32-34 features (--since, --summary, --check, --projects, --top, --depth) and Day 14 features (grafana.sh, docker-compose provisioning)
+- Fixed pre-existing bug in migrate.sh: shellcheck.yml check_file call was missing the source path argument
+- Added shellcheck disable annotations for intentional unused-variable patterns in metrics.sh and grafana.sh
+
+**Next Steps**: See NEXT_STEPS.md.
+
+---
+
 ## Day 14 — Turnkey Grafana Dashboard (2026-03-28 09:16 PDT)
 
 **Goal**: Make the Grafana/Prometheus monitoring example turnkey — one command to start everything.
