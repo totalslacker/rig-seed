@@ -359,7 +359,10 @@ if [ "$format" = "json" ]; then
       printf '"%s":"%s"' "$key" "$value"
     fi
   done
-  printf '}\n'
+  # Don't close JSON yet if --plan will append more data
+  if [ "$plan" != true ]; then
+    printf '}\n'
+  fi
 fi
 
 # --- Planning output (--plan) ---
@@ -367,6 +370,11 @@ fi
 if [ "$plan" = true ]; then
   section ""
   section "${CYAN}=== Planning Context ===${RESET}"
+
+  # Collect plan items for JSON/CSV output
+  plan_roadmap_items=()
+  plan_next_steps=()
+  plan_recent_goals=()
 
   # Unchecked roadmap items by phase
   if [ -f "$dir/ROADMAP.md" ]; then
@@ -379,6 +387,7 @@ if [ "$plan" = true ]; then
         current_phase="${current_phase#\#\# }"
       elif [[ "$line" =~ ^-\ \[\ \] ]]; then
         item="${line#- \[ \] }"
+        plan_roadmap_items+=("[$current_phase] $item")
         if [ "$format" = "kv" ]; then
           echo "roadmap_unchecked_item=${item}"
         elif [ "$format" = "table" ]; then
@@ -409,6 +418,7 @@ if [ "$plan" = true ]; then
           status="open"
           item="${line#- \[ \] }"
         fi
+        plan_next_steps+=("${status}:($current_section) $item")
         if [ "$format" = "kv" ]; then
           echo "next_step_${status}=${item}"
         elif [ "$format" = "table" ]; then
@@ -446,6 +456,7 @@ if [ "$plan" = true ]; then
         if [[ "$line" =~ ^\*\*Goal\*\*: ]]; then
           goal_line="${line#\*\*Goal\*\*: }"
           header_short="${current_header#\#\# }"
+          plan_recent_goals+=("${header_short}: ${goal_line}")
           if [ "$format" = "kv" ]; then
             echo "recent_goal_${count}=${header_short}: ${goal_line}"
           elif [ "$format" = "table" ]; then
@@ -465,6 +476,92 @@ if [ "$plan" = true ]; then
 
   section ""
   section "${CYAN}================================${RESET}"
+
+  # --- Plan CSV output ---
+  if [ "$format" = "csv" ]; then
+    if [ ${#plan_roadmap_items[@]} -gt 0 ]; then
+      echo ""
+      echo "roadmap_unchecked_phase,roadmap_unchecked_item"
+      for entry in "${plan_roadmap_items[@]}"; do
+        # Extract phase from "[Phase] item" format
+        phase="${entry%%] *}"
+        phase="${phase#[}"
+        item="${entry#*] }"
+        printf '%s,%s\n' "\"$phase\"" "\"$item\""
+      done
+    fi
+    if [ ${#plan_next_steps[@]} -gt 0 ]; then
+      echo ""
+      echo "next_step_status,next_step_section,next_step_item"
+      for entry in "${plan_next_steps[@]}"; do
+        status="${entry%%:*}"
+        rest="${entry#*:}"
+        # Section is between first ( and last ) before the item text
+        section_name="${rest#(}"
+        section_name="${section_name%%) *}"
+        item="${rest#*) }"
+        printf '%s,%s,%s\n' "\"$status\"" "\"$section_name\"" "\"$item\""
+      done
+    fi
+    if [ ${#plan_recent_goals[@]} -gt 0 ]; then
+      echo ""
+      echo "recent_goal_session,recent_goal_text"
+      for entry in "${plan_recent_goals[@]}"; do
+        session_label="${entry%%: *}"
+        goal_text="${entry#*: }"
+        printf '%s,%s\n' "\"$session_label\"" "\"$goal_text\""
+      done
+    fi
+  fi
+
+  # --- Plan JSON output ---
+  if [ "$format" = "json" ]; then
+    printf ',\"plan\":{'
+
+    # Roadmap unchecked items
+    printf '\"roadmap_unchecked\":['
+    first=true
+    for entry in "${plan_roadmap_items[@]}"; do
+      if [ "$first" = true ]; then first=false; else printf ','; fi
+      # Escape quotes in entry
+      escaped="${entry//\"/\\\"}"
+      printf '"%s"' "$escaped"
+    done
+    printf ']'
+
+    # Next steps
+    printf ',\"next_steps\":['
+    first=true
+    for entry in "${plan_next_steps[@]}"; do
+      if [ "$first" = true ]; then first=false; else printf ','; fi
+      status="${entry%%:*}"
+      rest="${entry#*:}"
+      escaped="${rest//\"/\\\"}"
+      printf '{"status":"%s","item":"%s"}' "$status" "$escaped"
+    done
+    printf ']'
+
+    # Recent goals
+    if [ ${#plan_recent_goals[@]} -gt 0 ]; then
+      printf ',\"recent_goals\":['
+      first=true
+      for entry in "${plan_recent_goals[@]}"; do
+        if [ "$first" = true ]; then first=false; else printf ','; fi
+        escaped="${entry//\"/\\\"}"
+        printf '"%s"' "$escaped"
+      done
+      printf ']'
+    fi
+
+    printf '}'  # close plan object
+    printf '}\n'  # close outer JSON object
+  fi
+fi
+
+# Close JSON if --plan was set but format isn't json (no-op for other formats)
+# Also handle edge case: --plan with json format already closed above
+if [ "$plan" != true ] && [ "$format" = "json" ]; then
+  : # already closed
 fi
 
 } # end run_metrics
