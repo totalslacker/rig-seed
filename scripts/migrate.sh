@@ -529,6 +529,10 @@ if [ -f "$dir/health-check.sh" ] && ! grep -q '\-\-format' "$dir/health-check.sh
   printf '  %bNOTE:%b' "$YELLOW" "$RESET"; echo " health-check.sh missing --format flag (added Day 17)"
   echo "        Compare with upstream to add table/csv/json/kv output format support."
 fi
+if [ -f "$dir/scripts/check.sh" ] && ! grep -q '\-\-format=' "$dir/scripts/check.sh" 2>/dev/null; then
+  printf '  %bNOTE:%b' "$YELLOW" "$RESET"; echo " scripts/check.sh missing --format flag (added Day 17)"
+  echo "        Compare with upstream to add table/csv/json/kv output format support."
+fi
 echo "  ok"
 echo ""
 
