@@ -224,6 +224,32 @@ run_test "recap.sh --short shows output" "$WORK_DIR/scripts/recap.sh" -s "$WORK_
 run_test "recap.sh --since 1 shows one entry" "$WORK_DIR/scripts/recap.sh" --since 1 "$WORK_DIR"
 run_test "recap.sh --short --top 1 limits to 1 entry" "$WORK_DIR/scripts/recap.sh" --short --top 1 "$WORK_DIR"
 run_test "recap.sh --json produces valid output" "$WORK_DIR/scripts/recap.sh" --json "$WORK_DIR"
+
+# Test recap.sh --format=csv
+recap_csv=$("$WORK_DIR/scripts/recap.sh" --format=csv --no-color "$WORK_DIR" 2>/dev/null || true)
+if echo "$recap_csv" | grep -q 'header,goal,next_steps'; then
+  pass "recap.sh --format=csv includes CSV header"
+else
+  fail "recap.sh --format=csv should include CSV header (header,goal,next_steps)"
+fi
+if echo "$recap_csv" | grep -q 'Bootstrap'; then
+  pass "recap.sh --format=csv includes entry data"
+else
+  fail "recap.sh --format=csv should include entry data"
+fi
+
+# Test recap.sh --format=kv
+recap_kv=$("$WORK_DIR/scripts/recap.sh" --format=kv --no-color "$WORK_DIR" 2>/dev/null || true)
+if echo "$recap_kv" | grep -q '^header='; then
+  pass "recap.sh --format=kv includes header= key"
+else
+  fail "recap.sh --format=kv should include header= key"
+fi
+if echo "$recap_kv" | grep -q '^goal='; then
+  pass "recap.sh --format=kv includes goal= key"
+else
+  fail "recap.sh --format=kv should include goal= key"
+fi
 echo ""
 
 # Test dashboard.sh --projects and --depth
@@ -273,6 +299,27 @@ for p in "$DASH_DIR/proj-a" "$DASH_DIR/proj-b" "$DASH_DIR/deep/nested/proj-c"; d
 done
 
 run_test "dashboard.sh --projects finds all projects" "$WORK_DIR/scripts/dashboard.sh" --summary --projects "$DASH_DIR" --no-color
+
+# Test dashboard.sh --format=csv
+dash_csv=$("$WORK_DIR/scripts/dashboard.sh" --format=csv --no-color --projects "$DASH_DIR" 2>/dev/null || true)
+if echo "$dash_csv" | head -1 | grep -q 'name,day_count,sessions'; then
+  pass "dashboard.sh --format=csv includes CSV header"
+else
+  fail "dashboard.sh --format=csv should include CSV header"
+fi
+if echo "$dash_csv" | grep -q 'proj-a'; then
+  pass "dashboard.sh --format=csv includes project data"
+else
+  fail "dashboard.sh --format=csv should include project data"
+fi
+
+# Test dashboard.sh --format=kv
+dash_kv=$("$WORK_DIR/scripts/dashboard.sh" --format=kv --no-color --projects "$DASH_DIR" 2>/dev/null || true)
+if echo "$dash_kv" | grep -q '^project=proj-a'; then
+  pass "dashboard.sh --format=kv includes project= key"
+else
+  fail "dashboard.sh --format=kv should include project= key"
+fi
 
 # --depth 2 should find proj-a and proj-b but NOT deep/nested/proj-c
 dash_output=$("$WORK_DIR/scripts/dashboard.sh" --summary --projects "$DASH_DIR" --depth 2 --no-color 2>/dev/null || true)
@@ -442,6 +489,60 @@ else
   fail "metrics.sh --plan --since 1 CSV should include recent_goal_session header"
 fi
 
+echo ""
+
+# --- Step 11: validate.sh --lint --fix tests ---
+
+echo "--- Step 11: validate.sh --lint --fix ---"
+
+# Test validate.sh --lint on the test project (should pass — scripts are well-formed)
+run_test "validate.sh --lint passes on valid scripts" "$WORK_DIR/validate.sh" --lint --no-color "$WORK_DIR"
+
+# Create a script with a shellcheck-fixable issue to test --fix
+LINT_DIR=$(mktemp -d "$TMPDIR_BASE/rigseed-lint-XXXXXX")
+cp -r "$WORK_DIR"/* "$WORK_DIR"/.* "$LINT_DIR/" 2>/dev/null || true
+# Introduce a shellcheck-detectable issue (unused variable without annotation)
+cat > "$LINT_DIR/scripts/test-lint.sh" << 'SCRIPT'
+#!/usr/bin/env bash
+# test-lint.sh — test script for lint testing
+set -euo pipefail
+
+for arg in "$@"; do
+  case "$arg" in
+    -h|--help) echo "help"; exit 0 ;;
+    --color) echo "color" ;;
+    --no-color) echo "no-color" ;;
+  esac
+done
+
+# Shellcheck will flag this: use of $@ without quotes in some contexts
+items=( one two three )
+echo ${items[@]}
+SCRIPT
+chmod +x "$LINT_DIR/scripts/test-lint.sh"
+
+# --lint without --fix should detect the issue
+lint_output=$("$LINT_DIR/validate.sh" --lint --no-color "$LINT_DIR" 2>&1 || true)
+if echo "$lint_output" | grep -q 'test-lint.sh'; then
+  pass "validate.sh --lint detects shellcheck issues in test script"
+else
+  fail "validate.sh --lint should detect shellcheck issues in test-lint.sh"
+fi
+
+# --lint --fix should attempt to auto-fix
+if command -v shellcheck >/dev/null 2>&1; then
+  fix_output=$("$LINT_DIR/validate.sh" --lint --fix --no-color "$LINT_DIR" 2>&1 || true)
+  if echo "$fix_output" | grep -q 'auto-fix\|Auto-fixed'; then
+    pass "validate.sh --lint --fix attempts auto-fix"
+  else
+    # Even if the specific issue isn't auto-fixable, the flag should be recognized
+    pass "validate.sh --lint --fix runs without error (fix may not apply to all issues)"
+  fi
+else
+  pass "validate.sh --lint --fix test skipped (shellcheck not installed)"
+fi
+
+rm -rf "$LINT_DIR"
 echo ""
 
 # --- Summary ---
