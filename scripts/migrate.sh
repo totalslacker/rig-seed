@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # migrate.sh — Detect rig-seed version and apply incremental upgrades.
 #
-# Usage: ./scripts/migrate.sh [-n|--dry-run] [-h|--help] [directory]
+# Usage: ./scripts/migrate.sh [-n|--dry-run] [--color|--no-color] [-h|--help] [directory]
 #
 # Checks which rig-seed features are present in a fork and offers to add
 # missing ones. Non-destructive: never overwrites existing files that have
@@ -16,6 +16,7 @@ set -euo pipefail
 # --- Options ---
 
 dry_run=false
+use_color=auto
 dir=""
 
 for arg in "$@"; do
@@ -27,6 +28,8 @@ for arg in "$@"; do
       echo ""
       echo "Options:"
       echo "  -n, --dry-run   Show what would be done without making changes"
+      echo "  --color         Force colored output"
+      echo "  --no-color      Disable colored output"
       echo "  -h, --help      Show this help message"
       echo ""
       echo "Arguments:"
@@ -36,6 +39,12 @@ for arg in "$@"; do
     -n|--dry-run)
       dry_run=true
       ;;
+    --color)
+      use_color=always
+      ;;
+    --no-color)
+      use_color=never
+      ;;
     *)
       dir="$arg"
       ;;
@@ -43,6 +52,21 @@ for arg in "$@"; do
 done
 
 dir="${dir:-.}"
+
+# --- Color setup ---
+setup_colors() {
+  if [ "$use_color" = "never" ] || [ -n "${NO_COLOR:-}" ]; then
+    # shellcheck disable=SC2034  # Color vars used in output sections
+    GREEN="" YELLOW="" CYAN="" BOLD="" RESET=""
+  elif [ "$use_color" = "always" ] || [ -t 1 ]; then
+    GREEN='\033[32m' YELLOW='\033[33m'
+    CYAN='\033[36m' BOLD='\033[1m' RESET='\033[0m'
+  else
+    # shellcheck disable=SC2034  # Color vars used in output sections
+    GREEN="" YELLOW="" CYAN="" BOLD="" RESET=""
+  fi
+}
+setup_colors
 
 # --- Validation ---
 
@@ -71,9 +95,9 @@ check_file() {
 
   added=$((added + 1))
   if [ "$dry_run" = true ]; then
-    echo "  [would add] $path — $description"
+    printf '  %b[would add]%b %s — %s\n' "$CYAN" "$RESET" "$path" "$description"
   else
-    echo "  [adding] $path — $description"
+    printf '  %b[adding]%b %s — %s\n' "$GREEN" "$RESET" "$path" "$description"
     mkdir -p "$dir/$(dirname "$path")"
     cp "$source" "$dir/$path"
   fi
@@ -90,9 +114,9 @@ check_executable() {
 
   added=$((added + 1))
   if [ "$dry_run" = true ]; then
-    echo "  [would add] $path — $description"
+    printf '  %b[would add]%b %s — %s\n' "$CYAN" "$RESET" "$path" "$description"
   else
-    echo "  [adding] $path — $description"
+    printf '  %b[adding]%b %s — %s\n' "$GREEN" "$RESET" "$path" "$description"
     mkdir -p "$dir/$(dirname "$path")"
     cp "$source" "$dir/$path"
     chmod +x "$dir/$path"
@@ -104,7 +128,7 @@ check_config_key() {
   local description="$2"
 
   if [ ! -f "$dir/.evolve/config.toml" ]; then
-    echo "  ⚠ .evolve/config.toml missing — cannot check $key"
+    printf '  %b⚠%b .evolve/config.toml missing — cannot check %s\n' "$YELLOW" "$RESET" "$key"
     skipped=$((skipped + 1))
     return
   fi
@@ -114,7 +138,7 @@ check_config_key() {
   fi
 
   skipped=$((skipped + 1))
-  echo "  [manual] config.toml missing '$key' — $description"
+  printf '  %b[manual]%b config.toml missing '\''%s'\'' — %s\n' "$YELLOW" "$RESET" "$key" "$description"
   echo "           See the upstream .evolve/config.toml for the new section."
 }
 
@@ -137,11 +161,11 @@ fi
 # --- Migration checks ---
 # Ordered roughly by when each feature was added (earliest first).
 
-echo "=== rig-seed Migration ==="
+printf '%b=== rig-seed Migration ===%b\n' "$BOLD" "$RESET"
 echo ""
-echo "Checking: $dir"
+printf 'Checking: %b%s%b\n' "$CYAN" "$dir" "$RESET"
 if [ "$dry_run" = true ]; then
-  echo "Mode: dry run (no changes will be made)"
+  printf 'Mode: %bdry run%b (no changes will be made)\n' "$YELLOW" "$RESET"
 fi
 echo ""
 
@@ -263,11 +287,11 @@ echo ""
 # Session 20: Planning voice in PERSONALITY.md and --plan flag in metrics.sh
 echo "Session 20 enhancements (in-file updates):"
 if [ -f "$dir/PERSONALITY.md" ] && ! grep -q '## Planning Voice' "$dir/PERSONALITY.md" 2>/dev/null; then
-  echo "  NOTE: PERSONALITY.md missing Planning Voice section (added Session 20)"
+  printf '  %bNOTE:%b' "$YELLOW" "$RESET"; echo " PERSONALITY.md missing Planning Voice section (added Session 20)"
   echo "        Compare with upstream to add planning guidance."
 fi
 if [ -f "$dir/metrics.sh" ] && ! grep -q '\-\-plan' "$dir/metrics.sh" 2>/dev/null; then
-  echo "  NOTE: metrics.sh missing --plan flag (added Session 20)"
+  printf '  %bNOTE:%b' "$YELLOW" "$RESET"; echo " metrics.sh missing --plan flag (added Session 20)"
   echo "        Compare with upstream to add planning output."
 fi
 echo "  ok"
@@ -282,7 +306,7 @@ echo ""
 # Session 22: check.sh --quiet flag
 echo "Session 22 enhancements (in-file updates):"
 if [ -f "$dir/scripts/check.sh" ] && ! grep -q '\-\-quiet' "$dir/scripts/check.sh" 2>/dev/null; then
-  echo "  NOTE: scripts/check.sh missing --quiet flag (added Session 22)"
+  printf '  %bNOTE:%b' "$YELLOW" "$RESET"; echo " scripts/check.sh missing --quiet flag (added Session 22)"
   echo "        Compare with upstream to add quiet mode support."
 fi
 echo "  ok"
@@ -291,11 +315,11 @@ echo ""
 # Session 23: emoji output markers in validate.sh and health-check.sh
 echo "Session 23 enhancements (in-file updates):"
 if [ -f "$dir/validate.sh" ] && grep -q 'echo "FAIL:' "$dir/validate.sh" 2>/dev/null; then
-  echo "  NOTE: validate.sh uses text-only markers (emoji markers added Session 23)"
+  printf '  %bNOTE:%b' "$YELLOW" "$RESET"; echo " validate.sh uses text-only markers (emoji markers added Session 23)"
   echo "        Compare with upstream to update ok:/FAIL:/WARN: to ✓/✗/⚠."
 fi
 if [ -f "$dir/health-check.sh" ] && grep -q 'echo "FAIL:' "$dir/health-check.sh" 2>/dev/null; then
-  echo "  NOTE: health-check.sh uses text-only markers (emoji markers added Session 23)"
+  printf '  %bNOTE:%b' "$YELLOW" "$RESET"; echo " health-check.sh uses text-only markers (emoji markers added Session 23)"
   echo "        Compare with upstream to update ok:/FAIL:/WARN: to ✓/✗/⚠."
 fi
 echo "  ok"
@@ -304,12 +328,12 @@ echo ""
 # Session 24: --json for check.sh, shellcheck workflow, --watch for health-check.sh
 echo "Session 24 enhancements (in-file updates):"
 if [ -f "$dir/scripts/check.sh" ] && ! grep -q '\-\-json' "$dir/scripts/check.sh" 2>/dev/null; then
-  echo "  NOTE: scripts/check.sh is missing --json support (added Session 24)"
+  printf '  %bNOTE:%b' "$YELLOW" "$RESET"; echo " scripts/check.sh is missing --json support (added Session 24)"
   echo "        Compare with upstream to add JSON output mode."
 fi
 check_file "docs/examples/workflows/shellcheck.yml" "Shellcheck CI workflow" "$source_root/docs/examples/workflows/shellcheck.yml"
 if [ -f "$dir/health-check.sh" ] && ! grep -q '\-\-watch' "$dir/health-check.sh" 2>/dev/null; then
-  echo "  NOTE: health-check.sh is missing --watch mode (added Session 24)"
+  printf '  %bNOTE:%b' "$YELLOW" "$RESET"; echo " health-check.sh is missing --watch mode (added Session 24)"
   echo "        Compare with upstream to add continuous monitoring."
 fi
 echo "  ok"
@@ -322,11 +346,11 @@ check_file "docs/examples/integrations/README.md" "External integrations guide" 
 check_executable "docs/examples/integrations/linear-sync.sh" "Linear sync script" "$source_root/docs/examples/integrations/linear-sync.sh"
 check_executable "docs/examples/integrations/jira-sync.sh" "Jira sync script" "$source_root/docs/examples/integrations/jira-sync.sh"
 if [ -f "$dir/validate.sh" ] && ! grep -q '\-\-no-color' "$dir/validate.sh" 2>/dev/null; then
-  echo "  NOTE: validate.sh missing --color/--no-color flags (added Session 25)"
+  printf '  %bNOTE:%b' "$YELLOW" "$RESET"; echo " validate.sh missing --color/--no-color flags (added Session 25)"
   echo "        Compare with upstream to add terminal-aware color output."
 fi
 if [ -f "$dir/health-check.sh" ] && ! grep -q '\-\-no-color' "$dir/health-check.sh" 2>/dev/null; then
-  echo "  NOTE: health-check.sh missing --color/--no-color flags (added Session 25)"
+  printf '  %bNOTE:%b' "$YELLOW" "$RESET"; echo " health-check.sh missing --color/--no-color flags (added Session 25)"
   echo "        Compare with upstream to add terminal-aware color output."
 fi
 echo "  ok"
@@ -336,23 +360,23 @@ echo ""
 echo "Session 26 enhancements:"
 check_executable "scripts/recap.sh" "Session recap script" "$source_root/scripts/recap.sh"
 if [ -f "$dir/scripts/check.sh" ] && ! grep -q '\-\-no-color' "$dir/scripts/check.sh" 2>/dev/null; then
-  echo "  NOTE: scripts/check.sh missing --color/--no-color flags (added Session 26)"
+  printf '  %bNOTE:%b' "$YELLOW" "$RESET"; echo " scripts/check.sh missing --color/--no-color flags (added Session 26)"
   echo "        Compare with upstream to add terminal-aware color output."
 fi
 if [ -f "$dir/scripts/dashboard.sh" ] && ! grep -q '\-\-no-color' "$dir/scripts/dashboard.sh" 2>/dev/null; then
-  echo "  NOTE: scripts/dashboard.sh missing --color/--no-color flags (added Session 26)"
+  printf '  %bNOTE:%b' "$YELLOW" "$RESET"; echo " scripts/dashboard.sh missing --color/--no-color flags (added Session 26)"
   echo "        Compare with upstream to add terminal-aware color output."
 fi
 if [ -f "$dir/scripts/lint-workflows.sh" ] && ! grep -q '\-\-no-color' "$dir/scripts/lint-workflows.sh" 2>/dev/null; then
-  echo "  NOTE: scripts/lint-workflows.sh missing --color/--no-color flags (added Session 26)"
+  printf '  %bNOTE:%b' "$YELLOW" "$RESET"; echo " scripts/lint-workflows.sh missing --color/--no-color flags (added Session 26)"
   echo "        Compare with upstream to add terminal-aware color output."
 fi
 if [ -f "$dir/scripts/rollback.sh" ] && ! grep -q '\-\-no-color' "$dir/scripts/rollback.sh" 2>/dev/null; then
-  echo "  NOTE: scripts/rollback.sh missing --color/--no-color flags (added Session 26)"
+  printf '  %bNOTE:%b' "$YELLOW" "$RESET"; echo " scripts/rollback.sh missing --color/--no-color flags (added Session 26)"
   echo "        Compare with upstream to add terminal-aware color output."
 fi
 if [ -f "$dir/metrics.sh" ] && ! grep -q '\-\-format=' "$dir/metrics.sh" 2>/dev/null; then
-  echo "  NOTE: metrics.sh missing --format flag (added Session 26)"
+  printf '  %bNOTE:%b' "$YELLOW" "$RESET"; echo " metrics.sh missing --format flag (added Session 26)"
   echo "        Compare with upstream to add table/csv/json/kv output format support."
 fi
 echo "  ok"
@@ -362,11 +386,11 @@ echo ""
 echo "Session 27 enhancements:"
 check_executable "docs/examples/hooks/post-session-sync" "Post-session integration sync hook" "$source_root/docs/examples/hooks/post-session-sync"
 if [ -f "$dir/validate.sh" ] && ! grep -q 'beads-external-map' "$dir/validate.sh" 2>/dev/null; then
-  echo "  NOTE: validate.sh missing .beads-external-map.json validation (added Session 27)"
+  printf '  %bNOTE:%b' "$YELLOW" "$RESET"; echo " validate.sh missing .beads-external-map.json validation (added Session 27)"
   echo "        Compare with upstream to add integration config checking."
 fi
 if [ -f "$dir/metrics.sh" ] && ! grep -q '\-\-no-color' "$dir/metrics.sh" 2>/dev/null; then
-  echo "  NOTE: metrics.sh missing --color/--no-color flags (added Session 27)"
+  printf '  %bNOTE:%b' "$YELLOW" "$RESET"; echo " metrics.sh missing --color/--no-color flags (added Session 27)"
   echo "        Compare with upstream to add terminal-aware color output."
 fi
 echo "  ok"
@@ -376,7 +400,7 @@ echo ""
 echo "Session 28 enhancements:"
 check_executable "docs/examples/hooks/pre-session" "Pre-session health check hook" "$source_root/docs/examples/hooks/pre-session"
 if [ -f "$dir/scripts/recap.sh" ] && ! grep -q '\-\-diff' "$dir/scripts/recap.sh" 2>/dev/null; then
-  echo "  NOTE: scripts/recap.sh missing --diff flag (added Session 28)"
+  printf '  %bNOTE:%b' "$YELLOW" "$RESET"; echo " scripts/recap.sh missing --diff flag (added Session 28)"
   echo "        Compare with upstream to add git diff display mode."
 fi
 echo "  ok"
@@ -386,11 +410,11 @@ echo ""
 echo "Session 29 enhancements:"
 check_file "docs/examples/workflows/post-session-sync.yml" "Post-session sync CI workflow" "$source_root/docs/examples/workflows/post-session-sync.yml"
 if [ -f "$dir/validate.sh" ] && ! grep -q '\-\-lint' "$dir/validate.sh" 2>/dev/null; then
-  echo "  NOTE: validate.sh missing --lint flag (added Session 29)"
+  printf '  %bNOTE:%b' "$YELLOW" "$RESET"; echo " validate.sh missing --lint flag (added Session 29)"
   echo "        Compare with upstream to add script conventions linting."
 fi
 if [ -f "$dir/metrics.sh" ] && ! grep -q '\-\-watch' "$dir/metrics.sh" 2>/dev/null; then
-  echo "  NOTE: metrics.sh missing --watch flag (added Session 29)"
+  printf '  %bNOTE:%b' "$YELLOW" "$RESET"; echo " metrics.sh missing --watch flag (added Session 29)"
   echo "        Compare with upstream to add continuous monitoring mode."
 fi
 echo "  ok"
@@ -399,11 +423,11 @@ echo ""
 # Session 30: bundled formula, check-evolve-state.sh, acceptance evaluation step
 echo "Session 30 enhancements:"
 if [ ! -f "$dir/formulas/mol-evolve.formula.toml" ]; then
-  echo "  NOTE: formulas/mol-evolve.formula.toml missing (added Session 30)"
+  printf '  %bNOTE:%b' "$YELLOW" "$RESET"; echo " formulas/mol-evolve.formula.toml missing (added Session 30)"
   echo "        Copy from upstream rig-seed to bundle the evolution formula."
 fi
 if [ ! -f "$dir/scripts/check-evolve-state.sh" ]; then
-  echo "  NOTE: scripts/check-evolve-state.sh missing (added Session 30)"
+  printf '  %bNOTE:%b' "$YELLOW" "$RESET"; echo " scripts/check-evolve-state.sh missing (added Session 30)"
   echo "        Pre-submit validation for required state file updates."
 fi
 echo "  ok"
@@ -413,11 +437,11 @@ echo ""
 echo "Session 31 enhancements:"
 check_file "docs/examples/workflows/check-evolve-state.yml" "Check-evolve-state CI workflow" "$source_root/docs/examples/workflows/check-evolve-state.yml"
 if [ -f "$dir/scripts/dashboard.sh" ] && ! grep -q '\-\-summary' "$dir/scripts/dashboard.sh" 2>/dev/null; then
-  echo "  NOTE: scripts/dashboard.sh missing --summary flag (added Session 31)"
+  printf '  %bNOTE:%b' "$YELLOW" "$RESET"; echo " scripts/dashboard.sh missing --summary flag (added Session 31)"
   echo "        Compare with upstream to add one-line-per-project output mode."
 fi
 if [ -f "$dir/quickstart.sh" ] && ! grep -q '\-\-help' "$dir/quickstart.sh" 2>/dev/null; then
-  echo "  NOTE: quickstart.sh missing --help flag (added Session 31)"
+  printf '  %bNOTE:%b' "$YELLOW" "$RESET"; echo " quickstart.sh missing --help flag (added Session 31)"
   echo "        Compare with upstream to add help and color flag support."
 fi
 echo "  ok"
@@ -426,19 +450,19 @@ echo ""
 # Session 32: recap.sh --since, metrics.sh --summary, quickstart.sh --check, dashboard.sh --projects
 echo "Session 32 enhancements (in-file updates):"
 if [ -f "$dir/scripts/recap.sh" ] && ! grep -q '\-\-since' "$dir/scripts/recap.sh" 2>/dev/null; then
-  echo "  NOTE: scripts/recap.sh missing --since flag (added Session 32)"
+  printf '  %bNOTE:%b' "$YELLOW" "$RESET"; echo " scripts/recap.sh missing --since flag (added Session 32)"
   echo "        Compare with upstream to add multi-session recap support."
 fi
 if [ -f "$dir/metrics.sh" ] && ! grep -q '\-\-summary' "$dir/metrics.sh" 2>/dev/null; then
-  echo "  NOTE: metrics.sh missing --summary flag (added Session 32)"
+  printf '  %bNOTE:%b' "$YELLOW" "$RESET"; echo " metrics.sh missing --summary flag (added Session 32)"
   echo "        Compare with upstream to add one-line summary output."
 fi
 if [ -f "$dir/quickstart.sh" ] && ! grep -q '\-\-check' "$dir/quickstart.sh" 2>/dev/null; then
-  echo "  NOTE: quickstart.sh missing --check flag (added Session 32)"
+  printf '  %bNOTE:%b' "$YELLOW" "$RESET"; echo " quickstart.sh missing --check flag (added Session 32)"
   echo "        Compare with upstream to add dry-run validation mode."
 fi
 if [ -f "$dir/scripts/dashboard.sh" ] && ! grep -q '\-\-projects' "$dir/scripts/dashboard.sh" 2>/dev/null; then
-  echo "  NOTE: scripts/dashboard.sh missing --projects flag (added Session 32)"
+  printf '  %bNOTE:%b' "$YELLOW" "$RESET"; echo " scripts/dashboard.sh missing --projects flag (added Session 32)"
   echo "        Compare with upstream to add auto-discovery mode."
 fi
 echo "  ok"
@@ -447,11 +471,11 @@ echo ""
 # Session 33-34: recap.sh --top, dashboard.sh --depth, metrics.sh --plan --since in JSON/CSV
 echo "Session 33-34 enhancements (in-file updates):"
 if [ -f "$dir/scripts/recap.sh" ] && ! grep -q '\-\-top' "$dir/scripts/recap.sh" 2>/dev/null; then
-  echo "  NOTE: scripts/recap.sh missing --top flag (added Session 34)"
+  printf '  %bNOTE:%b' "$YELLOW" "$RESET"; echo " scripts/recap.sh missing --top flag (added Session 34)"
   echo "        Compare with upstream to add entry limit for --since output."
 fi
 if [ -f "$dir/scripts/dashboard.sh" ] && ! grep -q '\-\-depth' "$dir/scripts/dashboard.sh" 2>/dev/null; then
-  echo "  NOTE: scripts/dashboard.sh missing --depth flag (added Session 34)"
+  printf '  %bNOTE:%b' "$YELLOW" "$RESET"; echo " scripts/dashboard.sh missing --depth flag (added Session 34)"
   echo "        Compare with upstream to add search depth control for --projects."
 fi
 echo "  ok"
@@ -464,7 +488,7 @@ check_file "docs/examples/monitoring/docker-compose.yml" "Monitoring docker-comp
 check_file "docs/examples/monitoring/provisioning/datasources/prometheus.yml" "Grafana datasource provisioning" "$source_root/docs/examples/monitoring/provisioning/datasources/prometheus.yml"
 check_file "docs/examples/monitoring/provisioning/dashboards/rigseed.yml" "Grafana dashboard provisioning" "$source_root/docs/examples/monitoring/provisioning/dashboards/rigseed.yml"
 if [ -f "$dir/validate.sh" ] && ! grep -q 'shellcheck' "$dir/validate.sh" 2>/dev/null; then
-  echo "  NOTE: validate.sh --lint missing shellcheck integration (added Day 15)"
+  printf '  %bNOTE:%b' "$YELLOW" "$RESET"; echo " validate.sh --lint missing shellcheck integration (added Day 15)"
   echo "        Compare with upstream to add shell syntax linting."
 fi
 echo "  ok"
@@ -472,16 +496,16 @@ echo ""
 
 # --- Summary ---
 
-echo "================================"
+printf '%b================================%b\n' "$BOLD" "$RESET"
 if [ "$added" -eq 0 ] && [ "$skipped" -eq 0 ]; then
-  echo "Your fork is up to date with rig-seed."
+  printf '%b✓%b Your fork is up to date with rig-seed.\n' "$GREEN" "$RESET"
   echo ""
-  echo "RESULT: PASS (up to date)"
+  printf 'RESULT: %bPASS%b (up to date)\n' "$GREEN" "$RESET"
 elif [ "$dry_run" = true ]; then
   echo "Would add $added file(s). $skipped item(s) need manual review."
   echo "Run without --dry-run to apply changes."
   echo ""
-  echo "RESULT: PASS ($added to add, $skipped manual)"
+  printf 'RESULT: %bPASS%b (%d to add, %d manual)\n' "$GREEN" "$RESET" "$added" "$skipped"
 else
   echo "Added $added file(s). $skipped item(s) need manual review."
   echo ""
@@ -490,5 +514,5 @@ else
   echo "  2. Run ./validate.sh to confirm everything is valid"
   echo "  3. Commit: git add -A && git commit -m 'chore: migrate to latest rig-seed'"
   echo ""
-  echo "RESULT: PASS ($added added, $skipped manual)"
+  printf 'RESULT: %bPASS%b (%d added, %d manual)\n' "$GREEN" "$RESET" "$added" "$skipped"
 fi
