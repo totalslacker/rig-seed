@@ -515,6 +515,19 @@ fi
 echo "  ok"
 echo ""
 
+# Day 17 enhancements: dashboard.sh --format, evolve plugin disk persistence
+echo "Day 17 enhancements (in-file updates):"
+if [ -f "$dir/scripts/dashboard.sh" ] && ! grep -q '\-\-format' "$dir/scripts/dashboard.sh" 2>/dev/null; then
+  printf '  %bNOTE:%b' "$YELLOW" "$RESET"; echo " scripts/dashboard.sh missing --format flag (added Day 17)"
+  echo "        Compare with upstream to add table/csv/json/kv output format support."
+fi
+if [ -f "$dir/plugins/evolve/plugin.md" ] && ! grep -q 'last-dispatch' "$dir/plugins/evolve/plugin.md" 2>/dev/null; then
+  printf '  %bNOTE:%b' "$YELLOW" "$RESET"; echo " evolve plugin missing disk-persisted dispatch timestamp (added Day 17)"
+  echo "        Compare with upstream to add .evolve/.last-dispatch cooldown persistence."
+fi
+echo "  ok"
+echo ""
+
 # --- Summary ---
 
 printf '%b================================%b\n' "$BOLD" "$RESET"
