@@ -1,16 +1,17 @@
 #!/usr/bin/env bash
 # dashboard.sh — Aggregate evolution metrics across multiple rig-seed projects.
 #
-# Usage: dashboard.sh [-q|--quiet] [-h|--help] [--json] [--summary] [--projects DIR] [--depth N] <dir1> [dir2] ...
+# Usage: dashboard.sh [-q|--quiet] [-h|--help] [--json] [--summary] [--format=FORMAT] [--projects DIR] [--depth N] <dir1> [dir2] ...
 #
 # Outputs a table comparing evolution metrics across projects. Each argument
 # should be a path to a rig-seed project root (containing SESSION_COUNT,
 # JOURNAL.md, etc.).
 #
 # Options:
-#   -q, --quiet       Machine-readable key=value output
-#   --json            JSON output (one object per project)
+#   -q, --quiet       Machine-readable key=value output (alias for --format=kv)
+#   --json            JSON output (alias for --format=json)
 #   --summary         One-line-per-project compact output
+#   --format=FORMAT   Output format: table (default), csv, json, kv
 #   --projects DIR    Auto-discover rig-seed projects under DIR (recursive)
 #   --depth N         Limit --projects search depth (default: unlimited)
 #   --color           Force colored output
@@ -25,8 +26,7 @@ set -euo pipefail
 
 # --- Options ---
 
-quiet=false
-json=false
+format=table
 summary=false
 use_color=auto
 projects_dir=""
@@ -42,9 +42,10 @@ Usage: dashboard.sh [options] [dir1] [dir2] ...
 Aggregate evolution metrics across multiple rig-seed projects.
 
 Options:
-  -q, --quiet       Machine-readable key=value output (one block per project)
-  --json            JSON array output (for dashboards and APIs)
+  -q, --quiet       Machine-readable key=value output (alias for --format=kv)
+  --json            JSON array output (alias for --format=json)
   --summary         One-line-per-project compact output
+  --format=FORMAT   Output format: table (default), csv, json, kv
   --projects DIR    Auto-discover rig-seed projects under DIR (recursive)
   --depth N         Limit --projects search depth (default: unlimited)
   --color           Force colored output
@@ -65,10 +66,13 @@ Examples:
   ./dashboard.sh --projects ~/projects --depth 3
 
   # JSON output for all rigs in a Gas Town workspace
-  ./dashboard.sh --json ~/gt/*/repo
+  ./dashboard.sh --format=json ~/gt/*/repo
+
+  # CSV output for spreadsheets
+  ./dashboard.sh --format=csv ~/gt/*/repo
 
   # Machine-readable for scripting
-  ./dashboard.sh -q ~/projects/*/
+  ./dashboard.sh --format=kv ~/projects/*/
 
   # Quick one-line-per-project overview
   ./dashboard.sh --summary ~/gt/*/repo
@@ -76,11 +80,22 @@ HELP
       exit 0
       ;;
     -q|--quiet)
-      quiet=true
+      format=kv
       shift
       ;;
     --json)
-      json=true
+      format=json
+      shift
+      ;;
+    --format=*)
+      format="${1#*=}"
+      case "$format" in
+        table|csv|json|kv) ;;
+        *)
+          echo "Error: unknown format '$format' (expected: table, csv, json, kv)" >&2
+          exit 1
+          ;;
+      esac
       shift
       ;;
     --summary|-s)
@@ -227,7 +242,7 @@ gather_metrics() {
     if [ "$total_commits" -gt 0 ]; then
       last_commit=$(git -C "$dir" log -1 --format='%ci' 2>/dev/null | cut -d' ' -f1)
       local first_epoch last_epoch
-      first_epoch=$(git -C "$dir" log --reverse --format='%ct' 2>/dev/null | head -1)
+      first_epoch=$(git -C "$dir" log --reverse --format='%ct' 2>/dev/null | head -1 || true)
       last_epoch=$(git -C "$dir" log -1 --format='%ct' 2>/dev/null)
       if [ -n "$first_epoch" ] && [ -n "$last_epoch" ]; then
         age_days=$(( (last_epoch - first_epoch) / 86400 ))
@@ -252,50 +267,64 @@ gather_metrics() {
       "$roadmap_done" "$roadmap_total" "$roadmap_pct" "$last_commit"
     return
   fi
-  if [ "$json" = true ]; then
-    printf '{"name":"%s","day_count":%d,"sessions":%d,"commits":%d,"roadmap_done":%d,"roadmap_total":%d,"roadmap_pct":%d,"learnings":%d,"last_commit":"%s","velocity":"%s"}' \
-      "$name" "$day_count" "$session_counter" "$total_commits" \
-      "$roadmap_done" "$roadmap_total" "$roadmap_pct" "$learnings" \
-      "$last_commit" "$sessions_per_week"
-  elif [ "$quiet" = true ]; then
-    echo "project=$name"
-    echo "day_count=$day_count"
-    echo "sessions=$session_counter"
-    echo "commits=$total_commits"
-    echo "roadmap_done=$roadmap_done"
-    echo "roadmap_total=$roadmap_total"
-    echo "roadmap_pct=$roadmap_pct"
-    echo "learnings=$learnings"
-    echo "last_commit=$last_commit"
-    echo "velocity=$sessions_per_week"
-    echo "---"
-  else
-    printf "  %-20s %4d %8d %7d %6d/%-4d %4d%% %8d   %-10s %s\n" \
-      "$name" "$day_count" "$session_counter" "$total_commits" \
-      "$roadmap_done" "$roadmap_total" "$roadmap_pct" "$learnings" \
-      "$last_commit" "$sessions_per_week"
-  fi
+  case "$format" in
+    json)
+      printf '{"name":"%s","day_count":%d,"sessions":%d,"commits":%d,"roadmap_done":%d,"roadmap_total":%d,"roadmap_pct":%d,"learnings":%d,"last_commit":"%s","velocity":"%s"}' \
+        "$name" "$day_count" "$session_counter" "$total_commits" \
+        "$roadmap_done" "$roadmap_total" "$roadmap_pct" "$learnings" \
+        "$last_commit" "$sessions_per_week"
+      ;;
+    csv)
+      printf '%s,%d,%d,%d,%d,%d,%d,%d,%s,%s\n' \
+        "$name" "$day_count" "$session_counter" "$total_commits" \
+        "$roadmap_done" "$roadmap_total" "$roadmap_pct" "$learnings" \
+        "$last_commit" "$sessions_per_week"
+      ;;
+    kv)
+      echo "project=$name"
+      echo "day_count=$day_count"
+      echo "sessions=$session_counter"
+      echo "commits=$total_commits"
+      echo "roadmap_done=$roadmap_done"
+      echo "roadmap_total=$roadmap_total"
+      echo "roadmap_pct=$roadmap_pct"
+      echo "learnings=$learnings"
+      echo "last_commit=$last_commit"
+      echo "velocity=$sessions_per_week"
+      echo "---"
+      ;;
+    *)
+      printf "  %-20s %4d %8d %7d %6d/%-4d %4d%% %8d   %-10s %s\n" \
+        "$name" "$day_count" "$session_counter" "$total_commits" \
+        "$roadmap_done" "$roadmap_total" "$roadmap_pct" "$learnings" \
+        "$last_commit" "$sessions_per_week"
+      ;;
+  esac
 }
 
 # --- Main ---
 
 valid_count=0
 
-if [ "$json" = true ]; then
+if [ "$format" = "json" ]; then
   echo "["
+fi
+
+if [ "$format" = "csv" ]; then
+  echo "name,day_count,sessions,commits,roadmap_done,roadmap_total,roadmap_pct,learnings,last_commit,velocity"
 fi
 
 first=true
 for dir in "${dirs[@]}"; do
   if [ ! -f "$dir/SESSION_COUNT" ] && [ ! -f "$dir/JOURNAL.md" ]; then
-    if [ "$quiet" = false ] && [ "$json" = false ]; then
+    if [ "$format" = "table" ] && [ "$summary" = false ]; then
       echo "  Skipping $dir (not a rig-seed project)" >&2
     fi
     continue
   fi
   valid_count=$((valid_count + 1))
 
-  if [ "$json" = true ]; then
+  if [ "$format" = "json" ]; then
     if [ "$first" = true ]; then
       first=false
     else
@@ -305,8 +334,11 @@ for dir in "${dirs[@]}"; do
   elif [ "$summary" = true ]; then
     gather_metrics "$dir"
     first=false
+  elif [ "$format" = "csv" ] || [ "$format" = "kv" ]; then
+    gather_metrics "$dir"
+    first=false
   else
-    if [ "$first" = true ] && [ "$quiet" = false ]; then
+    if [ "$first" = true ]; then
       printf '%b\n' "${CYAN}=== Multi-Project Evolution Dashboard ===${RESET}"
       echo ""
       printf "  ${BOLD}%-20s %4s %8s %7s %11s %5s %8s   %-10s %s${RESET}\n" \
@@ -319,7 +351,7 @@ for dir in "${dirs[@]}"; do
   fi
 done
 
-if [ "$json" = true ]; then
+if [ "$format" = "json" ]; then
   echo ""
   echo "]"
 fi
@@ -330,7 +362,7 @@ if [ "$valid_count" -eq 0 ]; then
 fi
 
 # Summary (human-readable only)
-if [ "$quiet" = false ] && [ "$json" = false ] && [ "$valid_count" -gt 1 ]; then
+if [ "$format" = "table" ] && [ "$summary" = false ] && [ "$valid_count" -gt 1 ]; then
   echo ""
   echo "  $valid_count projects tracked"
   echo ""
