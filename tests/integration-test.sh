@@ -372,6 +372,46 @@ fi
 rm -rf "$MIGRATE_DIR" "$DETECT_DIR"
 echo ""
 
+# --- Step 10: metrics.sh --plan --since tests ---
+
+echo "--- Step 10: metrics.sh --plan --since ---"
+
+# metrics.sh --plan --since requires ROADMAP.md, NEXT_STEPS.md, and JOURNAL.md
+# We already have a simulated project in $WORK_DIR from earlier steps
+
+# Test JSON format: --plan --since 1 should produce valid JSON with plan object
+plan_json=$("$WORK_DIR/metrics.sh" --format=json --plan --since 1 --no-color "$WORK_DIR" 2>/dev/null || true)
+if echo "$plan_json" | grep -q '"plan"'; then
+  pass "metrics.sh --plan --since 1 --format=json includes plan object"
+else
+  fail "metrics.sh --plan --since 1 --format=json should include plan object"
+fi
+if echo "$plan_json" | grep -q '"next_steps"'; then
+  pass "metrics.sh --plan JSON includes next_steps array"
+else
+  fail "metrics.sh --plan JSON should include next_steps array"
+fi
+if echo "$plan_json" | grep -q '"recent_goals"'; then
+  pass "metrics.sh --plan --since 1 JSON includes recent_goals"
+else
+  fail "metrics.sh --plan --since 1 JSON should include recent_goals"
+fi
+
+# Test CSV format: --plan --since 1 should produce CSV tables
+plan_csv=$("$WORK_DIR/metrics.sh" --format=csv --plan --since 1 --no-color "$WORK_DIR" 2>/dev/null || true)
+if echo "$plan_csv" | grep -q 'next_step_status'; then
+  pass "metrics.sh --plan --format=csv includes next_step_status header"
+else
+  fail "metrics.sh --plan --format=csv should include next_step_status header"
+fi
+if echo "$plan_csv" | grep -q 'recent_goal_session'; then
+  pass "metrics.sh --plan --since 1 CSV includes recent_goal_session header"
+else
+  fail "metrics.sh --plan --since 1 CSV should include recent_goal_session header"
+fi
+
+echo ""
+
 # --- Summary ---
 
 echo "================================"
