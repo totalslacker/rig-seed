@@ -8,12 +8,14 @@
 # Usage: ./scripts/rollback.sh [options]
 #
 # Options:
-#   -h, --help       Show this help
-#   -n, --dry-run    Show what would be reverted without doing it
-#   --commit=SHA     Revert a specific commit (default: HEAD)
-#   --no-verify      Skip build verification after revert (not recommended)
-#   --color          Force colored output
-#   --no-color       Disable colored output
+#   -h, --help          Show this help
+#   -n, --dry-run       Show what would be reverted without doing it
+#   --commit=SHA        Revert a specific commit (default: HEAD)
+#   --no-verify         Skip build verification after revert (not recommended)
+#   --format=FORMAT     Output format: table (default), csv, json, kv
+#   --json              Alias for --format=json
+#   --color             Force colored output
+#   --no-color          Disable colored output
 #
 # Exit codes:
 #   0 — rollback successful (or dry-run showed what would happen)
@@ -26,6 +28,7 @@ dry_run=false
 target="HEAD"
 verify=true
 use_color=auto
+format=table
 
 for arg in "$@"; do
   case "$arg" in
@@ -41,6 +44,16 @@ for arg in "$@"; do
       ;;
     --no-verify)
       verify=false
+      ;;
+    --format=*)
+      format="${arg#*=}"
+      case "$format" in
+        table|csv|json|kv) ;;
+        *) echo "Error: unknown format '$format' (expected: table, csv, json, kv)" >&2; exit 1 ;;
+      esac
+      ;;
+    --json)
+      format=json
       ;;
     --color)
       use_color=always
@@ -65,6 +78,43 @@ setup_colors() {
   fi
 }
 setup_colors
+
+json_escape() {
+  local s="$1"
+  s="${s//\\/\\\\}"
+  s="${s//\"/\\\"}"
+  s="${s//$'\n'/\\n}"
+  s="${s//$'\t'/\\t}"
+  printf '%s' "$s"
+}
+
+emit_result() {
+  local result_status="$1" commit="$2" message="$3" commit_type="$4" files_changed="$5"
+
+  if [ "$format" = "json" ]; then
+    printf '{"result":"%s","commit":"%s","message":"%s","type":"%s","files_changed":%s,"dry_run":%s}\n' \
+      "$(json_escape "$result_status")" "$(json_escape "$commit")" "$(json_escape "$message")" \
+      "$commit_type" "$files_changed" "$([ "$dry_run" = true ] && echo 'true' || echo 'false')"
+    return
+  fi
+
+  if [ "$format" = "csv" ]; then
+    printf 'result,commit,message,type,files_changed,dry_run\n'
+    printf '%s,%s,"%s",%s,%s,%s\n' \
+      "$result_status" "$commit" "$message" "$commit_type" "$files_changed" "$dry_run"
+    return
+  fi
+
+  if [ "$format" = "kv" ]; then
+    printf 'result=%s\n' "$result_status"
+    printf 'commit=%s\n' "$commit"
+    printf 'message=%s\n' "$message"
+    printf 'type=%s\n' "$commit_type"
+    printf 'files_changed=%s\n' "$files_changed"
+    printf 'dry_run=%s\n' "$dry_run"
+    return
+  fi
+}
 
 # --- Safety checks ---
 
@@ -91,20 +141,28 @@ fi
 
 commit_msg=$(git log --oneline -1 "$commit_sha")
 is_merge=$(git cat-file -p "$commit_sha" | grep -c "^parent " || true)
+commit_type=$([ "$is_merge" -gt 1 ] && echo "merge" || echo "regular")
+files_changed=$(git diff --name-only "${commit_sha}^..${commit_sha}" 2>/dev/null | wc -l | tr -d ' ')
 
-printf '%b\n' "${CYAN}=== Rollback ===${RESET}"
-echo ""
-echo "Target commit: $commit_msg"
-echo "SHA:           $commit_sha"
-echo "Type:          $([ "$is_merge" -gt 1 ] && echo "merge commit" || echo "regular commit")"
-echo ""
+if [ "$format" = "table" ]; then
+  printf '%b\n' "${CYAN}=== Rollback ===${RESET}"
+  echo ""
+  echo "Target commit: $commit_msg"
+  echo "SHA:           $commit_sha"
+  echo "Type:          $([ "$is_merge" -gt 1 ] && echo "merge commit" || echo "regular commit")"
+  echo ""
 
-# Show what files were changed
-echo "Files changed:"
-git diff --stat "${commit_sha}^..${commit_sha}" 2>/dev/null | sed 's/^/  /'
-echo ""
+  # Show what files were changed
+  echo "Files changed:"
+  git diff --stat "${commit_sha}^..${commit_sha}" 2>/dev/null | sed 's/^/  /'
+  echo ""
+fi
 
 if [ "$dry_run" = true ]; then
+  if [ "$format" != "table" ]; then
+    emit_result "dry_run" "$commit_sha" "$commit_msg" "$commit_type" "$files_changed"
+    exit 0
+  fi
   echo "--- Dry Run ---"
   echo "Would revert: $commit_msg"
   if [ "$is_merge" -gt 1 ]; then
@@ -187,6 +245,11 @@ if [ "$verify" = true ]; then
     echo "No build check script found — skipping verification"
     echo "  Configure check_script in .evolve/config.toml or add scripts/check.sh"
   fi
+fi
+
+if [ "$format" != "table" ]; then
+  emit_result "success" "$commit_sha" "$commit_msg" "$commit_type" "$files_changed"
+  exit 0
 fi
 
 echo ""

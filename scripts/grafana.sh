@@ -14,10 +14,12 @@
 #                 Defaults to the current directory.
 #
 # Options:
-#   -h, --help       Show this help
-#   --color          Force colored output
-#   --no-color       Disable colored output
-#   -p, --port PORT  Grafana port (default: 3000)
+#   -h, --help          Show this help
+#   --format=FORMAT     Output format: table (default), csv, json, kv (status command)
+#   --json              Alias for --format=json
+#   --color             Force colored output
+#   --no-color          Disable colored output
+#   -p, --port PORT     Grafana port (default: 3000)
 #
 # Requirements: docker (or podman), docker compose (or podman-compose)
 #
@@ -45,6 +47,7 @@ fi
 GRAFANA_PORT=3000
 COMMAND=""
 PROJECT_DIRS=()
+FORMAT=table
 
 # --- Argument parsing ---
 while [ $# -gt 0 ]; do
@@ -59,10 +62,12 @@ while [ $# -gt 0 ]; do
       echo "  logs    Tail container logs (Ctrl+C to stop)"
       echo ""
       echo "Options:"
-      echo "  -h, --help       Show this help"
-      echo "  -p, --port PORT  Grafana port (default: 3000)"
-      echo "  --color          Force colored output"
-      echo "  --no-color       Disable colored output"
+      echo "  -h, --help          Show this help"
+      echo "  -p, --port PORT     Grafana port (default: 3000)"
+      echo "  --format=FORMAT     Output format: table (default), csv, json, kv (status command)"
+      echo "  --json              Alias for --format=json"
+      echo "  --color             Force colored output"
+      echo "  --no-color          Disable colored output"
       echo ""
       echo "Arguments:"
       echo "  project-dirs     One or more rig-seed project directories to monitor."
@@ -71,6 +76,14 @@ while [ $# -gt 0 ]; do
       echo "Requirements: docker (or podman), docker compose"
       exit 0
       ;;
+    --format=*)
+      FORMAT="${1#*=}"
+      case "$FORMAT" in
+        table|csv|json|kv) ;;
+        *) echo "Error: unknown format '$FORMAT' (expected: table, csv, json, kv)" >&2; exit 1 ;;
+      esac
+      shift ;;
+    --json) FORMAT=json; shift ;;
     --color) USE_COLOR=1; shift ;;
     --no-color) USE_COLOR=""; shift ;;
     -p|--port) GRAFANA_PORT="$2"; shift 2 ;;
@@ -101,6 +114,15 @@ info()  { printf "${BOLD}%s${RESET}\n" "$*"; }
 ok()    { printf "${GREEN}OK${RESET} %s\n" "$*"; }
 warn()  { printf "${YELLOW}WARN${RESET} %s\n" "$*"; }
 fail()  { printf "${RED}Error:${RESET} %s\n" "$*" >&2; }
+
+json_escape() {
+  local s="$1"
+  s="${s//\\/\\\\}"
+  s="${s//\"/\\\"}"
+  s="${s//$'\n'/\\n}"
+  s="${s//$'\t'/\\t}"
+  printf '%s' "$s"
+}
 
 # --- Validate command ---
 if [ -z "$COMMAND" ]; then
@@ -237,52 +259,100 @@ cmd_stop() {
 
 cmd_status() {
   detect_runtime
-  info "rig-seed monitoring stack status"
-  echo ""
 
-  # Check containers
-  local prometheus_running=false
-  local grafana_running=false
+  # Collect status data
+  local prom_state="not_running"
+  local graf_state="not_running"
+  local exporters=()
 
   if $CONTAINER_CMD inspect rigseed-prometheus &>/dev/null 2>&1; then
-    local prom_state
     prom_state=$($CONTAINER_CMD inspect -f '{{.State.Status}}' rigseed-prometheus 2>/dev/null || echo "unknown")
-    if [ "$prom_state" = "running" ]; then
-      ok "Prometheus  http://localhost:9090  (running)"
-      # shellcheck disable=SC2034
-      prometheus_running=true
-    else
-      warn "Prometheus  ($prom_state)"
-    fi
-  else
-    echo "   Prometheus  (not running)"
   fi
 
   if $CONTAINER_CMD inspect rigseed-grafana &>/dev/null 2>&1; then
-    local graf_state
     graf_state=$($CONTAINER_CMD inspect -f '{{.State.Status}}' rigseed-grafana 2>/dev/null || echo "unknown")
-    if [ "$graf_state" = "running" ]; then
-      ok "Grafana     http://localhost:${GRAFANA_PORT}  (running)"
-      # shellcheck disable=SC2034
-      grafana_running=true
-    else
-      warn "Grafana     ($graf_state)"
-    fi
-  else
-    echo "   Grafana     (not running)"
   fi
 
-  # Check exporters
   if [ -f "$EXPORTER_PIDFILE" ]; then
     while IFS=: read -r pid port dir; do
       if kill -0 "$pid" 2>/dev/null; then
-        ok "Exporter    http://localhost:${port}/metrics  (PID $pid, $(basename "$dir"))"
+        exporters+=("running|$port|$pid|$(basename "$dir")")
       else
-        warn "Exporter    port $port  (dead, was PID $pid)"
+        exporters+=("dead|$port|$pid|$(basename "$dir")")
       fi
     done < "$EXPORTER_PIDFILE"
+  fi
+
+  # --- Format output ---
+
+  if [ "$FORMAT" = "json" ]; then
+    printf '{"prometheus":"%s","grafana":"%s","grafana_port":%d,"exporters":[' \
+      "$prom_state" "$graf_state" "$GRAFANA_PORT"
+    local first=true
+    for e in "${exporters[@]}"; do
+      IFS='|' read -r estat eport epid edir <<< "$e"
+      if [ "$first" = true ]; then first=false; else printf ','; fi
+      printf '{"status":"%s","port":%s,"pid":%s,"project":"%s"}' \
+        "$estat" "$eport" "$epid" "$(json_escape "$edir")"
+    done
+    printf ']}\n'
+    return
+  fi
+
+  if [ "$FORMAT" = "csv" ]; then
+    printf 'component,status,url\n'
+    printf 'prometheus,%s,http://localhost:9090\n' "$prom_state"
+    printf 'grafana,%s,http://localhost:%d\n' "$graf_state" "$GRAFANA_PORT"
+    for e in "${exporters[@]}"; do
+      IFS='|' read -r estat eport epid edir <<< "$e"
+      printf 'exporter_%s,%s,http://localhost:%s/metrics\n' "$edir" "$estat" "$eport"
+    done
+    return
+  fi
+
+  if [ "$FORMAT" = "kv" ]; then
+    printf 'prometheus=%s\n' "$prom_state"
+    printf 'grafana=%s\n' "$graf_state"
+    printf 'grafana_port=%d\n' "$GRAFANA_PORT"
+    for e in "${exporters[@]}"; do
+      IFS='|' read -r estat eport epid edir <<< "$e"
+      printf 'exporter_%s=%s\n' "$edir" "$estat"
+      printf 'exporter_%s_port=%s\n' "$edir" "$eport"
+    done
+    return
+  fi
+
+  # Default: table format
+  info "rig-seed monitoring stack status"
+  echo ""
+
+  if [ "$prom_state" = "running" ]; then
+    ok "Prometheus  http://localhost:9090  (running)"
+  elif [ "$prom_state" = "not_running" ]; then
+    echo "   Prometheus  (not running)"
   else
+    warn "Prometheus  ($prom_state)"
+  fi
+
+  if [ "$graf_state" = "running" ]; then
+    ok "Grafana     http://localhost:${GRAFANA_PORT}  (running)"
+  elif [ "$graf_state" = "not_running" ]; then
+    echo "   Grafana     (not running)"
+  else
+    warn "Grafana     ($graf_state)"
+  fi
+
+  if [ ${#exporters[@]} -eq 0 ]; then
     echo "   Exporter    (not running)"
+  else
+    for e in "${exporters[@]}"; do
+      IFS='|' read -r estat eport epid edir <<< "$e"
+      if [ "$estat" = "running" ]; then
+        ok "Exporter    http://localhost:${eport}/metrics  (PID $epid, $edir)"
+      else
+        warn "Exporter    port $eport  (dead, was PID $epid)"
+      fi
+    done
   fi
 }
 
