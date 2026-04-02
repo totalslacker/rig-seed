@@ -7,6 +7,8 @@
 # Options:
 #   -q, --quiet              Only print problems and the final result
 #   -w, --watch [interval]   Re-run continuously (default: 60s)
+#   --format=FORMAT          Output format: table (default), csv, json, kv
+#   --json                   Alias for --format=json
 #   -h, --help               Show help
 #
 # Checks:
@@ -27,6 +29,7 @@ quiet=false
 watch=false
 watch_interval=60
 use_color=auto
+format=table
 dir=""
 
 while [ $# -gt 0 ]; do
@@ -39,6 +42,8 @@ while [ $# -gt 0 ]; do
       echo "Options:"
       echo "  -q, --quiet              Only print problems and the final result"
       echo "  -w, --watch [seconds]    Re-run continuously (default: 60s)"
+      echo "  --format=FORMAT          Output format: table (default), csv, json, kv"
+      echo "  --json                   Alias for --format=json"
       echo "  --color                  Force colored output"
       echo "  --no-color               Disable colored output"
       echo "  -h, --help               Show this help message"
@@ -69,6 +74,18 @@ while [ $# -gt 0 ]; do
         shift
       fi
       ;;
+    --format=*)
+      format="${1#*=}"
+      case "$format" in
+        table|csv|json|kv) ;;
+        *)
+          echo "Error: unknown format '$format' (expected: table, csv, json, kv)" >&2
+          exit 1
+          ;;
+      esac
+      shift
+      ;;
+    --json) format=json; shift ;;
     --color)
       use_color=always
       shift
@@ -102,24 +119,48 @@ setup_colors
 
 # --- Helpers ---
 
+# Structured result collection for multi-format output
+# Each result: "category|status|message" where status is ok/warn/fail
+results=()
+
+add_result() {
+  local category="$1" status="$2" message="$3"
+  results+=("${category}|${status}|${message}")
+}
+
 info() {
-  if [ "$quiet" = false ]; then
+  if [ "$quiet" = false ] && [ "$format" = "table" ]; then
     printf '%b\n' "$1"
   fi
 }
 
 warn() {
-  printf "  ${YELLOW}⚠${RESET} %s\n" "$1"
+  if [ "$format" = "table" ]; then
+    printf "  ${YELLOW}⚠${RESET} %s\n" "$1"
+  fi
   warnings=$((warnings + 1))
 }
 
 fail() {
-  printf "  ${RED}✗${RESET} %s\n" "$1"
+  if [ "$format" = "table" ]; then
+    printf "  ${RED}✗${RESET} %s\n" "$1"
+  fi
   errors=$((errors + 1))
 }
 
 ok() {
-  info "  ${GREEN}✓${RESET} $1"
+  if [ "$format" = "table" ]; then
+    info "  ${GREEN}✓${RESET} $1"
+  fi
+}
+
+json_escape() {
+  local s="$1"
+  s="${s//\\/\\\\}"
+  s="${s//\"/\\\"}"
+  s="${s//$'\n'/\\n}"
+  s="${s//$'\t'/\\t}"
+  printf '%s' "$s"
 }
 
 # --- Configuration ---
@@ -135,6 +176,7 @@ MAX_JOURNAL_AGE_DAYS="${MAX_JOURNAL_AGE_DAYS:-7}"
 run_health_check() {
   warnings=0
   errors=0
+  results=()
 
   info "Health check for rig-seed project: $dir"
   if [ "$watch" = true ]; then
@@ -148,14 +190,18 @@ run_health_check() {
   day_file="$dir/SESSION_COUNT"
   if [ ! -f "$day_file" ]; then
     fail "SESSION_COUNT file missing"
+    add_result "evolution" "fail" "SESSION_COUNT file missing"
   else
     day_val=$(tr -d '[:space:]' < "$day_file")
     if [[ ! "$day_val" =~ ^[0-9]+$ ]]; then
       fail "SESSION_COUNT is not a valid integer: '$day_val'"
+      add_result "evolution" "fail" "SESSION_COUNT is not a valid integer: $day_val"
     elif [ "$day_val" -eq 0 ]; then
       warn "SESSION_COUNT is 0 — evolution hasn't started yet"
+      add_result "evolution" "warn" "SESSION_COUNT is 0"
     else
       ok "SESSION_COUNT = $day_val"
+      add_result "evolution" "ok" "SESSION_COUNT = $day_val"
     fi
   fi
 
@@ -166,13 +212,16 @@ run_health_check() {
   journal_file="$dir/JOURNAL.md"
   if [ ! -f "$journal_file" ]; then
     fail "JOURNAL.md missing"
+    add_result "journal" "fail" "JOURNAL.md missing"
   else
     # Match all journal header formats: "## Day N — Session M", "## Session N", "## Day N"
     entry_count=$(grep -c '^## \(Day [0-9].* — Session\|Session\|Day\) ' "$journal_file" 2>/dev/null || echo "0")
     if [ "$entry_count" -eq 0 ]; then
       warn "JOURNAL.md has no session entries (no '## Day' or '## Session' headers found)"
+      add_result "journal" "warn" "No session entries found"
     else
       ok "JOURNAL.md has $entry_count session entries"
+      add_result "journal" "ok" "JOURNAL.md has $entry_count session entries"
 
       # Check if the latest entry mentions a recent day/session number
       # Extract session number from any format: "Day N — Session M", "Session N", "Day N"
@@ -188,8 +237,10 @@ run_health_check() {
           gap=$((current_day - latest_day))
           if [ "$gap" -gt 1 ]; then
             warn "Journal's latest session is $latest_day but SESSION_COUNT is $current_day (gap of $gap)"
+            add_result "journal" "warn" "Journal gap: latest=$latest_day, SESSION_COUNT=$current_day"
           else
             ok "Journal is up to date with SESSION_COUNT"
+            add_result "journal" "ok" "Journal is up to date with SESSION_COUNT"
           fi
         fi
       fi
@@ -204,25 +255,31 @@ run_health_check() {
     last_commit_epoch=$(git -C "$dir" log -1 --format='%ct' 2>/dev/null || echo "0")
     if [ "$last_commit_epoch" -eq 0 ]; then
       warn "Could not read git log (no commits?)"
+      add_result "git" "warn" "Could not read git log"
     else
       now_epoch=$(date +%s)
       age_days=$(( (now_epoch - last_commit_epoch) / 86400 ))
       last_commit_date=$(git -C "$dir" log -1 --format='%ci' 2>/dev/null)
       if [ "$age_days" -gt "$MAX_COMMIT_AGE_DAYS" ]; then
         warn "Last commit was $age_days days ago ($last_commit_date) — threshold is $MAX_COMMIT_AGE_DAYS days"
+        add_result "git" "warn" "Last commit $age_days days ago (threshold: $MAX_COMMIT_AGE_DAYS)"
       else
         ok "Last commit: $age_days day(s) ago ($last_commit_date)"
+        add_result "git" "ok" "Last commit: $age_days day(s) ago"
       fi
     fi
 
     # Check if there are uncommitted changes
     if git -C "$dir" diff --quiet 2>/dev/null && git -C "$dir" diff --cached --quiet 2>/dev/null; then
       ok "Working tree is clean"
+      add_result "git" "ok" "Working tree is clean"
     else
       warn "Uncommitted changes detected"
+      add_result "git" "warn" "Uncommitted changes detected"
     fi
   else
     warn "Not a git repository — can't check commit history"
+    add_result "git" "warn" "Not a git repository"
   fi
 
   # --- 4. SPECS.md has content ---
@@ -232,14 +289,18 @@ run_health_check() {
   specs_file="$dir/SPECS.md"
   if [ ! -f "$specs_file" ]; then
     fail "SPECS.md missing"
+    add_result "config" "fail" "SPECS.md missing"
   elif [ ! -s "$specs_file" ]; then
     warn "SPECS.md is empty — the agent needs specs to guide its work"
+    add_result "config" "warn" "SPECS.md is empty"
   else
     # Check if it still has placeholder text
     if grep -q '\[PLACEHOLDER\]\|\[YOUR\]\|\[TODO\]' "$specs_file" 2>/dev/null; then
       warn "SPECS.md appears to still have placeholder text"
+      add_result "config" "warn" "SPECS.md has placeholder text"
     else
       ok "SPECS.md has content"
+      add_result "config" "ok" "SPECS.md has content"
     fi
   fi
 
@@ -250,8 +311,10 @@ run_health_check() {
     checked=$(grep -c '^\- \[x\]' "$roadmap_file" 2>/dev/null || echo "0")
     if [ "$unchecked" -eq 0 ] && [ "$checked" -gt 0 ]; then
       warn "ROADMAP.md has no unchecked items — the agent may not know what to work on next"
+      add_result "config" "warn" "ROADMAP.md: $checked done, 0 remaining"
     else
       ok "ROADMAP.md: $checked done, $unchecked remaining"
+      add_result "config" "ok" "ROADMAP.md: $checked done, $unchecked remaining"
     fi
   fi
 
@@ -262,15 +325,63 @@ run_health_check() {
   if [ -x "$dir/validate.sh" ]; then
     if "$dir/validate.sh" "$dir" > /dev/null 2>&1; then
       ok "validate.sh passes"
+      add_result "validation" "ok" "validate.sh passes"
     else
       fail "validate.sh reports errors (run it directly for details)"
+      add_result "validation" "fail" "validate.sh reports errors"
     fi
   else
     warn "validate.sh not found or not executable — can't verify template structure"
+    add_result "validation" "warn" "validate.sh not found or not executable"
   fi
 
-  # --- Summary ---
+  # --- Summary / Structured Output ---
 
+  local result_status="healthy"
+  local exit_code=0
+  if [ "$errors" -gt 0 ]; then
+    result_status="errors"
+    exit_code=1
+  elif [ "$warnings" -gt 0 ]; then
+    result_status="warnings"
+  fi
+
+  if [ "$format" = "json" ]; then
+    printf '{"project":"%s","status":"%s","errors":%d,"warnings":%d,"checks":[' \
+      "$(json_escape "$dir")" "$result_status" "$errors" "$warnings"
+    local first=true
+    for r in "${results[@]}"; do
+      IFS='|' read -r cat stat msg <<< "$r"
+      if [ "$first" = true ]; then first=false; else printf ','; fi
+      printf '{"category":"%s","status":"%s","message":"%s"}' \
+        "$(json_escape "$cat")" "$stat" "$(json_escape "$msg")"
+    done
+    printf ']}\n'
+    return "$exit_code"
+  fi
+
+  if [ "$format" = "csv" ]; then
+    printf 'category,status,message\n'
+    for r in "${results[@]}"; do
+      IFS='|' read -r cat stat msg <<< "$r"
+      printf '%s,%s,"%s"\n' "$cat" "$stat" "$msg"
+    done
+    return "$exit_code"
+  fi
+
+  if [ "$format" = "kv" ]; then
+    printf 'project=%s\n' "$dir"
+    printf 'status=%s\n' "$result_status"
+    printf 'errors=%d\n' "$errors"
+    printf 'warnings=%d\n' "$warnings"
+    for r in "${results[@]}"; do
+      IFS='|' read -r cat stat msg <<< "$r"
+      printf '%s_%s=%s\n' "$cat" "$stat" "$msg"
+    done
+    return "$exit_code"
+  fi
+
+  # Default: table format
   info ""
   printf '%b\n' "${CYAN}================================${RESET}"
   if [ "$errors" -gt 0 ]; then
