@@ -10,12 +10,14 @@
 #   2. Auto-detect secondary build systems (package.json, Cargo.toml, etc.)
 #   3. Run all detected checks — ALL must pass
 #
-# Usage: ./scripts/check.sh [-q|--quiet] [--json] [--color|--no-color] [directory]
-#   -q, --quiet    Suppress passing checks and info lines; only show failures
-#   --json         Output results as a JSON object
-#   --color        Force colored output
-#   --no-color     Disable colored output
-#   directory      Project root (default: current directory)
+# Usage: ./scripts/check.sh [options] [directory]
+#   -q, --quiet            Suppress passing checks (alias for --format=kv)
+#   --format=FORMAT        Output format: table (default), kv, csv, json
+#   --json                 Alias for --format=json
+#   --color                Force colored output
+#   --no-color             Disable colored output
+#   -h, --help             Show this help message
+#   directory              Project root (default: current directory)
 #
 # Exit codes:
 #   0 — all checks passed
@@ -25,16 +27,23 @@ set -euo pipefail
 
 # --- Help ---
 if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
-    echo "Usage: $(basename "$0") [-q|--quiet] [--json] [--color|--no-color] [directory]"
+    echo "Usage: $(basename "$0") [options] [directory]"
     echo ""
     echo "Run ALL build/test/lint checks for a rig-seed project."
     echo ""
     echo "Options:"
-    echo "  -q, --quiet    Suppress passing checks and info lines; only show failures"
-    echo "  --json         Output results as a JSON object"
-    echo "  --color        Force colored output"
-    echo "  --no-color     Disable colored output"
-    echo "  directory      Project root (default: current directory)"
+    echo "  -q, --quiet            Suppress passing checks (alias for --format=kv)"
+    echo "  --format=FORMAT        Output format: table (default), kv, csv, json"
+    echo "  --json                 Alias for --format=json"
+    echo "  --color                Force colored output"
+    echo "  --no-color             Disable colored output"
+    echo "  directory              Project root (default: current directory)"
+    echo ""
+    echo "Formats:"
+    echo "  table   Human-readable output with section headers (default)"
+    echo "  kv      Key=value pairs, one per line (same as -q)"
+    echo "  csv     Comma-separated with header row"
+    echo "  json    JSON object with all check results"
     echo ""
     echo "Detects Go, Node.js, Rust, Python, and Makefile projects."
     echo "Also runs commands from [build] in .evolve/config.toml."
@@ -47,19 +56,31 @@ fi
 
 # --- Parse arguments ---
 quiet=false
-json=false
+format=table
 use_color=auto
 dir="."
 for arg in "$@"; do
   case "$arg" in
     -q|--quiet) quiet=true ;;
-    --json) json=true ;;
+    --json) format=json ;;
+    --format=*) format="${arg#--format=}" ;;
     --color) use_color=always ;;
     --no-color) use_color=never ;;
     *) dir="$arg" ;;
   esac
 done
 cd "$dir"
+
+# Quiet mode is an alias for --format=kv (backward compat)
+if [ "$quiet" = true ] && [ "$format" = "table" ]; then
+  format=kv
+fi
+
+# Non-table formats suppress verbose output
+if [ "$format" != "table" ]; then
+  quiet=true
+  use_color=never
+fi
 
 # --- Color setup ---
 setup_colors() {
@@ -78,32 +99,34 @@ passed=0
 failed=0
 skipped=0
 
-# JSON mode collects results into arrays
-json_checks=()
+# Collect results for structured output
+check_names=()
+check_statuses=()
 
-json_add() {
+add_check() {
   local name="$1" status="$2"
-  json_checks+=("{\"name\":\"$name\",\"status\":\"$status\"}")
+  check_names+=("$name")
+  check_statuses+=("$status")
 }
 
 # --- Helpers ---
 
 info() {
-  [ "$quiet" = true ] || [ "$json" = true ] || printf '%b\n' "$*"
+  [ "$quiet" = true ] || printf '%b\n' "$*"
 }
 
 run_check() {
   local label="$1"
   shift
   info "  ${CYAN}▶${RESET} $label"
-  if "$@" 2>&1 | { if [ "$quiet" = true ] || [ "$json" = true ]; then cat >/dev/null; else sed 's/^/    /'; fi; }; then
+  if "$@" 2>&1 | { if [ "$quiet" = true ]; then cat >/dev/null; else sed 's/^/    /'; fi; }; then
     info "  ${GREEN}✓${RESET} $label passed"
-    ((passed++))
-    [ "$json" = true ] && json_add "$label" "passed"
+    passed=$((passed + 1))
+    add_check "$label" "passed"
   else
-    [ "$json" = false ] && printf '%b\n' "  ${RED}✗${RESET} $label FAILED"
-    ((failed++))
-    [ "$json" = true ] && json_add "$label" "failed"
+    [ "$format" = "table" ] && printf '%b\n' "  ${RED}✗${RESET} $label FAILED"
+    failed=$((failed + 1))
+    add_check "$label" "failed"
   fi
 }
 
@@ -111,19 +134,25 @@ run_check_cmd() {
   local label="$1"
   local cmd="$2"
   info "  ${CYAN}▶${RESET} $label"
-  if eval "$cmd" 2>&1 | { if [ "$quiet" = true ] || [ "$json" = true ]; then cat >/dev/null; else sed 's/^/    /'; fi; }; then
+  if eval "$cmd" 2>&1 | { if [ "$quiet" = true ]; then cat >/dev/null; else sed 's/^/    /'; fi; }; then
     info "  ${GREEN}✓${RESET} $label passed"
-    ((passed++))
-    [ "$json" = true ] && json_add "$label" "passed"
+    passed=$((passed + 1))
+    add_check "$label" "passed"
   else
-    [ "$json" = false ] && printf '%b\n' "  ${RED}✗${RESET} $label FAILED"
-    ((failed++))
-    [ "$json" = true ] && json_add "$label" "failed"
+    [ "$format" = "table" ] && printf '%b\n' "  ${RED}✗${RESET} $label FAILED"
+    failed=$((failed + 1))
+    add_check "$label" "failed"
   fi
 }
 
 detect_info() {
   info "  ${CYAN}ℹ${RESET} $1"
+}
+
+skip_check() {
+  local label="$1"
+  skipped=$((skipped + 1))
+  add_check "$label" "skipped"
 }
 
 # --- Parse config.toml for [build] commands ---
@@ -205,9 +234,8 @@ if [ -f "go.mod" ]; then
     run_check "go test" go test ./...
     run_check "go vet" go vet ./...
   else
-    [ "$json" = false ] && printf '%b\n' "  ${YELLOW}⚠${RESET} go not found in PATH — skipping Go checks"
-    ((skipped++))
-    [ "$json" = true ] && json_add "go" "skipped"
+    [ "$format" = "table" ] && printf '%b\n' "  ${YELLOW}⚠${RESET} go not found in PATH — skipping Go checks"
+    skip_check "go"
   fi
 fi
 
@@ -229,9 +257,8 @@ if [ -f "package.json" ]; then
       run_check "npm typecheck" npm run typecheck
     fi
   else
-    [ "$json" = false ] && printf '%b\n' "  ${YELLOW}⚠${RESET} npm not found in PATH — skipping Node.js checks"
-    ((skipped++))
-    [ "$json" = true ] && json_add "npm" "skipped"
+    [ "$format" = "table" ] && printf '%b\n' "  ${YELLOW}⚠${RESET} npm not found in PATH — skipping Node.js checks"
+    skip_check "npm"
   fi
 fi
 
@@ -256,9 +283,8 @@ for subdir in frontend client web ui app; do
         fi
       fi
     else
-      [ "$json" = false ] && printf '%b\n' "  ${YELLOW}⚠${RESET} npm not found in PATH — skipping $subdir checks"
-      ((skipped++))
-      [ "$json" = true ] && json_add "$subdir" "skipped"
+      [ "$format" = "table" ] && printf '%b\n' "  ${YELLOW}⚠${RESET} npm not found in PATH — skipping $subdir checks"
+      skip_check "$subdir"
     fi
   fi
 done
@@ -271,9 +297,8 @@ if [ -f "Cargo.toml" ]; then
     run_check "cargo test" cargo test
     run_check "cargo clippy" cargo clippy -- -D warnings 2>/dev/null || true
   else
-    [ "$json" = false ] && printf '%b\n' "  ${YELLOW}⚠${RESET} cargo not found in PATH — skipping Rust checks"
-    ((skipped++))
-    [ "$json" = true ] && json_add "cargo" "skipped"
+    [ "$format" = "table" ] && printf '%b\n' "  ${YELLOW}⚠${RESET} cargo not found in PATH — skipping Rust checks"
+    skip_check "cargo"
   fi
 fi
 
@@ -293,9 +318,8 @@ if [ -f "pyproject.toml" ] || [ -f "setup.py" ] || [ -f "setup.cfg" ]; then
       run_check "ruff check" ruff check .
     fi
   else
-    [ "$json" = false ] && printf '%b\n' "  ${YELLOW}⚠${RESET} python3 not found in PATH — skipping Python checks"
-    ((skipped++))
-    [ "$json" = true ] && json_add "python3" "skipped"
+    [ "$format" = "table" ] && printf '%b\n' "  ${YELLOW}⚠${RESET} python3 not found in PATH — skipping Python checks"
+    skip_check "python3"
   fi
 fi
 
@@ -323,64 +347,82 @@ if [ -d ".github/workflows" ]; then
     for wf in .github/workflows/*.yml .github/workflows/*.yaml; do
       [ -f "$wf" ] || continue
       if ! python3 -c "import yaml; yaml.safe_load(open('$wf'))" 2>/dev/null; then
-        [ "$json" = false ] && printf '%b\n' "  ${RED}✗${RESET} Invalid YAML: $wf"
-        ((workflow_errors++))
+        [ "$format" = "table" ] && printf '%b\n' "  ${RED}✗${RESET} Invalid YAML: $wf"
+        workflow_errors=$((workflow_errors + 1))
       fi
     done
     if [ $workflow_errors -gt 0 ]; then
-      [ "$json" = false ] && printf '%b\n' "  ${RED}✗${RESET} workflow YAML lint FAILED ($workflow_errors files)"
-      ((failed++))
-      [ "$json" = true ] && json_add "workflow YAML lint" "failed"
+      [ "$format" = "table" ] && printf '%b\n' "  ${RED}✗${RESET} workflow YAML lint FAILED ($workflow_errors files)"
+      failed=$((failed + 1))
+      add_check "workflow YAML lint" "failed"
     else
       info "  ${GREEN}✓${RESET} workflow YAML lint passed"
-      ((passed++))
-      [ "$json" = true ] && json_add "workflow YAML lint" "passed"
+      passed=$((passed + 1))
+      add_check "workflow YAML lint" "passed"
     fi
   fi
 fi
 
-# --- Summary ---
+# --- Structured output ---
 
-if [ "$json" = true ]; then
-  # Build JSON output
-  local_result="passed"
-  if [ $failed -gt 0 ]; then
-    local_result="failed"
-  elif [ $passed -eq 0 ] && [ ${#config_commands[@]} -eq 0 ]; then
-    local_result="no_checks"
-  fi
+local_result="passed"
+if [ $failed -gt 0 ]; then
+  local_result="failed"
+elif [ $passed -eq 0 ] && [ ${#config_commands[@]} -eq 0 ]; then
+  local_result="no_checks"
+fi
 
+if [ "$format" = "json" ]; then
   # Build checks array
   checks_json=""
-  for item in "${json_checks[@]}"; do
+  for i in "${!check_names[@]}"; do
+    entry="{\"name\":\"${check_names[$i]}\",\"status\":\"${check_statuses[$i]}\"}"
     if [ -n "$checks_json" ]; then
-      checks_json="$checks_json,$item"
+      checks_json="$checks_json,$entry"
     else
-      checks_json="$item"
+      checks_json="$entry"
     fi
   done
 
   printf '{"result":"%s","passed":%d,"failed":%d,"skipped":%d,"checks":[%s]}\n' \
     "$local_result" "$passed" "$failed" "$skipped" "$checks_json"
 
-  [ $failed -gt 0 ] && exit 1
-  exit 0
-fi
+elif [ "$format" = "csv" ]; then
+  echo "name,status"
+  for i in "${!check_names[@]}"; do
+    printf '%s,%s\n' "${check_names[$i]}" "${check_statuses[$i]}"
+  done
+  echo ""
+  echo "result,$local_result"
+  echo "passed,$passed"
+  echo "failed,$failed"
+  echo "skipped,$skipped"
 
-info ""
-info "${CYAN}=== Check Summary ===${RESET}"
-info "  Passed:  $passed"
-info "  Failed:  $failed"
-info "  Skipped: $skipped"
+elif [ "$format" = "kv" ]; then
+  for i in "${!check_names[@]}"; do
+    printf 'check_%s=%s\n' "$(echo "${check_names[$i]}" | tr ' :' '__')" "${check_statuses[$i]}"
+  done
+  echo "result=$local_result"
+  echo "passed=$passed"
+  echo "failed=$failed"
+  echo "skipped=$skipped"
 
-if [ $failed -gt 0 ]; then
-  printf '\n%b\n' "${BOLD}RESULT: $failed check(s) FAILED — fix before submitting${RESET}"
-  exit 1
-elif [ $passed -eq 0 ] && [ ${#config_commands[@]} -eq 0 ]; then
-  printf '\n%b\n' "${BOLD}RESULT: no build systems detected — add [build] commands to .evolve/config.toml${RESET}"
-  info "  See docs/FORMULA-CUSTOMIZATION.md for examples."
-  exit 0
 else
-  printf '\n%b\n' "${BOLD}RESULT: all checks passed${RESET}"
-  exit 0
+  # Table format
+  info ""
+  info "${CYAN}=== Check Summary ===${RESET}"
+  info "  Passed:  $passed"
+  info "  Failed:  $failed"
+  info "  Skipped: $skipped"
+
+  if [ $failed -gt 0 ]; then
+    printf '\n%b\n' "${BOLD}RESULT: $failed check(s) FAILED — fix before submitting${RESET}"
+  elif [ $passed -eq 0 ] && [ ${#config_commands[@]} -eq 0 ]; then
+    printf '\n%b\n' "${BOLD}RESULT: no build systems detected — add [build] commands to .evolve/config.toml${RESET}"
+    info "  See docs/FORMULA-CUSTOMIZATION.md for examples."
+  else
+    printf '\n%b\n' "${BOLD}RESULT: all checks passed${RESET}"
+  fi
 fi
+
+[ $failed -eq 0 ]
