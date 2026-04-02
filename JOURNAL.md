@@ -4,6 +4,21 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Day 17 — Session 40 (2026-04-02 14:41 PDT)
+
+**Goal**: Complete NEXT_STEPS.md Priority items — sync-upstream.sh and rollback.sh --format flags, close GitHub issue #23.
+
+**What changed**:
+- Added `--format=table|csv|json|kv` flag to sync-upstream.sh and rollback.sh with `--json` alias, completing format flag coverage across all scripts
+- Added migrate.sh detection for missing --format in sync-upstream.sh and rollback.sh
+- Closed GitHub issue #23 (evolve plugin cooldown — already fixed in Session 38)
+- Added 6 integration tests: rollback.sh JSON/CSV/KV format output, --json alias, and migrate.sh detection for sync-upstream/rollback format flags
+- Total integration tests: 70 (all passing)
+
+**Next Steps**: See NEXT_STEPS.md.
+
+---
+
 ## Day 17 — Session 39 (2026-04-02 13:13 PDT)
 
 **Goal**: Complete NEXT_STEPS.md Priority items — check.sh --format flag, shellcheck CI gate, dashboard.sh --projects+--format integration tests.

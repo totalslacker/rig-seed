@@ -177,3 +177,6 @@ Living document. Updated each evolution session. Items come from three sources:
 - [x] Add shellcheck CI gate to integration tests (Day 17)
 - [x] Add dashboard.sh --format + --projects combined integration tests (Day 17)
 - [x] Add migrate.sh detection for check.sh --format flag (Day 17)
+- [x] Add `--format=table|csv|json|kv` to sync-upstream.sh and rollback.sh (Day 17)
+- [x] Add migrate.sh detection for sync-upstream.sh and rollback.sh --format flags (Day 17)
+- [x] Close GitHub issue #23 (evolve plugin cooldown, already fixed) (Day 17)
