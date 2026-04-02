@@ -45,26 +45,38 @@ Each rig can set its own evolution interval in `.evolve/config.toml`:
 interval = "8h"   # or "24h", "12h", etc.
 ```
 
-Read the rig's interval and check if enough time has passed since its last session:
+Read the rig's interval and check if enough time has passed since the last
+dispatch. **The dispatch timestamp is persisted to disk** so it survives
+Deacon restarts (fixes Issue #23).
 
 ```bash
 RIG_DIR="$GT_ROOT/<rig>/mayor/rig"
+DISPATCH_FILE="$RIG_DIR/.evolve/.last-dispatch"
 
 # Get interval from .evolve/config.toml (default: 24h)
 INTERVAL=$(grep 'interval' "$RIG_DIR/.evolve/config.toml" 2>/dev/null | head -1 | sed 's/.*= *"\([^"]*\)".*/\1/' || echo "24h")
 
-# Check last session timestamp from JOURNAL.md (first date found)
-LAST_SESSION=$(grep -oP '\d{4}-\d{2}-\d{2} \d{2}:\d{2}' "$RIG_DIR/JOURNAL.md" 2>/dev/null | head -1)
+# Check last dispatch timestamp (persisted to disk, not in-memory)
+# Primary: read from .evolve/.last-dispatch (epoch seconds)
+# Fallback: parse JOURNAL.md (for forks that haven't upgraded yet)
+LAST_EPOCH=0
+if [ -f "$DISPATCH_FILE" ]; then
+  LAST_EPOCH=$(tr -d '[:space:]' < "$DISPATCH_FILE")
+elif [ -f "$RIG_DIR/JOURNAL.md" ]; then
+  LAST_SESSION=$(grep -oP '\d{4}-\d{2}-\d{2} \d{2}:\d{2}' "$RIG_DIR/JOURNAL.md" 2>/dev/null | head -1)
+  if [ -n "$LAST_SESSION" ]; then
+    LAST_EPOCH=$(date -d "$LAST_SESSION" +%s 2>/dev/null || echo 0)
+  fi
+fi
 
-# If LAST_SESSION exists and interval hasn't elapsed → skip this rig
+# If last dispatch exists and interval hasn't elapsed → skip this rig
 # Parse interval: strip trailing 'h', multiply by 3600 for seconds
 HOURS=$(echo "$INTERVAL" | sed 's/h$//')
-if [ -n "$LAST_SESSION" ]; then
-  LAST_EPOCH=$(date -d "$LAST_SESSION" +%s 2>/dev/null || echo 0)
-  NOW_EPOCH=$(date +%s)
+NOW_EPOCH=$(date +%s)
+if [ "$LAST_EPOCH" -gt 0 ]; then
   ELAPSED_HOURS=$(( (NOW_EPOCH - LAST_EPOCH) / 3600 ))
   if [ "$ELAPSED_HOURS" -lt "$HOURS" ]; then
-    echo "Skipping <rig>: last session ${ELAPSED_HOURS}h ago, interval is ${HOURS}h"
+    echo "Skipping <rig>: last dispatch ${ELAPSED_HOURS}h ago, interval is ${HOURS}h"
     continue  # Skip to next rig
   fi
 fi
@@ -131,9 +143,15 @@ gt sling <bead-id> <rig> --formula mol-evolve
 This spawns a polecat, hooks the evolution bead, and starts the session.
 The polecat follows the mol-evolve formula from there.
 
-### 5. Log dispatch
+### 5. Persist dispatch timestamp and log
+
+Write the dispatch timestamp to disk so the cooldown survives Deacon restarts:
 
 ```bash
+# Persist dispatch time (epoch seconds) — survives restarts (Issue #23 fix)
+mkdir -p "$RIG_DIR/.evolve"
+date +%s > "$RIG_DIR/.evolve/.last-dispatch"
+
 echo "Evolved: <rig> Day $NEXT_DAY (bead: <id>)"
 ```
 

@@ -17,6 +17,7 @@ Thumbs.db
 # Ephemeral evolution state
 ISSUES_TODAY.md
 ISSUE_RESPONSE.md
+.evolve/.last-dispatch
 
 # Runtime and Gas Town state
 .runtime/
