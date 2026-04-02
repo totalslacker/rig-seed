@@ -4,6 +4,19 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Day 16 — Format Flags & Migration Tests (2026-04-01 11:34 PDT)
+
+**Goal**: Complete NEXT_STEPS.md Priority items — recap.sh format flag, migrate.sh color support, and migrate.sh integration tests.
+
+**What changed**:
+- recap.sh now supports `--format=table|csv|json|kv` matching the metrics.sh convention; `--json` retained as alias for backward compatibility
+- migrate.sh now supports `--color`/`--no-color` flags with colored section headers, status markers, and summary output — the last script to get color support
+- Added 8 integration tests for migrate.sh: `--dry-run` on complete and stripped forks, dry-run non-creation verification, actual migration, `--no-color` ANSI-free output, and Session 32-34 feature detection (--since, --top, --projects)
+
+**Next Steps**: See NEXT_STEPS.md.
+
+---
+
 ## Day 15 — Plan Output & Shellcheck (2026-03-31 11:25 PDT)
 
 **Goal**: Complete NEXT_STEPS.md Priority items — metrics.sh plan output in all formats, shellcheck integration, and migrate.sh feature detection.

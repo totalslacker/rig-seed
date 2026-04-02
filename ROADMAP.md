@@ -161,3 +161,6 @@ Living document. Updated each evolution session. Items come from three sources:
 - [x] Add `--plan --since` support to metrics.sh JSON and CSV output formats (Day 15)
 - [x] Add shellcheck integration to validate.sh --lint (Day 15)
 - [x] Add migrate.sh detection for Session 32-34 and Day 14 features (Day 15)
+- [x] Add `--format=table|csv|json|kv` to recap.sh (Day 16)
+- [x] Add `--color`/`--no-color` flags to migrate.sh (Day 16)
+- [x] Add integration tests for migrate.sh --dry-run and feature detection (Day 16)
