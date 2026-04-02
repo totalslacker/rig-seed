@@ -285,6 +285,93 @@ fi
 rm -rf "$DASH_DIR"
 echo ""
 
+# --- Step 9: migrate.sh tests ---
+
+echo "--- Step 9: migrate.sh ---"
+
+# Test --dry-run on a complete fork (should find nothing to migrate)
+migrate_output=$("$WORK_DIR/scripts/migrate.sh" --dry-run --no-color "$WORK_DIR" 2>&1)
+if echo "$migrate_output" | grep -q "up to date"; then
+  pass "migrate.sh --dry-run reports up-to-date fork"
+else
+  fail "migrate.sh --dry-run should report fork is up to date"
+fi
+
+# Test --dry-run on a stripped fork (simulate older version missing files)
+MIGRATE_DIR=$(mktemp -d "$TMPDIR_BASE/rigseed-migrate-XXXXXX")
+# Copy minimal state files to simulate an old fork
+mkdir -p "$MIGRATE_DIR/.evolve"
+cp "$WORK_DIR/IDENTITY.md" "$MIGRATE_DIR/"
+echo "1" > "$MIGRATE_DIR/SESSION_COUNT"
+echo "1" > "$MIGRATE_DIR/DAY_COUNT"
+cp "$WORK_DIR/.evolve/config.toml" "$MIGRATE_DIR/.evolve/"
+
+# --dry-run should detect missing files
+migrate_output=$("$WORK_DIR/scripts/migrate.sh" --dry-run --no-color "$MIGRATE_DIR" 2>&1)
+if echo "$migrate_output" | grep -q "\[would add\]"; then
+  pass "migrate.sh --dry-run detects missing files in old fork"
+else
+  fail "migrate.sh --dry-run should detect missing files in stripped fork"
+fi
+
+# Verify it doesn't actually create files in dry-run mode
+if [ ! -f "$MIGRATE_DIR/CONTRIBUTING.md" ]; then
+  pass "migrate.sh --dry-run does not create files"
+else
+  fail "migrate.sh --dry-run should not create files"
+fi
+
+# Test actual migration (without --dry-run)
+"$WORK_DIR/scripts/migrate.sh" --no-color "$MIGRATE_DIR" > /dev/null 2>&1
+if [ -f "$MIGRATE_DIR/CONTRIBUTING.md" ] && [ -f "$MIGRATE_DIR/validate.sh" ]; then
+  pass "migrate.sh creates missing files when run without --dry-run"
+else
+  fail "migrate.sh should create missing files (CONTRIBUTING.md, validate.sh)"
+fi
+
+# Test --no-color flag produces no escape sequences
+migrate_nocolor=$("$WORK_DIR/scripts/migrate.sh" --dry-run --no-color "$WORK_DIR" 2>&1)
+if echo "$migrate_nocolor" | grep -qP '\033\['; then
+  fail "migrate.sh --no-color should not contain ANSI escape sequences"
+else
+  pass "migrate.sh --no-color output is clean (no ANSI escapes)"
+fi
+
+# Test Session 32-34 feature detection on a fork missing those features
+DETECT_DIR=$(mktemp -d "$TMPDIR_BASE/rigseed-detect-XXXXXX")
+cp -r "$WORK_DIR"/* "$WORK_DIR"/.* "$DETECT_DIR/" 2>/dev/null || true
+# Remove --since flag from recap.sh to simulate missing Session 32 feature
+if [ -f "$DETECT_DIR/scripts/recap.sh" ]; then
+  sed -i '/--since/d' "$DETECT_DIR/scripts/recap.sh"
+fi
+# Remove --top flag from recap.sh to simulate missing Session 34 feature
+if [ -f "$DETECT_DIR/scripts/recap.sh" ]; then
+  sed -i '/--top/d' "$DETECT_DIR/scripts/recap.sh"
+fi
+# Remove --projects flag from dashboard.sh to simulate missing Session 32 feature
+if [ -f "$DETECT_DIR/scripts/dashboard.sh" ]; then
+  sed -i '/--projects/d' "$DETECT_DIR/scripts/dashboard.sh"
+fi
+detect_output=$("$WORK_DIR/scripts/migrate.sh" --dry-run --no-color "$DETECT_DIR" 2>&1)
+if echo "$detect_output" | grep -q "recap.sh missing --since"; then
+  pass "migrate.sh detects missing --since in recap.sh (Session 32)"
+else
+  fail "migrate.sh should detect missing --since flag in recap.sh"
+fi
+if echo "$detect_output" | grep -q "recap.sh missing --top"; then
+  pass "migrate.sh detects missing --top in recap.sh (Session 34)"
+else
+  fail "migrate.sh should detect missing --top flag in recap.sh"
+fi
+if echo "$detect_output" | grep -q "dashboard.sh missing --projects"; then
+  pass "migrate.sh detects missing --projects in dashboard.sh (Session 32)"
+else
+  fail "migrate.sh should detect missing --projects flag in dashboard.sh"
+fi
+
+rm -rf "$MIGRATE_DIR" "$DETECT_DIR"
+echo ""
+
 # --- Summary ---
 
 echo "================================"
