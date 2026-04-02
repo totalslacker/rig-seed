@@ -15,6 +15,7 @@ set -euo pipefail
 quiet=false
 use_color=auto
 lint=false
+fix=false
 dir=""
 
 for arg in "$@"; do
@@ -27,6 +28,7 @@ for arg in "$@"; do
       echo "Options:"
       echo "  -q, --quiet    Only print failures and the final result"
       echo "  -l, --lint     Check script conventions compliance"
+      echo "  --fix          With --lint: auto-apply shellcheck fixes"
       echo "  --color        Force colored output"
       echo "  --no-color     Disable colored output"
       echo "  -h, --help     Show this help message"
@@ -44,6 +46,9 @@ for arg in "$@"; do
       ;;
     -l|--lint)
       lint=true
+      ;;
+    --fix)
+      fix=true
       ;;
     --color)
       use_color=always
@@ -309,10 +314,41 @@ if [ "$lint" = true ]; then
     if [ ${#lint_files[@]} -eq 0 ]; then
       info "  ${CYAN}ℹ${RESET} no .sh files found to check"
     else
+      fixed_count=0
       for script in "${lint_files[@]}"; do
         rel="${script#"$dir"/}"
         if shellcheck -S warning "$script" >/dev/null 2>&1; then
           info "  ${GREEN}✓${RESET} $rel"
+        elif [ "$fix" = true ]; then
+          # Try to auto-fix using shellcheck's diff format
+          diff_output=$(shellcheck -S warning -f diff "$script" 2>/dev/null || true)
+          if [ -n "$diff_output" ]; then
+            if echo "$diff_output" | patch -p1 --no-backup-if-mismatch -d / >/dev/null 2>&1; then
+              fixed_count=$((fixed_count + 1))
+              # Re-check after fix — some issues can't be auto-fixed
+              if shellcheck -S warning "$script" >/dev/null 2>&1; then
+                printf "  ${GREEN}✓${RESET} %s: auto-fixed\n" "$rel"
+              else
+                printf "  ${YELLOW}⚠${RESET} %s: partially fixed (remaining issues need manual review)\n" "$rel"
+                if [ "$quiet" = false ]; then
+                  shellcheck -S warning -f gcc "$script" 2>&1 | head -10 | sed 's/^/      /'
+                fi
+                errors=$((errors + 1))
+              fi
+            else
+              printf "  ${RED}✗${RESET} %s: auto-fix failed (patch could not apply)\n" "$rel"
+              if [ "$quiet" = false ]; then
+                shellcheck -S warning -f gcc "$script" 2>&1 | head -10 | sed 's/^/      /'
+              fi
+              errors=$((errors + 1))
+            fi
+          else
+            printf "  ${RED}✗${RESET} %s: shellcheck warnings/errors (no auto-fix available)\n" "$rel"
+            if [ "$quiet" = false ]; then
+              shellcheck -S warning -f gcc "$script" 2>&1 | head -10 | sed 's/^/      /'
+            fi
+            errors=$((errors + 1))
+          fi
         else
           printf "  ${RED}✗${RESET} %s: shellcheck warnings/errors\n" "$rel"
           if [ "$quiet" = false ]; then
@@ -321,6 +357,9 @@ if [ "$lint" = true ]; then
           errors=$((errors + 1))
         fi
       done
+      if [ "$fix" = true ] && [ "$fixed_count" -gt 0 ]; then
+        info "  ${GREEN}ℹ${RESET} Auto-fixed $fixed_count file(s). Review changes before committing."
+      fi
     fi
   else
     info "  ${CYAN}ℹ${RESET} shellcheck not installed (install it for shell syntax linting)"
