@@ -545,6 +545,89 @@ fi
 rm -rf "$LINT_DIR"
 echo ""
 
+# --- Step 12: health-check.sh --format tests ---
+
+echo "--- Step 12: health-check.sh --format ---"
+
+# JSON format
+hc_json=$("$WORK_DIR/health-check.sh" --format=json "$WORK_DIR" 2>&1 || true)
+if echo "$hc_json" | python3 -m json.tool > /dev/null 2>&1; then
+  pass "health-check.sh --format=json produces valid JSON"
+else
+  fail "health-check.sh --format=json should produce valid JSON"
+fi
+if echo "$hc_json" | grep -q '"status"'; then
+  pass "health-check.sh JSON output contains status field"
+else
+  fail "health-check.sh JSON output should contain status field"
+fi
+if echo "$hc_json" | grep -q '"checks"'; then
+  pass "health-check.sh JSON output contains checks array"
+else
+  fail "health-check.sh JSON output should contain checks array"
+fi
+
+# CSV format
+hc_csv=$("$WORK_DIR/health-check.sh" --format=csv "$WORK_DIR" 2>&1 || true)
+if echo "$hc_csv" | head -1 | grep -q 'category,status,message'; then
+  pass "health-check.sh --format=csv has correct header"
+else
+  fail "health-check.sh --format=csv should have category,status,message header"
+fi
+
+# KV format
+hc_kv=$("$WORK_DIR/health-check.sh" --format=kv "$WORK_DIR" 2>&1 || true)
+if echo "$hc_kv" | grep -q '^status='; then
+  pass "health-check.sh --format=kv contains status key"
+else
+  fail "health-check.sh --format=kv should contain status= line"
+fi
+if echo "$hc_kv" | grep -q '^errors='; then
+  pass "health-check.sh --format=kv contains errors key"
+else
+  fail "health-check.sh --format=kv should contain errors= line"
+fi
+
+# --json alias
+hc_alias=$("$WORK_DIR/health-check.sh" --json "$WORK_DIR" 2>&1 || true)
+if echo "$hc_alias" | python3 -m json.tool > /dev/null 2>&1; then
+  pass "health-check.sh --json alias produces valid JSON"
+else
+  fail "health-check.sh --json alias should produce valid JSON"
+fi
+
+echo ""
+
+# --- Step 13: migrate.sh Day 17 detection tests ---
+
+echo "--- Step 13: migrate.sh Day 17 detection ---"
+
+# Strip --format from dashboard.sh to simulate missing Day 17 feature
+MIGRATE_DIR=$(mktemp -d "$TMPDIR_BASE/rigseed-migrate17-XXXXXX")
+cp -r "$WORK_DIR"/* "$WORK_DIR"/.* "$MIGRATE_DIR/" 2>/dev/null || true
+sed -i '/--format/d' "$MIGRATE_DIR/scripts/dashboard.sh" 2>/dev/null || true
+
+migrate_out=$("$PROJECT_DIR/scripts/migrate.sh" --dry-run --no-color "$MIGRATE_DIR" 2>&1 || true)
+if echo "$migrate_out" | grep -q 'dashboard.sh missing --format'; then
+  pass "migrate.sh detects missing dashboard.sh --format flag (Day 17)"
+else
+  fail "migrate.sh should detect missing dashboard.sh --format flag"
+fi
+
+# Strip last-dispatch from evolve plugin to simulate missing dispatch persistence
+if [ -f "$MIGRATE_DIR/plugins/evolve/plugin.md" ]; then
+  sed -i '/last-dispatch/d' "$MIGRATE_DIR/plugins/evolve/plugin.md" 2>/dev/null || true
+  migrate_out2=$("$PROJECT_DIR/scripts/migrate.sh" --dry-run --no-color "$MIGRATE_DIR" 2>&1 || true)
+  if echo "$migrate_out2" | grep -q 'dispatch timestamp'; then
+    pass "migrate.sh detects missing evolve plugin dispatch persistence (Day 17)"
+  else
+    fail "migrate.sh should detect missing evolve plugin dispatch persistence"
+  fi
+fi
+
+rm -rf "$MIGRATE_DIR"
+echo ""
+
 # --- Summary ---
 
 echo "================================"
