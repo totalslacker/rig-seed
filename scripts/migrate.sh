@@ -494,6 +494,27 @@ fi
 echo "  ok"
 echo ""
 
+# Day 15-16 enhancements: metrics.sh plan JSON/CSV, shellcheck lint, recap.sh --format, migrate.sh --color, validate.sh --fix
+echo "Day 15-16 enhancements (in-file updates):"
+if [ -f "$dir/metrics.sh" ] && ! grep -q 'plan_recent_goals' "$dir/metrics.sh" 2>/dev/null; then
+  printf '  %bNOTE:%b' "$YELLOW" "$RESET"; echo " metrics.sh --plan --since missing JSON/CSV output (added Day 15)"
+  echo "        Compare with upstream to add plan data in JSON and CSV formats."
+fi
+if [ -f "$dir/scripts/recap.sh" ] && ! grep -q '\-\-format' "$dir/scripts/recap.sh" 2>/dev/null; then
+  printf '  %bNOTE:%b' "$YELLOW" "$RESET"; echo " scripts/recap.sh missing --format flag (added Day 16)"
+  echo "        Compare with upstream to add table/csv/json/kv output format support."
+fi
+if [ -f "$dir/scripts/migrate.sh" ] && ! grep -q '\-\-no-color' "$dir/scripts/migrate.sh" 2>/dev/null; then
+  printf '  %bNOTE:%b' "$YELLOW" "$RESET"; echo " scripts/migrate.sh missing --color/--no-color flags (added Day 16)"
+  echo "        Compare with upstream to add terminal-aware color output."
+fi
+if [ -f "$dir/validate.sh" ] && ! grep -q '\-\-fix' "$dir/validate.sh" 2>/dev/null; then
+  printf '  %bNOTE:%b' "$YELLOW" "$RESET"; echo " validate.sh --lint missing --fix mode (added Day 17)"
+  echo "        Compare with upstream to add auto-apply shellcheck suggestions."
+fi
+echo "  ok"
+echo ""
+
 # --- Summary ---
 
 printf '%b================================%b\n' "$BOLD" "$RESET"

@@ -369,7 +369,39 @@ else
   fail "migrate.sh should detect missing --projects flag in dashboard.sh"
 fi
 
-rm -rf "$MIGRATE_DIR" "$DETECT_DIR"
+# Test Day 15-16 feature detection
+DETECT_DIR2=$(mktemp -d "$TMPDIR_BASE/rigseed-detect2-XXXXXX")
+cp -r "$WORK_DIR"/* "$WORK_DIR"/.* "$DETECT_DIR2/" 2>/dev/null || true
+# Remove plan_recent_goals from metrics.sh to simulate missing Day 15 feature
+if [ -f "$DETECT_DIR2/metrics.sh" ]; then
+  sed -i '/plan_recent_goals/d' "$DETECT_DIR2/metrics.sh"
+fi
+# Remove --format from recap.sh to simulate missing Day 16 feature
+if [ -f "$DETECT_DIR2/scripts/recap.sh" ]; then
+  sed -i '/--format/d' "$DETECT_DIR2/scripts/recap.sh"
+fi
+# Remove --no-color from migrate.sh to simulate missing Day 16 feature
+if [ -f "$DETECT_DIR2/scripts/migrate.sh" ]; then
+  sed -i '/--no-color/d' "$DETECT_DIR2/scripts/migrate.sh"
+fi
+detect2_output=$("$WORK_DIR/scripts/migrate.sh" --dry-run --no-color "$DETECT_DIR2" 2>&1)
+if echo "$detect2_output" | grep -q "metrics.sh --plan --since missing JSON/CSV"; then
+  pass "migrate.sh detects missing metrics.sh --plan JSON/CSV output (Day 15)"
+else
+  fail "migrate.sh should detect missing metrics.sh --plan JSON/CSV output"
+fi
+if echo "$detect2_output" | grep -q "recap.sh missing --format"; then
+  pass "migrate.sh detects missing recap.sh --format flag (Day 16)"
+else
+  fail "migrate.sh should detect missing recap.sh --format flag"
+fi
+if echo "$detect2_output" | grep -q "migrate.sh missing --color/--no-color"; then
+  pass "migrate.sh detects missing migrate.sh --color flags (Day 16)"
+else
+  fail "migrate.sh should detect missing migrate.sh --color flags"
+fi
+
+rm -rf "$MIGRATE_DIR" "$DETECT_DIR" "$DETECT_DIR2"
 echo ""
 
 # --- Step 10: metrics.sh --plan --since tests ---
