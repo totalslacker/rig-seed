@@ -6,15 +6,15 @@ planning intent.
 
 ## Priority (do these first)
 
-- [ ] Add Issue #23 fix: persist evolve plugin dispatch timestamp to disk
-- [ ] Add migrate.sh detection for Day 17 features (dashboard.sh --format, validate.sh --fix tests)
-- [ ] Add `--format` flag to health-check.sh for consistent output across all scripts
-
-## Suggested (consider these)
-
 - [ ] Add dashboard.sh --format integration tests with multi-project discovery (--projects + --format=csv)
 - [ ] Add shellcheck CI gate to integration tests (run shellcheck on all scripts as a test step)
 - [ ] Add `--format` flag to check.sh for standardized output across all scripts
+
+## Suggested (consider these)
+
+- [ ] Add migrate.sh detection for health-check.sh --format in integration tests
+- [ ] Add `--format` flag to sync-upstream.sh and rollback.sh for consistent output
+- [ ] Close stale GitHub issues (#8, #9) with notes directing to gastown rig
 
 ## Deferred (not now, but don't forget)
 

@@ -4,6 +4,21 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Day 17 — Session 38 (2026-04-02 13:09 PDT)
+
+**Goal**: Complete NEXT_STEPS.md Priority items — Issue #23 dispatch persistence, migrate.sh Day 17 detection, health-check.sh --format flag.
+
+**What changed**:
+- Fixed Issue #23: evolve plugin now persists dispatch timestamp to `.evolve/.last-dispatch` (epoch seconds) so cooldown survives Deacon restarts; falls back to JOURNAL.md parsing for forks that haven't upgraded
+- Added `--format=table|csv|json|kv` flag to health-check.sh with `--json` alias, matching the output convention used by all other scripts; check results collected as structured data
+- migrate.sh now detects Day 17 features: dashboard.sh `--format` flag, health-check.sh `--format` flag, and evolve plugin disk-persisted dispatch timestamp
+- Added 9 integration tests: health-check.sh JSON/CSV/KV format output, --json alias, and migrate.sh Day 17 feature detection
+- Total integration tests: 55 (all passing)
+
+**Next Steps**: See NEXT_STEPS.md.
+
+---
+
 ## Day 17 — Session 37 (2026-04-02 11:12 PDT)
 
 **Goal**: Complete remaining NEXT_STEPS.md Priority items — dashboard.sh --format flag, recap.sh/dashboard.sh format tests, validate.sh --fix tests.

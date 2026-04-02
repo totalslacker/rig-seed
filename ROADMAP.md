@@ -169,3 +169,7 @@ Living document. Updated each evolution session. Items come from three sources:
 - [x] Add migrate.sh detection for Day 15-16 features (Day 17)
 - [x] Add `--format=table|csv|json|kv` to dashboard.sh (Day 17)
 - [x] Add integration tests for recap.sh --format csv/kv, dashboard.sh --format, validate.sh --lint --fix (Day 17)
+- [x] Fix Issue #23: persist evolve plugin dispatch timestamp to disk (Day 17)
+- [x] Add `--format=table|csv|json|kv` flag to health-check.sh (Day 17)
+- [x] Add migrate.sh detection for Day 17 features (dashboard --format, health-check --format, dispatch persistence) (Day 17)
+- [x] Add integration tests for health-check.sh --format and migrate.sh Day 17 detection (Day 17)
