@@ -628,6 +628,121 @@ fi
 rm -rf "$MIGRATE_DIR"
 echo ""
 
+# --- Step 14: shellcheck CI gate ---
+
+echo "--- Step 14: shellcheck CI gate ---"
+
+if command -v shellcheck >/dev/null 2>&1; then
+  sc_failures=0
+  for script in "$PROJECT_DIR/validate.sh" "$PROJECT_DIR/health-check.sh" "$PROJECT_DIR/metrics.sh" "$PROJECT_DIR/quickstart.sh" \
+    "$PROJECT_DIR/scripts/check.sh" "$PROJECT_DIR/scripts/dashboard.sh" "$PROJECT_DIR/scripts/recap.sh" \
+    "$PROJECT_DIR/scripts/migrate.sh" "$PROJECT_DIR/scripts/release.sh" "$PROJECT_DIR/scripts/rollback.sh" \
+    "$PROJECT_DIR/scripts/sync-upstream.sh" "$PROJECT_DIR/scripts/lint-workflows.sh" \
+    "$PROJECT_DIR/scripts/grafana.sh" "$PROJECT_DIR/scripts/check-evolve-state.sh"; do
+    [ -f "$script" ] || continue
+    if ! shellcheck -S warning "$script" > /dev/null 2>&1; then
+      echo "    shellcheck warning in: $(basename "$script")"
+      sc_failures=$((sc_failures + 1))
+    fi
+  done
+  if [ "$sc_failures" -eq 0 ]; then
+    pass "shellcheck passes on all scripts (warning level)"
+  else
+    fail "shellcheck found warnings in $sc_failures script(s)"
+  fi
+else
+  pass "shellcheck CI gate skipped (shellcheck not installed)"
+fi
+echo ""
+
+# --- Step 15: check.sh --format tests ---
+
+echo "--- Step 15: check.sh --format ---"
+
+# JSON format
+ck_json=$("$WORK_DIR/scripts/check.sh" --format=json "$WORK_DIR" 2>&1 || true)
+if echo "$ck_json" | grep -q '"result"' && echo "$ck_json" | grep -q '"passed"'; then
+  pass "check.sh --format=json outputs JSON with expected fields"
+else
+  fail "check.sh --format=json missing expected JSON fields"
+fi
+
+# CSV format
+ck_csv=$("$WORK_DIR/scripts/check.sh" --format=csv "$WORK_DIR" 2>&1 || true)
+if echo "$ck_csv" | head -1 | grep -q 'name,status'; then
+  pass "check.sh --format=csv has correct header"
+else
+  fail "check.sh --format=csv missing expected header row"
+fi
+
+# KV format
+ck_kv=$("$WORK_DIR/scripts/check.sh" --format=kv "$WORK_DIR" 2>&1 || true)
+if echo "$ck_kv" | grep -q '^result='; then
+  pass "check.sh --format=kv contains result key"
+else
+  fail "check.sh --format=kv missing result= line"
+fi
+
+# --json backward compat alias
+ck_alias=$("$WORK_DIR/scripts/check.sh" --json "$WORK_DIR" 2>&1 || true)
+if echo "$ck_alias" | grep -q '"result"'; then
+  pass "check.sh --json backward compat produces JSON"
+else
+  fail "check.sh --json backward compat broken"
+fi
+
+echo ""
+
+# --- Step 16: dashboard.sh --projects + --format combined ---
+
+echo "--- Step 16: dashboard.sh --projects + --format ---"
+
+# Set up multi-project directory
+DASH_DIR=$(mktemp -d "$TMPDIR_BASE/rigseed-dash-XXXXXX")
+for proj in alpha beta; do
+  mkdir -p "$DASH_DIR/$proj"
+  cp "$WORK_DIR/SESSION_COUNT" "$DASH_DIR/$proj/"
+  cp "$WORK_DIR/DAY_COUNT" "$DASH_DIR/$proj/"
+  cp "$WORK_DIR/JOURNAL.md" "$DASH_DIR/$proj/"
+  cp "$WORK_DIR/ROADMAP.md" "$DASH_DIR/$proj/"
+  cp "$WORK_DIR/LEARNINGS.md" "$DASH_DIR/$proj/"
+  cp -r "$WORK_DIR/.evolve" "$DASH_DIR/$proj/"
+  (cd "$DASH_DIR/$proj" && git init -q && git add -A && git commit -q -m "init" 2>/dev/null)
+done
+
+# --projects + --format=csv
+dash_csv=$("$PROJECT_DIR/scripts/dashboard.sh" --projects "$DASH_DIR" --format=csv 2>&1 || true)
+if echo "$dash_csv" | head -1 | grep -q 'name,'; then
+  pass "dashboard.sh --projects --format=csv has CSV header"
+else
+  fail "dashboard.sh --projects --format=csv missing CSV header"
+fi
+csv_data_lines=$(echo "$dash_csv" | tail -n +2 | wc -l)
+if [ "$csv_data_lines" -ge 2 ]; then
+  pass "dashboard.sh --projects --format=csv includes project data rows"
+else
+  fail "dashboard.sh --projects --format=csv missing project data"
+fi
+
+# --projects + --format=json
+dash_json=$("$PROJECT_DIR/scripts/dashboard.sh" --projects "$DASH_DIR" --format=json 2>&1 || true)
+if echo "$dash_json" | grep -q '"name"'; then
+  pass "dashboard.sh --projects --format=json includes name field"
+else
+  fail "dashboard.sh --projects --format=json missing name field"
+fi
+
+# --projects + --format=kv
+dash_kv=$("$PROJECT_DIR/scripts/dashboard.sh" --projects "$DASH_DIR" --format=kv 2>&1 || true)
+if echo "$dash_kv" | grep -q '^project='; then
+  pass "dashboard.sh --projects --format=kv includes project= key"
+else
+  fail "dashboard.sh --projects --format=kv missing project= key"
+fi
+
+rm -rf "$DASH_DIR"
+echo ""
+
 # --- Summary ---
 
 echo "================================"
