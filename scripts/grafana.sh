@@ -14,10 +14,12 @@
 #                 Defaults to the current directory.
 #
 # Options:
-#   -h, --help       Show this help
-#   --color          Force colored output
-#   --no-color       Disable colored output
-#   -p, --port PORT  Grafana port (default: 3000)
+#   -h, --help           Show this help
+#   --format=FORMAT      Output format for status: table (default), csv, json, kv
+#   --json               Alias for --format=json
+#   --color              Force colored output
+#   --no-color           Disable colored output
+#   -p, --port PORT      Grafana port (default: 3000)
 #
 # Requirements: docker (or podman), docker compose (or podman-compose)
 #
@@ -44,6 +46,7 @@ fi
 # --- Defaults ---
 GRAFANA_PORT=3000
 COMMAND=""
+FORMAT=table
 PROJECT_DIRS=()
 
 # --- Argument parsing ---
@@ -59,10 +62,12 @@ while [ $# -gt 0 ]; do
       echo "  logs    Tail container logs (Ctrl+C to stop)"
       echo ""
       echo "Options:"
-      echo "  -h, --help       Show this help"
-      echo "  -p, --port PORT  Grafana port (default: 3000)"
-      echo "  --color          Force colored output"
-      echo "  --no-color       Disable colored output"
+      echo "  -h, --help           Show this help"
+      echo "  --format=FORMAT      Output format for status: table (default), csv, json, kv"
+      echo "  --json               Alias for --format=json"
+      echo "  -p, --port PORT      Grafana port (default: 3000)"
+      echo "  --color              Force colored output"
+      echo "  --no-color           Disable colored output"
       echo ""
       echo "Arguments:"
       echo "  project-dirs     One or more rig-seed project directories to monitor."
@@ -73,6 +78,17 @@ while [ $# -gt 0 ]; do
       ;;
     --color) USE_COLOR=1; shift ;;
     --no-color) USE_COLOR=""; shift ;;
+    --format=*)
+      FORMAT="${1#*=}"
+      case "$FORMAT" in
+        table|csv|json|kv) ;;
+        *)
+          echo "Error: unknown format '$FORMAT' (expected: table, csv, json, kv)" >&2
+          exit 1
+          ;;
+      esac
+      shift ;;
+    --json) FORMAT=json; shift ;;
     -p|--port) GRAFANA_PORT="$2"; shift 2 ;;
     start|stop|status|logs)
       COMMAND="$1"; shift ;;
@@ -101,6 +117,15 @@ info()  { printf "${BOLD}%s${RESET}\n" "$*"; }
 ok()    { printf "${GREEN}OK${RESET} %s\n" "$*"; }
 warn()  { printf "${YELLOW}WARN${RESET} %s\n" "$*"; }
 fail()  { printf "${RED}Error:${RESET} %s\n" "$*" >&2; }
+
+json_escape() {
+  local s="$1"
+  s="${s//\\/\\\\}"
+  s="${s//\"/\\\"}"
+  s="${s//$'\n'/\\n}"
+  s="${s//$'\t'/\\t}"
+  printf '%s' "$s"
+}
 
 # --- Validate command ---
 if [ -z "$COMMAND" ]; then
@@ -237,53 +262,83 @@ cmd_stop() {
 
 cmd_status() {
   detect_runtime
-  info "rig-seed monitoring stack status"
-  echo ""
 
-  # Check containers
-  local prometheus_running=false
-  local grafana_running=false
+  # Collect component status
+  local components=()
+  local prom_state="not running"
+  local graf_state="not running"
 
   if $CONTAINER_CMD inspect rigseed-prometheus &>/dev/null 2>&1; then
-    local prom_state
     prom_state=$($CONTAINER_CMD inspect -f '{{.State.Status}}' rigseed-prometheus 2>/dev/null || echo "unknown")
-    if [ "$prom_state" = "running" ]; then
-      ok "Prometheus  http://localhost:9090  (running)"
-      # shellcheck disable=SC2034
-      prometheus_running=true
-    else
-      warn "Prometheus  ($prom_state)"
-    fi
-  else
-    echo "   Prometheus  (not running)"
   fi
+  components+=("prometheus|${prom_state}|http://localhost:9090")
 
   if $CONTAINER_CMD inspect rigseed-grafana &>/dev/null 2>&1; then
-    local graf_state
     graf_state=$($CONTAINER_CMD inspect -f '{{.State.Status}}' rigseed-grafana 2>/dev/null || echo "unknown")
-    if [ "$graf_state" = "running" ]; then
-      ok "Grafana     http://localhost:${GRAFANA_PORT}  (running)"
-      # shellcheck disable=SC2034
-      grafana_running=true
-    else
-      warn "Grafana     ($graf_state)"
-    fi
-  else
-    echo "   Grafana     (not running)"
   fi
+  components+=("grafana|${graf_state}|http://localhost:${GRAFANA_PORT}")
 
-  # Check exporters
   if [ -f "$EXPORTER_PIDFILE" ]; then
     while IFS=: read -r pid port dir; do
       if kill -0 "$pid" 2>/dev/null; then
-        ok "Exporter    http://localhost:${port}/metrics  (PID $pid, $(basename "$dir"))"
+        components+=("exporter|running|http://localhost:${port}/metrics ($(basename "$dir"))")
       else
-        warn "Exporter    port $port  (dead, was PID $pid)"
+        components+=("exporter|dead|port $port (was PID $pid)")
       fi
     done < "$EXPORTER_PIDFILE"
   else
-    echo "   Exporter    (not running)"
+    components+=("exporter|not running|")
   fi
+
+  # --- Structured output ---
+  if [ "$FORMAT" = "json" ]; then
+    printf '{"grafana_port":%d,"components":[' "$GRAFANA_PORT"
+    local first=true
+    for c in "${components[@]}"; do
+      IFS='|' read -r name state url <<< "$c"
+      if [ "$first" = true ]; then first=false; else printf ','; fi
+      printf '{"name":"%s","status":"%s","url":"%s"}' \
+        "$(json_escape "$name")" "$(json_escape "$state")" "$(json_escape "$url")"
+    done
+    printf ']}\n'
+    return
+  fi
+
+  if [ "$FORMAT" = "csv" ]; then
+    printf 'component,status,url\n'
+    for c in "${components[@]}"; do
+      IFS='|' read -r name state url <<< "$c"
+      printf '%s,%s,"%s"\n' "$name" "$state" "$url"
+    done
+    return
+  fi
+
+  if [ "$FORMAT" = "kv" ]; then
+    printf 'grafana_port=%d\n' "$GRAFANA_PORT"
+    for c in "${components[@]}"; do
+      IFS='|' read -r name state url <<< "$c"
+      printf '%s_status=%s\n' "$name" "$state"
+      if [ -n "$url" ]; then
+        printf '%s_url=%s\n' "$name" "$url"
+      fi
+    done
+    return
+  fi
+
+  # Default: table format
+  info "rig-seed monitoring stack status"
+  echo ""
+
+  for c in "${components[@]}"; do
+    IFS='|' read -r name state url <<< "$c"
+    if [ "$state" = "running" ]; then
+      ok "$(printf '%-12s' "$name") $url  ($state)"
+    elif [ "$state" = "not running" ]; then
+      echo "   $(printf '%-12s' "$name") ($state)"
+    else
+      warn "$(printf '%-12s' "$name") $url  ($state)"
+    fi
+  done
 }
 
 cmd_logs() {

@@ -541,6 +541,14 @@ if [ -f "$dir/scripts/rollback.sh" ] && ! grep -q '\-\-format=' "$dir/scripts/ro
   printf '  %bNOTE:%b' "$YELLOW" "$RESET"; echo " scripts/rollback.sh missing --format flag (added Day 17)"
   echo "        Compare with upstream to add table/csv/json/kv output format support."
 fi
+if [ -f "$dir/scripts/grafana.sh" ] && ! grep -q '\-\-format=' "$dir/scripts/grafana.sh" 2>/dev/null; then
+  printf '  %bNOTE:%b' "$YELLOW" "$RESET"; echo " scripts/grafana.sh missing --format flag (added Day 17)"
+  echo "        Compare with upstream to add table/csv/json/kv output format support."
+fi
+if [ -f "$dir/scripts/lint-workflows.sh" ] && ! grep -q '\-\-format=' "$dir/scripts/lint-workflows.sh" 2>/dev/null; then
+  printf '  %bNOTE:%b' "$YELLOW" "$RESET"; echo " scripts/lint-workflows.sh missing --format flag (added Day 17)"
+  echo "        Compare with upstream to add table/csv/json/kv output format support."
+fi
 echo "  ok"
 echo ""
 
