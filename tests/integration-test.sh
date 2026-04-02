@@ -743,6 +743,99 @@ fi
 rm -rf "$DASH_DIR"
 echo ""
 
+# --- Step 17: rollback.sh --format tests ---
+
+echo "--- Step 17: rollback.sh --format ---"
+
+# Create a temp repo with a commit to revert
+RB_DIR=$(mktemp -d "$TMPDIR_BASE/rigseed-rb-XXXXXX")
+git -C "$RB_DIR" init -q
+echo "initial" > "$RB_DIR/file.txt"
+git -C "$RB_DIR" add file.txt
+git -C "$RB_DIR" commit -q -m "initial commit"
+echo "change" > "$RB_DIR/file.txt"
+git -C "$RB_DIR" add file.txt
+git -C "$RB_DIR" commit -q -m "second commit to revert"
+
+# JSON format (dry-run)
+rb_json=$(cd "$RB_DIR" && bash "$PROJECT_DIR/scripts/rollback.sh" --dry-run --format=json 2>&1 || true)
+if echo "$rb_json" | grep -q '"status"' && echo "$rb_json" | grep -q '"sha"'; then
+  pass "rollback.sh --format=json --dry-run outputs JSON with expected fields"
+else
+  fail "rollback.sh --format=json --dry-run missing expected JSON fields"
+fi
+
+# CSV format (dry-run)
+rb_csv=$(cd "$RB_DIR" && bash "$PROJECT_DIR/scripts/rollback.sh" --dry-run --format=csv 2>&1 || true)
+if echo "$rb_csv" | head -1 | grep -q 'target,sha,type,status'; then
+  pass "rollback.sh --format=csv --dry-run has correct header"
+else
+  fail "rollback.sh --format=csv --dry-run missing expected header row"
+fi
+
+# KV format (dry-run)
+rb_kv=$(cd "$RB_DIR" && bash "$PROJECT_DIR/scripts/rollback.sh" --dry-run --format=kv 2>&1 || true)
+if echo "$rb_kv" | grep -q '^status=' && echo "$rb_kv" | grep -q '^sha='; then
+  pass "rollback.sh --format=kv --dry-run contains expected keys"
+else
+  fail "rollback.sh --format=kv --dry-run missing expected keys"
+fi
+
+# --json backward compat alias
+rb_alias=$(cd "$RB_DIR" && bash "$PROJECT_DIR/scripts/rollback.sh" --dry-run --json 2>&1 || true)
+if echo "$rb_alias" | grep -q '"status"'; then
+  pass "rollback.sh --json backward compat produces JSON"
+else
+  fail "rollback.sh --json backward compat broken"
+fi
+
+rm -rf "$RB_DIR"
+echo ""
+
+# --- Step 18: migrate.sh detection for sync-upstream.sh and rollback.sh --format ---
+
+echo "--- Step 18: migrate.sh --format detection ---"
+
+# Create a stripped fork missing the format flags
+MIG_DIR=$(mktemp -d "$TMPDIR_BASE/rigseed-mig-XXXXXX")
+git -C "$MIG_DIR" init -q
+mkdir -p "$MIG_DIR/scripts" "$MIG_DIR/.evolve"
+echo "1" > "$MIG_DIR/DAY_COUNT"
+echo "1" > "$MIG_DIR/SESSION_COUNT"
+echo "2026-01-01" > "$MIG_DIR/DAY_DATE"
+echo "# Journal" > "$MIG_DIR/JOURNAL.md"
+echo "# Identity" > "$MIG_DIR/IDENTITY.md"
+echo "# Specs" > "$MIG_DIR/SPECS.md"
+echo "# Roadmap" > "$MIG_DIR/ROADMAP.md"
+echo "# Learnings" > "$MIG_DIR/LEARNINGS.md"
+echo "# Personality" > "$MIG_DIR/PERSONALITY.md"
+echo "# Next" > "$MIG_DIR/NEXT_STEPS.md"
+cat > "$MIG_DIR/.evolve/config.toml" << 'TOML'
+[schedule]
+interval = "24h"
+TOML
+echo "IDENTITY.md" > "$MIG_DIR/.evolve/IMMUTABLE.txt"
+# Create scripts without --format flag
+echo '#!/usr/bin/env bash' > "$MIG_DIR/scripts/sync-upstream.sh"
+echo '#!/usr/bin/env bash' > "$MIG_DIR/scripts/rollback.sh"
+git -C "$MIG_DIR" add -A
+git -C "$MIG_DIR" commit -q -m "init"
+
+mig_out=$(bash "$PROJECT_DIR/scripts/migrate.sh" --dry-run --no-color "$MIG_DIR" 2>&1 || true)
+if echo "$mig_out" | grep -q 'sync-upstream.sh missing --format'; then
+  pass "migrate.sh detects sync-upstream.sh missing --format flag"
+else
+  fail "migrate.sh failed to detect sync-upstream.sh missing --format flag"
+fi
+if echo "$mig_out" | grep -q 'rollback.sh missing --format'; then
+  pass "migrate.sh detects rollback.sh missing --format flag"
+else
+  fail "migrate.sh failed to detect rollback.sh missing --format flag"
+fi
+
+rm -rf "$MIG_DIR"
+echo ""
+
 # --- Summary ---
 
 echo "================================"

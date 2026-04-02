@@ -533,6 +533,14 @@ if [ -f "$dir/scripts/check.sh" ] && ! grep -q '\-\-format=' "$dir/scripts/check
   printf '  %bNOTE:%b' "$YELLOW" "$RESET"; echo " scripts/check.sh missing --format flag (added Day 17)"
   echo "        Compare with upstream to add table/csv/json/kv output format support."
 fi
+if [ -f "$dir/scripts/sync-upstream.sh" ] && ! grep -q '\-\-format=' "$dir/scripts/sync-upstream.sh" 2>/dev/null; then
+  printf '  %bNOTE:%b' "$YELLOW" "$RESET"; echo " scripts/sync-upstream.sh missing --format flag (added Day 17)"
+  echo "        Compare with upstream to add table/csv/json/kv output format support."
+fi
+if [ -f "$dir/scripts/rollback.sh" ] && ! grep -q '\-\-format=' "$dir/scripts/rollback.sh" 2>/dev/null; then
+  printf '  %bNOTE:%b' "$YELLOW" "$RESET"; echo " scripts/rollback.sh missing --format flag (added Day 17)"
+  echo "        Compare with upstream to add table/csv/json/kv output format support."
+fi
 echo "  ok"
 echo ""
 
