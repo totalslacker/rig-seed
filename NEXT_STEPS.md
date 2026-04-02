@@ -6,15 +6,15 @@ planning intent.
 
 ## Priority (do these first)
 
-- [ ] Add integration test for metrics.sh --plan --since in JSON and CSV formats
-- [ ] Add `--fix` mode to validate.sh --lint that auto-applies shellcheck suggestions
-- [ ] Add migrate.sh detection for Day 15-16 features (metrics.sh plan JSON/CSV, shellcheck lint, recap.sh --format, migrate.sh --color)
+- [ ] Add `--format` flag to dashboard.sh (table/csv/json/kv) matching metrics.sh/recap.sh conventions
+- [ ] Add recap.sh --format integration tests (csv, kv output modes)
+- [ ] Add validate.sh --lint --fix integration tests (auto-fix verification)
 
 ## Suggested (consider these)
 
-- [ ] Add `--format` flag to dashboard.sh (table/csv/json/kv) matching metrics.sh/recap.sh conventions
-- [ ] Add recap.sh --format integration tests (csv, kv output modes)
 - [ ] Add Issue #23 fix: persist evolve plugin dispatch timestamp to disk
+- [ ] Add migrate.sh detection for Day 17 features (validate.sh --fix)
+- [ ] Add `--format` flag to health-check.sh for consistent output across all scripts
 
 ## Deferred (not now, but don't forget)
 

@@ -4,6 +4,20 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Day 17 — Session 36 (2026-04-02 10:36 PDT)
+
+**Goal**: Complete NEXT_STEPS.md Priority items — metrics.sh plan test coverage, validate.sh --fix mode, and migrate.sh Day 15-16 detection.
+
+**What changed**:
+- Added 5 integration tests for metrics.sh `--plan --since` in JSON and CSV formats, verifying plan objects, next_steps arrays, and recent_goals output
+- validate.sh `--lint --fix` now auto-applies shellcheck suggestions using `shellcheck -f diff | patch`, with partial-fix detection and fallback to manual review
+- migrate.sh now detects Day 15-16 features: metrics.sh `--plan --since` JSON/CSV output, recap.sh `--format` flag, migrate.sh `--color`/`--no-color` flags, and validate.sh `--fix` mode
+- Added 3 integration tests for the new migrate.sh Day 15-16 feature detection
+
+**Next Steps**: See NEXT_STEPS.md.
+
+---
+
 ## Day 16 — Format Flags & Migration Tests (2026-04-01 11:34 PDT)
 
 **Goal**: Complete NEXT_STEPS.md Priority items — recap.sh format flag, migrate.sh color support, and migrate.sh integration tests.

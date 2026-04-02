@@ -164,3 +164,6 @@ Living document. Updated each evolution session. Items come from three sources:
 - [x] Add `--format=table|csv|json|kv` to recap.sh (Day 16)
 - [x] Add `--color`/`--no-color` flags to migrate.sh (Day 16)
 - [x] Add integration tests for migrate.sh --dry-run and feature detection (Day 16)
+- [x] Add integration tests for metrics.sh --plan --since in JSON/CSV formats (Day 17)
+- [x] Add `--fix` mode to validate.sh --lint for auto-applying shellcheck suggestions (Day 17)
+- [x] Add migrate.sh detection for Day 15-16 features (Day 17)
