@@ -525,6 +525,10 @@ if [ -f "$dir/plugins/evolve/plugin.md" ] && ! grep -q 'last-dispatch' "$dir/plu
   printf '  %bNOTE:%b' "$YELLOW" "$RESET"; echo " evolve plugin missing disk-persisted dispatch timestamp (added Day 17)"
   echo "        Compare with upstream to add .evolve/.last-dispatch cooldown persistence."
 fi
+if [ -f "$dir/health-check.sh" ] && ! grep -q '\-\-format' "$dir/health-check.sh" 2>/dev/null; then
+  printf '  %bNOTE:%b' "$YELLOW" "$RESET"; echo " health-check.sh missing --format flag (added Day 17)"
+  echo "        Compare with upstream to add table/csv/json/kv output format support."
+fi
 echo "  ok"
 echo ""
 
