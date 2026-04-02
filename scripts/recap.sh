@@ -7,14 +7,15 @@
 # Usage: ./scripts/recap.sh [options] [directory]
 #
 # Options:
-#   -s, --short    Only show Goal and Next Steps lines
-#   -d, --diff     Show the git diff from the latest session's commits
-#   --since N      Show the last N sessions (default: 1)
-#   --top N        Limit output to the N most recent entries (use with --short)
-#   --json         Output as JSON object
-#   --color        Force colored output
-#   --no-color     Disable colored output
-#   -h, --help     Show this help message
+#   -s, --short       Only show Goal and Next Steps lines
+#   -d, --diff        Show the git diff from the latest session's commits
+#   --since N         Show the last N sessions (default: 1)
+#   --top N           Limit output to the N most recent entries (use with --short)
+#   --format=FORMAT   Output format: table (default), csv, json, kv
+#   --json            Alias for --format=json
+#   --color           Force colored output
+#   --no-color        Disable colored output
+#   -h, --help        Show this help message
 #
 # Exit codes:
 #   0 — recap displayed successfully
@@ -25,7 +26,7 @@ set -euo pipefail
 # --- Parse arguments ---
 short=false
 diff_mode=false
-json=false
+format=table
 use_color=auto
 since=1
 top=0
@@ -39,23 +40,27 @@ while [ $# -gt 0 ]; do
       echo "Summarize the latest journal entry (or last N entries with --since)."
       echo ""
       echo "Options:"
-      echo "  -s, --short    Only show Goal and Next Steps lines"
-      echo "  -d, --diff     Show the git diff from the latest session's commits"
-      echo "  --since N      Show the last N sessions (default: 1)"
-      echo "  --top N        Limit output to the N most recent entries (use with --short)"
-      echo "  --json         Output as JSON object"
-      echo "  --color        Force colored output"
-      echo "  --no-color     Disable colored output"
-      echo "  -h, --help     Show this help message"
+      echo "  -s, --short       Only show Goal and Next Steps lines"
+      echo "  -d, --diff        Show the git diff from the latest session's commits"
+      echo "  --since N         Show the last N sessions (default: 1)"
+      echo "  --top N           Limit output to the N most recent entries (use with --short)"
+      echo "  --format=FORMAT   Output format: table (default), csv, json, kv"
+      echo "  --json            Alias for --format=json"
+      echo "  --color           Force colored output"
+      echo "  --no-color        Disable colored output"
+      echo "  -h, --help        Show this help message"
       echo ""
       echo "Arguments:"
       echo "  directory      Path to the rig-seed project root (default: current directory)"
       echo ""
       echo "Examples:"
-      echo "  ./scripts/recap.sh                # Latest session"
-      echo "  ./scripts/recap.sh --since 3      # Last 3 sessions"
-      echo "  ./scripts/recap.sh --since 5 -s   # Last 5 sessions, goals only"
+      echo "  ./scripts/recap.sh                    # Latest session"
+      echo "  ./scripts/recap.sh --since 3          # Last 3 sessions"
+      echo "  ./scripts/recap.sh --since 5 -s       # Last 5 sessions, goals only"
       echo "  ./scripts/recap.sh --short --top 3 --since 10  # Top 3 from last 10"
+      echo "  ./scripts/recap.sh --format=json       # JSON output"
+      echo "  ./scripts/recap.sh --format=csv        # CSV for spreadsheets"
+      echo "  ./scripts/recap.sh --format=kv         # Key-value pairs"
       exit 0
       ;;
     -s|--short) short=true ;;
@@ -90,7 +95,17 @@ while [ $# -gt 0 ]; do
         exit 1
       fi
       ;;
-    --json) json=true ;;
+    --format=*)
+      format="${1#*=}"
+      case "$format" in
+        table|csv|json|kv) ;;
+        *)
+          echo "Error: unknown format '$format' (expected: table, csv, json, kv)" >&2
+          exit 1
+          ;;
+      esac
+      ;;
+    --json) format=json ;;
     --color) use_color=always ;;
     --no-color) use_color=never ;;
     *) dir="$1" ;;
@@ -257,16 +272,24 @@ extract_next_steps() {
 }
 
 # --- Output ---
-if [ "$json" = true ]; then
-  # Escape strings for JSON
-  json_escape() {
-    local s="$1"
-    s="${s//\\/\\\\}"
-    s="${s//\"/\\\"}"
-    s="${s//$'\n'/\\n}"
-    printf '%s' "$s"
-  }
 
+# Escape strings for JSON
+json_escape() {
+  local s="$1"
+  s="${s//\\/\\\\}"
+  s="${s//\"/\\\"}"
+  s="${s//$'\n'/\\n}"
+  printf '%s' "$s"
+}
+
+# CSV-escape: wrap in quotes, double internal quotes
+csv_escape() {
+  local s="$1"
+  s="${s//\"/\"\"}"
+  printf '"%s"' "$s"
+}
+
+if [ "$format" = "json" ]; then
   if [ "${#entries[@]}" -eq 1 ]; then
     printf '{"header":"%s","goal":"%s","next_steps":"%s","full_entry":"%s"}\n' \
       "$(json_escape "$header")" \
@@ -293,6 +316,33 @@ if [ "$json" = true ]; then
     done
     printf ']\n'
   fi
+  exit 0
+fi
+
+if [ "$format" = "csv" ]; then
+  echo "header,goal,next_steps"
+  for e in "${entries[@]}"; do
+    e_header=$(echo "$e" | head -1)
+    e_goal=$(extract_goal "$e")
+    e_next=$(extract_next_steps "$e")
+    printf '%s,%s,%s\n' \
+      "$(csv_escape "$e_header")" \
+      "$(csv_escape "${e_goal:-}")" \
+      "$(csv_escape "${e_next:-}")"
+  done
+  exit 0
+fi
+
+if [ "$format" = "kv" ]; then
+  for e in "${entries[@]}"; do
+    e_header=$(echo "$e" | head -1)
+    e_goal=$(extract_goal "$e")
+    e_next=$(extract_next_steps "$e")
+    echo "header=${e_header##\#\# }"
+    echo "goal=${e_goal:-}"
+    echo "next_steps=${e_next:-}"
+    echo ""
+  done
   exit 0
 fi
 
