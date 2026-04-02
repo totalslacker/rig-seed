@@ -9,6 +9,8 @@
 # Options:
 #   --dry-run     Show what would change without applying
 #   --upstream    Override upstream URL (default: from config.toml or rig-seed GitHub)
+#   --format=FMT  Output format: table (default), csv, json, kv
+#   --json        Alias for --format=json
 #   --color       Force colored output
 #   --no-color    Disable colored output
 #   -h, --help    Show this help
@@ -26,6 +28,7 @@ UPSTREAM_DEFAULT="https://github.com/totalslacker/rig-seed.git"
 REMOTE_NAME="rig-seed-upstream"
 dry_run=false
 upstream_url=""
+format=table
 use_color=auto
 
 # --- Options ---
@@ -38,11 +41,13 @@ for arg in "$@"; do
       echo "Sync template updates from the upstream rig-seed repo."
       echo ""
       echo "Options:"
-      echo "  --dry-run     Show what would change without applying"
-      echo "  --upstream    Override upstream URL"
-      echo "  --color       Force colored output"
-      echo "  --no-color    Disable colored output"
-      echo "  -h, --help    Show this help"
+      echo "  --dry-run       Show what would change without applying"
+      echo "  --upstream      Override upstream URL"
+      echo "  --format=FMT   Output format: table (default), csv, json, kv"
+      echo "  --json          Alias for --format=json"
+      echo "  --color         Force colored output"
+      echo "  --no-color      Disable colored output"
+      echo "  -h, --help      Show this help"
       echo ""
       echo "Files that sync (template infrastructure):"
       echo "  validate.sh, health-check.sh, metrics.sh, quickstart.sh"
@@ -70,6 +75,17 @@ for arg in "$@"; do
     --upstream=*)
       upstream_url="${arg#*=}"
       ;;
+    --format=*)
+      format="${arg#*=}"
+      case "$format" in
+        table|csv|json|kv) ;;
+        *)
+          echo "Error: unknown format '$format' (expected: table, csv, json, kv)" >&2
+          exit 2
+          ;;
+      esac
+      ;;
+    --json) format=json ;;
     --color)
       use_color=always
       ;;
@@ -95,6 +111,71 @@ setup_colors() {
 }
 setup_colors
 
+# --- Structured output helpers ---
+
+json_escape() {
+  local s="$1"
+  s="${s//\\/\\\\}"
+  s="${s//\"/\\\"}"
+  s="${s//$'\n'/\\n}"
+  s="${s//$'\t'/\\t}"
+  printf '%s' "$s"
+}
+
+csv_escape() {
+  local s="$1"
+  s="${s//\"/\"\"}"
+  printf '"%s"' "$s"
+}
+
+# Output structured result and exit
+# Usage: output_result status message [changed_files...]
+output_result() {
+  local status="$1" message="$2"
+  shift 2
+  local files=("$@")
+
+  case "$format" in
+    json)
+      printf '{"upstream":"%s","mode":"%s","status":"%s","changes":%d,"message":"%s"' \
+        "$(json_escape "$upstream_url")" \
+        "$([ "$dry_run" = true ] && echo "dry-run" || echo "live")" \
+        "$(json_escape "$status")" \
+        "${#files[@]}" \
+        "$(json_escape "$message")"
+      if [ "${#files[@]}" -gt 0 ]; then
+        printf ',"files":['
+        local first=true
+        for f in "${files[@]}"; do
+          if [ "$first" = true ]; then first=false; else printf ','; fi
+          printf '"%s"' "$(json_escape "$f")"
+        done
+        printf ']'
+      fi
+      printf '}\n'
+      ;;
+    csv)
+      echo "upstream,mode,status,changes,message"
+      printf '%s,%s,%s,%d,%s\n' \
+        "$(csv_escape "$upstream_url")" \
+        "$(csv_escape "$([ "$dry_run" = true ] && echo "dry-run" || echo "live")")" \
+        "$(csv_escape "$status")" \
+        "${#files[@]}" \
+        "$(csv_escape "$message")"
+      ;;
+    kv)
+      echo "upstream=$upstream_url"
+      echo "mode=$([ "$dry_run" = true ] && echo "dry-run" || echo "live")"
+      echo "status=$status"
+      echo "changes=${#files[@]}"
+      echo "message=$message"
+      for f in "${files[@]}"; do
+        echo "file=$f"
+      done
+      ;;
+  esac
+}
+
 # --- Read upstream URL from config if not overridden ---
 
 config_file=".evolve/config.toml"
@@ -116,10 +197,12 @@ if [ -n "$(git status --porcelain)" ]; then
   exit 2
 fi
 
-printf '%b\n' "${CYAN}=== Upstream Sync ===${RESET}"
-printf '%b\n' "  Upstream: ${BOLD}$upstream_url${RESET}"
-printf '%b\n' "  Mode:     ${BOLD}$([ "$dry_run" = true ] && echo 'dry run' || echo 'live')${RESET}"
-echo ""
+if [ "$format" = "table" ]; then
+  printf '%b\n' "${CYAN}=== Upstream Sync ===${RESET}"
+  printf '%b\n' "  Upstream: ${BOLD}$upstream_url${RESET}"
+  printf '%b\n' "  Mode:     ${BOLD}$([ "$dry_run" = true ] && echo 'dry run' || echo 'live')${RESET}"
+  echo ""
+fi
 
 # --- Set up remote ---
 
@@ -127,17 +210,17 @@ if git remote get-url "$REMOTE_NAME" &>/dev/null; then
   # Update URL if changed
   current_url=$(git remote get-url "$REMOTE_NAME")
   if [ "$current_url" != "$upstream_url" ]; then
-    echo "Updating remote $REMOTE_NAME URL..."
+    [ "$format" = "table" ] && echo "Updating remote $REMOTE_NAME URL..."
     git remote set-url "$REMOTE_NAME" "$upstream_url"
   fi
 else
-  echo "Adding remote $REMOTE_NAME..."
+  [ "$format" = "table" ] && echo "Adding remote $REMOTE_NAME..."
   git remote add "$REMOTE_NAME" "$upstream_url"
 fi
 
 # --- Fetch ---
 
-echo "Fetching upstream..."
+[ "$format" = "table" ] && echo "Fetching upstream..."
 if ! git fetch "$REMOTE_NAME" main 2>/dev/null; then
   echo "Error: could not fetch from $upstream_url"
   echo "  Check the URL and your network connection."
@@ -189,15 +272,19 @@ NEVER_SYNC=(
 # Compare with upstream
 upstream_ref="$REMOTE_NAME/main"
 changes=0
+changed_files=()
 
-echo ""
-printf '%b\n' "${BOLD}--- Changes Available ---${RESET}"
+if [ "$format" = "table" ]; then
+  echo ""
+  printf '%b\n' "${BOLD}--- Changes Available ---${RESET}"
+fi
 for file in "${SYNC_FILES[@]}"; do
   # Check if file differs between local and upstream
   if git diff HEAD "$upstream_ref" -- "$file" &>/dev/null; then
     diff_output=$(git diff HEAD "$upstream_ref" -- "$file" 2>/dev/null)
     if [ -n "$diff_output" ]; then
-      printf '%b\n' "  ${GREEN}↑${RESET} $file (changed upstream)"
+      [ "$format" = "table" ] && printf '%b\n' "  ${GREEN}↑${RESET} $file (changed upstream)"
+      changed_files+=("$file")
       changes=$((changes + 1))
     fi
   fi
@@ -209,22 +296,33 @@ for file in "${SYNC_FILES[@]}"; do
     continue  # Skip directory entries for new-file check
   fi
   if [ ! -f "$file" ] && git show "$upstream_ref:$file" &>/dev/null 2>&1; then
-    printf '%b\n' "  ${GREEN}+${RESET} $file (new in upstream)"
+    [ "$format" = "table" ] && printf '%b\n' "  ${GREEN}+${RESET} $file (new in upstream)"
+    changed_files+=("$file")
     changes=$((changes + 1))
   fi
 done
 
 if [ $changes -eq 0 ]; then
+  if [ "$format" != "table" ]; then
+    output_result "up-to-date" "already in sync with upstream"
+    exit 0
+  fi
   printf '%b\n' "  ${GREEN}(no changes — already up to date)${RESET}"
   echo ""
   echo "RESULT: already in sync with upstream"
   exit 0
 fi
 
-echo ""
-printf '%b\n' "${BOLD}$changes file(s) have upstream changes${RESET}"
+if [ "$format" = "table" ]; then
+  echo ""
+  printf '%b\n' "${BOLD}$changes file(s) have upstream changes${RESET}"
+fi
 
 if [ "$dry_run" = true ]; then
+  if [ "$format" != "table" ]; then
+    output_result "dry-run" "dry run complete — $changes file(s) have upstream changes" "${changed_files[@]}"
+    exit 0
+  fi
   echo ""
   echo "RESULT: dry run complete — run without --dry-run to apply"
   exit 0
@@ -232,16 +330,24 @@ fi
 
 # --- Merge ---
 
-echo ""
-printf '%b\n' "${CYAN}Merging upstream changes...${RESET}"
+[ "$format" = "table" ] && echo ""
+[ "$format" = "table" ] && printf '%b\n' "${CYAN}Merging upstream changes...${RESET}"
 
 # Use a merge strategy that favors our version for project-specific files
 # and takes upstream for template infrastructure
 if git merge "$upstream_ref" --no-edit --allow-unrelated-histories 2>/dev/null; then
+  if [ "$format" != "table" ]; then
+    output_result "synced" "upstream sync complete" "${changed_files[@]}"
+    exit 0
+  fi
   echo ""
   echo "RESULT: upstream sync complete — review changes with 'git diff HEAD~1'"
   exit 0
 else
+  if [ "$format" != "table" ]; then
+    output_result "conflicts" "merge conflicts — manual resolution needed" "${changed_files[@]}"
+    exit 1
+  fi
   echo ""
   printf '%b\n' "${YELLOW}Merge conflicts detected. Project-specific files to keep yours:${RESET}"
   echo ""

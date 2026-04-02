@@ -12,6 +12,8 @@
 #   -n, --dry-run    Show what would be reverted without doing it
 #   --commit=SHA     Revert a specific commit (default: HEAD)
 #   --no-verify      Skip build verification after revert (not recommended)
+#   --format=FMT     Output format: table (default), csv, json, kv
+#   --json           Alias for --format=json
 #   --color          Force colored output
 #   --no-color       Disable colored output
 #
@@ -25,6 +27,7 @@ set -euo pipefail
 dry_run=false
 target="HEAD"
 verify=true
+format=table
 use_color=auto
 
 for arg in "$@"; do
@@ -42,6 +45,17 @@ for arg in "$@"; do
     --no-verify)
       verify=false
       ;;
+    --format=*)
+      format="${arg#*=}"
+      case "$format" in
+        table|csv|json|kv) ;;
+        *)
+          echo "Error: unknown format '$format' (expected: table, csv, json, kv)" >&2
+          exit 2
+          ;;
+      esac
+      ;;
+    --json) format=json ;;
     --color)
       use_color=always
       ;;
@@ -65,6 +79,58 @@ setup_colors() {
   fi
 }
 setup_colors
+
+# --- Structured output helpers ---
+
+json_escape() {
+  local s="$1"
+  s="${s//\\/\\\\}"
+  s="${s//\"/\\\"}"
+  s="${s//$'\n'/\\n}"
+  s="${s//$'\t'/\\t}"
+  printf '%s' "$s"
+}
+
+csv_escape() {
+  local s="$1"
+  s="${s//\"/\"\"}"
+  printf '"%s"' "$s"
+}
+
+# Output structured result and exit
+# Usage: output_result status message
+output_result() {
+  local status="$1" message="$2"
+  local commit_type
+  commit_type="$([ "${is_merge:-0}" -gt 1 ] && echo "merge" || echo "regular")"
+
+  case "$format" in
+    json)
+      printf '{"target":"%s","sha":"%s","type":"%s","status":"%s","message":"%s"}\n' \
+        "$(json_escape "${commit_msg:-}")" \
+        "$(json_escape "${commit_sha:-}")" \
+        "$commit_type" \
+        "$(json_escape "$status")" \
+        "$(json_escape "$message")"
+      ;;
+    csv)
+      echo "target,sha,type,status,message"
+      printf '%s,%s,%s,%s,%s\n' \
+        "$(csv_escape "${commit_msg:-}")" \
+        "$(csv_escape "${commit_sha:-}")" \
+        "$(csv_escape "$commit_type")" \
+        "$(csv_escape "$status")" \
+        "$(csv_escape "$message")"
+      ;;
+    kv)
+      echo "target=${commit_msg:-}"
+      echo "sha=${commit_sha:-}"
+      echo "type=$commit_type"
+      echo "status=$status"
+      echo "message=$message"
+      ;;
+  esac
+}
 
 # --- Safety checks ---
 
@@ -92,19 +158,23 @@ fi
 commit_msg=$(git log --oneline -1 "$commit_sha")
 is_merge=$(git cat-file -p "$commit_sha" | grep -c "^parent " || true)
 
-printf '%b\n' "${CYAN}=== Rollback ===${RESET}"
-echo ""
-echo "Target commit: $commit_msg"
-echo "SHA:           $commit_sha"
-echo "Type:          $([ "$is_merge" -gt 1 ] && echo "merge commit" || echo "regular commit")"
-echo ""
-
-# Show what files were changed
-echo "Files changed:"
-git diff --stat "${commit_sha}^..${commit_sha}" 2>/dev/null | sed 's/^/  /'
-echo ""
+if [ "$format" = "table" ]; then
+  printf '%b\n' "${CYAN}=== Rollback ===${RESET}"
+  echo ""
+  echo "Target commit: $commit_msg"
+  echo "SHA:           $commit_sha"
+  echo "Type:          $([ "$is_merge" -gt 1 ] && echo "merge commit" || echo "regular commit")"
+  echo ""
+  echo "Files changed:"
+  git diff --stat "${commit_sha}^..${commit_sha}" 2>/dev/null | sed 's/^/  /'
+  echo ""
+fi
 
 if [ "$dry_run" = true ]; then
+  if [ "$format" != "table" ]; then
+    output_result "dry-run" "would revert: $commit_msg"
+    exit 0
+  fi
   echo "--- Dry Run ---"
   echo "Would revert: $commit_msg"
   if [ "$is_merge" -gt 1 ]; then
@@ -119,42 +189,40 @@ fi
 
 # --- Perform the revert ---
 
-echo "Reverting..."
+[ "$format" = "table" ] && echo "Reverting..."
+
+revert_failed() {
+  if [ "$format" != "table" ]; then
+    output_result "failed" "revert failed — conflicts need manual resolution"
+    exit 1
+  fi
+  echo ""
+  echo "Error: revert failed (likely conflicts)"
+  echo "Resolve conflicts manually, then:"
+  echo "  git revert --continue"
+  echo ""
+  echo "Or abort the revert:"
+  echo "  git revert --abort"
+  exit 1
+}
 
 if [ "$is_merge" -gt 1 ]; then
-  # Merge commits need -m 1 to specify which parent to keep (mainline)
-  if ! git revert -m 1 --no-edit "$commit_sha"; then
-    echo ""
-    echo "Error: revert failed (likely conflicts)"
-    echo "Resolve conflicts manually, then:"
-    echo "  git revert --continue"
-    echo ""
-    echo "Or abort the revert:"
-    echo "  git revert --abort"
-    exit 1
-  fi
+  git revert -m 1 --no-edit "$commit_sha" || revert_failed
 else
-  if ! git revert --no-edit "$commit_sha"; then
-    echo ""
-    echo "Error: revert failed (likely conflicts)"
-    echo "Resolve conflicts manually, then:"
-    echo "  git revert --continue"
-    echo ""
-    echo "Or abort the revert:"
-    echo "  git revert --abort"
-    exit 1
-  fi
+  git revert --no-edit "$commit_sha" || revert_failed
 fi
 
-printf '%b\n' "${GREEN}✓${RESET} Revert commit created"
-echo ""
-git log --oneline -1
-echo ""
+if [ "$format" = "table" ]; then
+  printf '%b\n' "${GREEN}✓${RESET} Revert commit created"
+  echo ""
+  git log --oneline -1
+  echo ""
+fi
 
 # --- Verify the build after revert ---
 
 if [ "$verify" = true ]; then
-  echo "--- Verifying build after revert ---"
+  [ "$format" = "table" ] && echo "--- Verifying build after revert ---"
   check_script=".evolve/config.toml"
   build_cmd=""
 
@@ -172,21 +240,30 @@ if [ "$verify" = true ]; then
   fi
 
   if [ -n "$build_cmd" ]; then
-    echo "Running: $build_cmd"
-    echo ""
+    [ "$format" = "table" ] && echo "Running: $build_cmd"
+    [ "$format" = "table" ] && echo ""
     if eval "$build_cmd"; then
-      echo ""
-      printf '%b\n' "${GREEN}✓${RESET} Build passes after revert"
+      [ "$format" = "table" ] && echo ""
+      [ "$format" = "table" ] && printf '%b\n' "${GREEN}✓${RESET} Build passes after revert"
     else
+      if [ "$format" != "table" ]; then
+        output_result "build-failed" "build still fails after revert"
+        exit 1
+      fi
       echo ""
       printf '%b\n' "${YELLOW}⚠${RESET} Build STILL FAILS after revert — investigate manually"
       echo "  The revert commit has been created but the issue may be deeper."
       exit 1
     fi
   else
-    echo "No build check script found — skipping verification"
-    echo "  Configure check_script in .evolve/config.toml or add scripts/check.sh"
+    [ "$format" = "table" ] && echo "No build check script found — skipping verification"
+    [ "$format" = "table" ] && echo "  Configure check_script in .evolve/config.toml or add scripts/check.sh"
   fi
+fi
+
+if [ "$format" != "table" ]; then
+  output_result "success" "rollback successful"
+  exit 0
 fi
 
 echo ""
