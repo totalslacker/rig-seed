@@ -4,6 +4,20 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Day 17 — Session 37 (2026-04-02 11:12 PDT)
+
+**Goal**: Complete remaining NEXT_STEPS.md Priority items — dashboard.sh --format flag, recap.sh/dashboard.sh format tests, validate.sh --fix tests.
+
+**What changed**:
+- Added `--format=table|csv|json|kv` flag to dashboard.sh, matching the metrics.sh/recap.sh convention; `--json` and `-q` retained as backward-compatible aliases
+- Fixed pre-existing SIGPIPE bug in dashboard.sh (`git log --reverse | head -1` under `set -e`)
+- Added 7 integration tests: recap.sh CSV/KV format output, dashboard.sh CSV/KV format output, and validate.sh --lint --fix auto-fix verification
+- Total integration tests: 46 (all passing)
+
+**Next Steps**: See NEXT_STEPS.md.
+
+---
+
 ## Day 17 — Session 36 (2026-04-02 10:36 PDT)
 
 **Goal**: Complete NEXT_STEPS.md Priority items — metrics.sh plan test coverage, validate.sh --fix mode, and migrate.sh Day 15-16 detection.

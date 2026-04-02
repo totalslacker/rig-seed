@@ -167,3 +167,5 @@ Living document. Updated each evolution session. Items come from three sources:
 - [x] Add integration tests for metrics.sh --plan --since in JSON/CSV formats (Day 17)
 - [x] Add `--fix` mode to validate.sh --lint for auto-applying shellcheck suggestions (Day 17)
 - [x] Add migrate.sh detection for Day 15-16 features (Day 17)
+- [x] Add `--format=table|csv|json|kv` to dashboard.sh (Day 17)
+- [x] Add integration tests for recap.sh --format csv/kv, dashboard.sh --format, validate.sh --lint --fix (Day 17)

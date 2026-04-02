@@ -6,15 +6,15 @@ planning intent.
 
 ## Priority (do these first)
 
-- [ ] Add `--format` flag to dashboard.sh (table/csv/json/kv) matching metrics.sh/recap.sh conventions
-- [ ] Add recap.sh --format integration tests (csv, kv output modes)
-- [ ] Add validate.sh --lint --fix integration tests (auto-fix verification)
+- [ ] Add Issue #23 fix: persist evolve plugin dispatch timestamp to disk
+- [ ] Add migrate.sh detection for Day 17 features (dashboard.sh --format, validate.sh --fix tests)
+- [ ] Add `--format` flag to health-check.sh for consistent output across all scripts
 
 ## Suggested (consider these)
 
-- [ ] Add Issue #23 fix: persist evolve plugin dispatch timestamp to disk
-- [ ] Add migrate.sh detection for Day 17 features (validate.sh --fix)
-- [ ] Add `--format` flag to health-check.sh for consistent output across all scripts
+- [ ] Add dashboard.sh --format integration tests with multi-project discovery (--projects + --format=csv)
+- [ ] Add shellcheck CI gate to integration tests (run shellcheck on all scripts as a test step)
+- [ ] Add `--format` flag to check.sh for standardized output across all scripts
 
 ## Deferred (not now, but don't forget)
 
