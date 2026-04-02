@@ -4,6 +4,23 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Day 17 — Session 39 (2026-04-02 13:13 PDT)
+
+**Goal**: Complete NEXT_STEPS.md Priority items — check.sh --format flag, shellcheck CI gate, dashboard.sh --projects+--format integration tests.
+
+**What changed**:
+- Added `--format=table|csv|json|kv` flag to check.sh, replacing separate `--json`/`--quiet` flags with unified format system; backward-compatible aliases retained
+- Replaced `((var++))` arithmetic with `$((var + 1))` in check.sh to avoid `set -e` issues (applying existing LEARNINGS.md knowledge)
+- Added shellcheck CI gate to integration tests: runs `shellcheck -S warning` on all scripts as Step 14
+- Added check.sh --format integration tests (Step 15): JSON/CSV/KV output and --json backward compat
+- Added dashboard.sh --projects + --format combined integration tests (Step 16): CSV/JSON/KV with multi-project auto-discovery
+- Added migrate.sh detection for check.sh --format flag
+- Total integration tests: 64 (all passing)
+
+**Next Steps**: See NEXT_STEPS.md.
+
+---
+
 ## Day 17 — Session 38 (2026-04-02 13:09 PDT)
 
 **Goal**: Complete NEXT_STEPS.md Priority items — Issue #23 dispatch persistence, migrate.sh Day 17 detection, health-check.sh --format flag.

@@ -173,3 +173,7 @@ Living document. Updated each evolution session. Items come from three sources:
 - [x] Add `--format=table|csv|json|kv` flag to health-check.sh (Day 17)
 - [x] Add migrate.sh detection for Day 17 features (dashboard --format, health-check --format, dispatch persistence) (Day 17)
 - [x] Add integration tests for health-check.sh --format and migrate.sh Day 17 detection (Day 17)
+- [x] Add `--format=table|csv|json|kv` to check.sh (Day 17)
+- [x] Add shellcheck CI gate to integration tests (Day 17)
+- [x] Add dashboard.sh --format + --projects combined integration tests (Day 17)
+- [x] Add migrate.sh detection for check.sh --format flag (Day 17)

@@ -6,15 +6,15 @@ planning intent.
 
 ## Priority (do these first)
 
-- [ ] Add dashboard.sh --format integration tests with multi-project discovery (--projects + --format=csv)
-- [ ] Add shellcheck CI gate to integration tests (run shellcheck on all scripts as a test step)
-- [ ] Add `--format` flag to check.sh for standardized output across all scripts
+- [ ] Add `--format` flag to sync-upstream.sh and rollback.sh for consistent output
+- [ ] Add migrate.sh detection for check.sh --format in integration tests
+- [ ] Close stale GitHub issues (#8, #9) with notes directing to gastown rig
 
 ## Suggested (consider these)
 
-- [ ] Add migrate.sh detection for health-check.sh --format in integration tests
-- [ ] Add `--format` flag to sync-upstream.sh and rollback.sh for consistent output
-- [ ] Close stale GitHub issues (#8, #9) with notes directing to gastown rig
+- [ ] Add `--format` flag to remaining scripts without it (grafana.sh, lint-workflows.sh)
+- [ ] Add JSON schema validation for structured output in tests (validate JSON with python3)
+- [ ] Add end-to-end test for check.sh with a real build system (Go or Python project)
 
 ## Deferred (not now, but don't forget)
 
