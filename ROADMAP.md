@@ -180,3 +180,7 @@ Living document. Updated each evolution session. Items come from three sources:
 - [x] Add `--format=table|csv|json|kv` to sync-upstream.sh and rollback.sh (Day 17)
 - [x] Add migrate.sh detection for sync-upstream.sh and rollback.sh --format flags (Day 17)
 - [x] Close GitHub issue #23 (evolve plugin cooldown, already fixed) (Day 17)
+- [x] Add `--format=table|csv|json|kv` to grafana.sh and lint-workflows.sh (Day 17)
+- [x] Add JSON schema validation for structured output in integration tests (Day 17)
+- [x] Fix metrics.sh JSON escaping for string values with control characters (Day 17)
+- [x] Add migrate.sh detection for grafana.sh and lint-workflows.sh --format flags (Day 17)

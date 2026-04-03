@@ -6,14 +6,15 @@ planning intent.
 
 ## Priority (do these first)
 
-- [ ] Add `--format` flag to remaining scripts without it (grafana.sh, lint-workflows.sh)
-- [ ] Add JSON schema validation for structured output in tests (validate JSON with python3)
-
-## Suggested (consider these)
-
 - [ ] Add end-to-end test for check.sh with a real build system (Go or Python project)
 - [ ] Add `--format` flag to quickstart.sh for structured output
 - [ ] Add a CHANGELOG entry for the --format standardization across all scripts
+
+## Suggested (consider these)
+
+- [ ] Add `--format` support to metrics-exporter.sh for structured Prometheus output
+- [ ] Add integration test for grafana.sh --format (mocking docker status)
+- [ ] Consolidate json_escape function into a shared shell library to reduce duplication
 
 ## Deferred (not now, but don't forget)
 

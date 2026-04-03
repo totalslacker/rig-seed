@@ -4,6 +4,22 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Day 17 — Session 41 (2026-04-02 16:54 PDT)
+
+**Goal**: Complete NEXT_STEPS.md Priority items — grafana.sh and lint-workflows.sh --format flags, JSON schema validation in tests.
+
+**What changed**:
+- Added `--format=table|csv|json|kv` flag to grafana.sh (status command) and lint-workflows.sh with `--json` alias, completing format flag coverage across all scripts
+- Added `json_escape` helper to metrics.sh and fixed pre-existing bug where string values with control characters produced invalid JSON
+- Added migrate.sh detection for missing --format in grafana.sh and lint-workflows.sh
+- Added 8 integration tests: lint-workflows.sh JSON/CSV/KV format output, JSON validity, and migrate.sh detection for grafana/lint-workflows format flags
+- Added JSON schema validation tests for health-check.sh, check.sh, and metrics.sh structured output
+- Total integration tests: 80 (all passing)
+
+**Next Steps**: See NEXT_STEPS.md.
+
+---
+
 ## Day 17 — Session 40 (2026-04-02 14:41 PDT)
 
 **Goal**: Complete NEXT_STEPS.md Priority items — sync-upstream.sh and rollback.sh --format flags, close GitHub issue #23.
