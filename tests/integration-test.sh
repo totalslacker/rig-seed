@@ -1004,6 +1004,83 @@ fi
 rm -rf "$MIG_DIR2"
 echo ""
 
+# --- Step 22: check.sh end-to-end with real Python build system ---
+echo "--- Step 22: check.sh end-to-end with real build system ---"
+
+if command -v python3 &>/dev/null; then
+  CK_DIR=$(mktemp -d "$TMPDIR_BASE/rigseed-ck-XXXXXX")
+  git init -q "$CK_DIR"
+  git -C "$CK_DIR" config user.email "test@test.com"
+  git -C "$CK_DIR" config user.name "Test"
+
+  # Set up a minimal rig-seed project with a real Python project
+  mkdir -p "$CK_DIR/.evolve" "$CK_DIR/scripts" "$CK_DIR/tests"
+  cp "$PROJECT_DIR/.evolve/config.toml" "$CK_DIR/.evolve/config.toml"
+  cp "$PROJECT_DIR/scripts/check.sh" "$CK_DIR/scripts/check.sh"
+  chmod +x "$CK_DIR/scripts/check.sh"
+
+  # Create a Python project with pyproject.toml and a passing test
+  cat > "$CK_DIR/pyproject.toml" << 'PYEOF'
+[project]
+name = "test-project"
+version = "0.1.0"
+[tool.pytest]
+testpaths = ["tests"]
+PYEOF
+
+  cat > "$CK_DIR/src_module.py" << 'PYEOF'
+def add(a, b):
+    return a + b
+PYEOF
+
+  cat > "$CK_DIR/tests/test_basic.py" << 'PYEOF'
+from src_module import add
+
+def test_add():
+    assert add(1, 2) == 3
+PYEOF
+
+  git -C "$CK_DIR" add -A
+  git -C "$CK_DIR" commit -q -m "initial"
+
+  # Run check.sh — should detect Python and run pytest
+  ck_out=$("$CK_DIR/scripts/check.sh" --no-color "$CK_DIR" 2>&1 || true)
+  if echo "$ck_out" | grep -q 'Python project detected'; then
+    pass "check.sh detects Python project (pyproject.toml)"
+  else
+    fail "check.sh should detect Python project"
+  fi
+
+  if echo "$ck_out" | grep -qi 'pytest.*pass\|RESULT.*pass\|all checks passed'; then
+    pass "check.sh runs pytest and all checks pass"
+  else
+    # Check if pytest isn't installed
+    if echo "$ck_out" | grep -qi 'pytest.*not found\|No module named.*pytest'; then
+      pass "check.sh detects pytest not available (expected in minimal env)"
+    else
+      fail "check.sh with Python project: unexpected output"
+    fi
+  fi
+
+  # Test JSON format output
+  ck_json=$("$CK_DIR/scripts/check.sh" --format=json --no-color "$CK_DIR" 2>&1 || true)
+  if echo "$ck_json" | python3 -c "
+import sys, json
+d = json.load(sys.stdin)
+assert 'checks' in d or 'result' in d, 'missing expected key'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+    pass "check.sh --format=json with real project produces valid JSON"
+  else
+    fail "check.sh --format=json with real project should produce valid JSON"
+  fi
+
+  rm -rf "$CK_DIR"
+else
+  echo "  (skipping — python3 not available)"
+fi
+echo ""
+
 # --- Summary ---
 
 echo "================================"
