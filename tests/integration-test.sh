@@ -659,14 +659,11 @@ if command -v shellcheck >/dev/null 2>&1; then
     fail "shellcheck -S warning found issues in template scripts"
   fi
 
-  # Verify shellcheck catches a known-bad script
+  # Verify shellcheck catches a known-bad script (warning-level: cd without || exit)
   BAD_SCRIPT=$(mktemp "$TMPDIR_BASE/rigseed-sc-XXXXXX.sh")
-  cat > "$BAD_SCRIPT" << 'BADSH'
-#!/usr/bin/env bash
-echo $UNDEFINED_VAR
-BADSH
+  printf '#!/usr/bin/env bash\ncd /tmp\n' > "$BAD_SCRIPT"
   if shellcheck -S warning "$BAD_SCRIPT" > /dev/null 2>&1; then
-    fail "shellcheck should flag unquoted undefined variable"
+    fail "shellcheck should flag cd without || exit"
   else
     pass "shellcheck correctly flags known-bad script"
   fi
