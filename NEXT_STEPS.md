@@ -6,16 +6,17 @@ planning intent.
 
 ## Priority (do these first)
 
-- [x] Add end-to-end test for check.sh with a real build system (Go or Python project) (Day 17)
-- [ ] Add `--format` flag to quickstart.sh for structured output
-- [x] Add a CHANGELOG entry for the --format standardization across all scripts (Day 17)
+- [ ] Add `--format` flag to validate.sh for structured output (last major script without it)
+- [ ] Add `--format` support to metrics-exporter.sh for structured Prometheus output
+- [ ] Add integration test for grafana.sh --format (mocking docker status)
 
 ## Suggested (consider these)
 
-- [ ] Add `--format` support to metrics-exporter.sh for structured Prometheus output
-- [ ] Add integration test for grafana.sh --format (mocking docker status)
-- [ ] Consolidate json_escape function into a shared shell library to reduce duplication
+- [ ] Add `--format` flag to scripts/release.sh and scripts/check-evolve-state.sh
+- [ ] Add end-to-end test for sync-upstream.sh (mocking upstream remote)
+- [ ] Add a --verbose flag to quickstart.sh --check for detailed state file analysis
 
 ## Deferred (not now, but don't forget)
 
+- [ ] Consolidate json_escape function into a shared shell library (reduces duplication but adds source dependency — may hurt portability for forks)
 - [ ] Make bead creation mandatory before implementation in Step 4 (needs Gas Town formula update, not a rig-seed change)

@@ -4,6 +4,21 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Day 17 — Session 43 (2026-04-02 18:43 PDT)
+
+**Goal**: Add --format flag to quickstart.sh, completing format flag coverage across all scripts.
+
+**What changed**:
+- Added `--format=table|csv|json|kv` flag to quickstart.sh `--check` mode with `--json` alias, matching the convention used by all other scripts; check results collected as structured data with file/status/value/message fields
+- Added migrate.sh detection for missing quickstart.sh `--format` flag
+- Added 7 integration tests: quickstart.sh --check JSON/CSV/KV format output, JSON schema validation, --json alias backward compat, and migrate.sh detection for quickstart --format
+- Intentionally skipped json_escape consolidation into shared library — would add source dependency reducing portability for forked projects
+- Total integration tests: 89 (all passing)
+
+**Next Steps**: See NEXT_STEPS.md.
+
+---
+
 ## Day 17 — Session 42 (2026-04-02 16:58 PDT)
 
 **Goal**: Fix grep-c bug, add check.sh end-to-end test, CHANGELOG entry for --format standardization.

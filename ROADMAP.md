@@ -184,3 +184,8 @@ Living document. Updated each evolution session. Items come from three sources:
 - [x] Add JSON schema validation for structured output in integration tests (Day 17)
 - [x] Fix metrics.sh JSON escaping for string values with control characters (Day 17)
 - [x] Add migrate.sh detection for grafana.sh and lint-workflows.sh --format flags (Day 17)
+- [x] Fix `grep -c || echo 0` bug producing `0\n0` across all scripts (Day 17)
+- [x] Add end-to-end test for check.sh with real Python build system (Day 17)
+- [x] Add CHANGELOG entry for --format standardization and grep-c bugfix (Day 17)
+- [x] Add `--format=table|csv|json|kv` to quickstart.sh --check mode (Day 17)
+- [x] Add migrate.sh detection for quickstart.sh --format flag (Day 17)
