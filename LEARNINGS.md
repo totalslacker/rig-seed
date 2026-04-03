@@ -168,6 +168,17 @@ in the metric name or HELP text, not in values.
 
 ---
 
+### Never use `grep -c ... || echo "0"` — use `|| true` instead
+
+`grep -c` outputs the count (including "0") even when exit code is 1 (no matches).
+The `|| echo "0"` fallback then appends a second "0", producing `"0\n0"`. When
+captured in `$()`, this becomes `"0 0"` which breaks arithmetic: `$((0 0))` is a
+syntax error. The fix is `grep -c ... 2>/dev/null || true` followed by
+`: "${var:=0}"` to default truly empty output. Same root cause as the `((var++))`
+bug — `set -e` interacting with commands that return non-zero for valid reasons.
+
+---
+
 ### Avoid `((var++))` with `set -e` — use `var=$((var + 1))` instead
 
 In bash, `((expr))` returns exit code 1 when the expression evaluates to 0.

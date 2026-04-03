@@ -4,6 +4,21 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Day 17 — Session 39 (2026-04-02 18:43 UTC)
+
+**Goal**: Shellcheck CI gate, check.sh --format flag, sync-upstream.sh/rollback.sh --format flags.
+
+**What changed**:
+- Added shellcheck CI gate to integration tests — runs `shellcheck -S warning` on all template scripts, with a canary test for false negatives
+- Added `--format=table|csv|json|kv` to check.sh, replacing the `--json`-only mode; `--json` kept as alias for backward compat
+- Added `--format=table|csv|json|kv` to rollback.sh and sync-upstream.sh, completing format standardization across utility scripts
+- Fixed pre-existing bug in metrics.sh: `grep -c ... || echo "0"` produced double output ("0\n0") when grep found zero matches, breaking arithmetic under `set -e`
+- Total integration tests: 63 (all passing)
+
+**Next Steps**: See NEXT_STEPS.md.
+
+---
+
 ## Day 17 — Session 38 (2026-04-02 13:09 PDT)
 
 **Goal**: Complete NEXT_STEPS.md Priority items — Issue #23 dispatch persistence, migrate.sh Day 17 detection, health-check.sh --format flag.
