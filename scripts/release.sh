@@ -8,6 +8,14 @@
 #   ./scripts/release.sh major        # v0.2.0 → v1.0.0
 #   ./scripts/release.sh --dry-run    # Show what would happen without doing it
 #
+# Options:
+#   -h, --help       Show this help
+#   --dry-run        Show what would happen without creating a tag
+#   --format=FORMAT  Output format: table (default), csv, json, kv
+#   --json           Alias for --format=json
+#   --color          Force colored output
+#   --no-color       Disable colored output
+#
 # If no tags exist yet, starts at v0.1.0.
 
 set -euo pipefail
@@ -16,6 +24,7 @@ set -euo pipefail
 BUMP=""
 DRY_RUN=false
 use_color=auto
+format=table
 
 for arg in "$@"; do
   case "$arg" in
@@ -25,10 +34,12 @@ for arg in "$@"; do
       echo "Tag a new semver release based on the latest git tag."
       echo ""
       echo "Options:"
-      echo "  --dry-run    Show what would happen without creating a tag"
-      echo "  --color      Force colored output"
-      echo "  --no-color   Disable colored output"
-      echo "  -h, --help   Show this help"
+      echo "  --dry-run        Show what would happen without creating a tag"
+      echo "  --format=FORMAT  Output format: table (default), csv, json, kv"
+      echo "  --json           Alias for --format=json"
+      echo "  --color          Force colored output"
+      echo "  --no-color       Disable colored output"
+      echo "  -h, --help       Show this help"
       echo ""
       echo "Bump types:"
       echo "  major        Increment major version (v1.2.3 → v2.0.0)"
@@ -39,6 +50,17 @@ for arg in "$@"; do
       exit 0
       ;;
     --dry-run) DRY_RUN=true ;;
+    --format=*)
+      format="${arg#*=}"
+      case "$format" in
+        table|csv|json|kv) ;;
+        *)
+          echo "Error: unknown format '$format' (expected: table, csv, json, kv)" >&2
+          exit 1
+          ;;
+      esac
+      ;;
+    --json) format=json ;;
     --color) use_color=always ;;
     --no-color) use_color=never ;;
     major|minor|patch) BUMP="$arg" ;;
@@ -68,12 +90,43 @@ setup_colors() {
 }
 setup_colors
 
+# shellcheck source=scripts/lib.sh
+source "$(cd "$(dirname "$0")" && pwd)/lib.sh"
+
+# Structured output and exit
+output_result() {
+  local status="$1" message="$2"
+  case "$format" in
+    json)
+      printf '{"latest_tag":"%s","new_tag":"%s","bump":"%s","dry_run":%s,"status":"%s","message":"%s"}\n' \
+        "$(json_escape "${LATEST_TAG:-none}")" "$(json_escape "$NEW_TAG")" "$BUMP" \
+        "$( $DRY_RUN && echo true || echo false )" \
+        "$(json_escape "$status")" "$(json_escape "$message")"
+      ;;
+    csv)
+      echo "latest_tag,new_tag,bump,dry_run,status,message"
+      printf '%s,%s,%s,%s,%s,%s\n' \
+        "$(csv_escape "${LATEST_TAG:-none}")" "$(csv_escape "$NEW_TAG")" "$BUMP" \
+        "$( $DRY_RUN && echo true || echo false )" \
+        "$(csv_escape "$status")" "$(csv_escape "$message")"
+      ;;
+    kv)
+      printf 'latest_tag=%s\n' "${LATEST_TAG:-none}"
+      printf 'new_tag=%s\n' "$NEW_TAG"
+      printf 'bump=%s\n' "$BUMP"
+      printf 'dry_run=%s\n' "$( $DRY_RUN && echo true || echo false )"
+      printf 'status=%s\n' "$status"
+      printf 'message=%s\n' "$message"
+      ;;
+  esac
+}
+
 # Find latest semver tag
 LATEST_TAG=$(git tag -l 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -1)
 
 if [[ -z "$LATEST_TAG" ]]; then
     MAJOR=0; MINOR=1; PATCH=0
-    printf '%b\n' "${YELLOW}No existing tags found. Starting at v0.1.0${RESET}"
+    [ "$format" = "table" ] && printf '%b\n' "${YELLOW}No existing tags found. Starting at v0.1.0${RESET}"
 else
     # Strip leading 'v' and split
     VERSION="${LATEST_TAG#v}"
@@ -81,7 +134,7 @@ else
     REST="${VERSION#*.}"
     MINOR="${REST%%.*}"
     PATCH="${REST#*.}"
-    printf '%b\n' "Latest tag: ${BOLD}$LATEST_TAG${RESET}"
+    [ "$format" = "table" ] && printf '%b\n' "Latest tag: ${BOLD}$LATEST_TAG${RESET}"
 fi
 
 # Increment
@@ -92,20 +145,28 @@ case "$BUMP" in
 esac
 
 NEW_TAG="v${MAJOR}.${MINOR}.${PATCH}"
-printf '%b\n' "New tag: ${BOLD}$NEW_TAG${RESET} ($BUMP bump)"
+[ "$format" = "table" ] && printf '%b\n' "New tag: ${BOLD}$NEW_TAG${RESET} ($BUMP bump)"
 
 if $DRY_RUN; then
-    printf '%b\n' "${CYAN}[dry-run]${RESET} Would create and push tag: $NEW_TAG"
+    if [ "$format" != "table" ]; then
+      output_result "dry_run" "Would create and push tag: $NEW_TAG"
+    else
+      printf '%b\n' "${CYAN}[dry-run]${RESET} Would create and push tag: $NEW_TAG"
+    fi
     exit 0
 fi
 
 # Create annotated tag
 git tag -a "$NEW_TAG" -m "Release $NEW_TAG"
-printf '%b\n' "${GREEN}Created tag: $NEW_TAG${RESET}"
+[ "$format" = "table" ] && printf '%b\n' "${GREEN}Created tag: $NEW_TAG${RESET}"
 
 # Push tag
 git push origin "$NEW_TAG"
-printf '%b\n' "${GREEN}Pushed tag: $NEW_TAG${RESET}"
+[ "$format" = "table" ] && printf '%b\n' "${GREEN}Pushed tag: $NEW_TAG${RESET}"
 
-echo ""
-printf '%b\n' "${GREEN}Release $NEW_TAG complete.${RESET}"
+if [ "$format" != "table" ]; then
+  output_result "released" "Release $NEW_TAG complete"
+else
+  echo ""
+  printf '%b\n' "${GREEN}Release $NEW_TAG complete.${RESET}"
+fi
