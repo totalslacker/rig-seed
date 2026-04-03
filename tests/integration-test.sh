@@ -1081,6 +1081,83 @@ else
 fi
 echo ""
 
+# --- Step 23: quickstart.sh --check --format tests ---
+
+echo "--- Step 23: quickstart.sh --check --format ---"
+
+# JSON format
+qs_json=$("$WORK_DIR/quickstart.sh" --check --format=json 2>&1 || true)
+if echo "$qs_json" | grep -q '"result"' && echo "$qs_json" | grep -q '"checks"'; then
+  pass "quickstart.sh --check --format=json outputs JSON with expected fields"
+else
+  fail "quickstart.sh --check --format=json missing expected JSON fields"
+fi
+
+# Validate JSON with python3 if available
+if command -v python3 &>/dev/null; then
+  if echo "$qs_json" | python3 -c "
+import sys, json
+d = json.load(sys.stdin)
+assert 'result' in d and 'checks' in d and 'errors' in d, 'missing expected key'
+assert isinstance(d['checks'], list), 'checks should be array'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+    pass "quickstart.sh --check --format=json produces valid JSON"
+  else
+    fail "quickstart.sh --check --format=json should produce valid JSON"
+  fi
+fi
+
+# CSV format
+qs_csv=$("$WORK_DIR/quickstart.sh" --check --format=csv 2>&1 || true)
+if echo "$qs_csv" | head -1 | grep -q 'file,status'; then
+  pass "quickstart.sh --check --format=csv has correct header"
+else
+  fail "quickstart.sh --check --format=csv missing expected header row"
+fi
+
+# KV format
+qs_kv=$("$WORK_DIR/quickstart.sh" --check --format=kv 2>&1 || true)
+if echo "$qs_kv" | grep -q '^result='; then
+  pass "quickstart.sh --check --format=kv contains result key"
+else
+  fail "quickstart.sh --check --format=kv missing result= line"
+fi
+
+# --json backward compat alias
+qs_alias=$("$WORK_DIR/quickstart.sh" --check --json 2>&1 || true)
+if echo "$qs_alias" | grep -q '"result"'; then
+  pass "quickstart.sh --check --json backward compat produces JSON"
+else
+  fail "quickstart.sh --check --json backward compat broken"
+fi
+
+echo ""
+
+# --- Step 24: migrate.sh detection for quickstart.sh --format ---
+
+echo "--- Step 24: migrate.sh quickstart --format detection ---"
+
+# Create a stripped fork without quickstart --format
+QS_STRIP=$(mktemp -d "$TMPDIR_BASE/rigseed-qs-strip-XXXXXX")
+rsync -a --exclude='.git' --exclude='.beads' --exclude='.runtime' "$PROJECT_DIR/" "$QS_STRIP/"
+(cd "$QS_STRIP" && git init -q && git add -A && git commit -q -m "init")
+
+# Remove --format from quickstart.sh to simulate old fork
+sed -i '/--format=/d' "$QS_STRIP/quickstart.sh"
+sed -i '/--json/d' "$QS_STRIP/quickstart.sh"
+
+mig_qs=$("$QS_STRIP/scripts/migrate.sh" --dry-run "$QS_STRIP" 2>&1 || true)
+if echo "$mig_qs" | grep -q 'quickstart.sh missing --format'; then
+  pass "migrate.sh detects missing quickstart.sh --format flag"
+else
+  fail "migrate.sh should detect missing quickstart.sh --format flag"
+fi
+
+rm -rf "$QS_STRIP"
+
+echo ""
+
 # --- Summary ---
 
 echo "================================"
