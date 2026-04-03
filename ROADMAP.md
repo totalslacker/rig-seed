@@ -191,3 +191,7 @@ Living document. Updated each evolution session. Items come from three sources:
 - [x] Add migrate.sh detection for quickstart.sh --format flag (Day 17)
 - [x] Consolidate json_escape/csv_escape into shared scripts/lib.sh library (Day 17)
 - [x] Add migrate.sh detection for scripts/lib.sh (Day 17)
+- [x] Add `--format=table|csv|json|kv` to validate.sh (Day 17)
+- [x] Add `--format`, `--once`, and `--help` to metrics-exporter.sh (Day 17)
+- [x] Add grafana.sh --format integration test with mocked docker (Day 17)
+- [x] Add migrate.sh detection for validate.sh --format flag (Day 17)

@@ -4,6 +4,21 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Day 17 — Session 45 (2026-04-02 21:42 PDT)
+
+**Goal**: Add --format flag to validate.sh, --format/--once to metrics-exporter.sh, grafana.sh --format integration test.
+
+**What changed**:
+- Added `--format=table|csv|json|kv` flag to validate.sh — last major script without structured output — with result collection across all check types (state files, format, integration, immutable, lint, shellcheck)
+- Added `--format=prometheus|json|csv|kv`, `--once`, and `--help` flags to metrics-exporter.sh — `--once` dumps metrics to stdout without starting the HTTP server, useful for debugging and piping
+- Added integration tests for grafana.sh --format status using mock docker (Steps 26-29), covering JSON/CSV/KV output for validate.sh, metrics-exporter.sh --once, and grafana.sh status
+- Added migrate.sh detection for validate.sh missing --format flag
+- Total integration tests: 103 (all passing)
+
+**Next Steps**: See NEXT_STEPS.md.
+
+---
+
 ## Day 17 — Session 44 (2026-04-02 18:51 PDT)
 
 **Goal**: Consolidate duplicated json_escape/csv_escape into shared library, reduce code duplication across 7 scripts.
