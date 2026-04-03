@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
 # validate.sh — Verify a rig-seed template has all required files and structure.
 #
-# Usage: ./validate.sh [directory]
+# Usage: ./validate.sh [options] [directory]
 #   directory: path to the rig-seed project root (default: current directory)
+#
+# Options:
+#   --format=FORMAT  Output format: table (default), csv, json, kv
+#   --json           Alias for --format=json
 #
 # Exit codes:
 #   0 — all checks pass
@@ -16,6 +20,7 @@ quiet=false
 use_color=auto
 lint=false
 fix=false
+format=table
 dir=""
 
 for arg in "$@"; do
@@ -26,12 +31,14 @@ for arg in "$@"; do
       echo "Verify a rig-seed template has all required files and structure."
       echo ""
       echo "Options:"
-      echo "  -q, --quiet    Only print failures and the final result"
-      echo "  -l, --lint     Check script conventions compliance"
-      echo "  --fix          With --lint: auto-apply shellcheck fixes"
-      echo "  --color        Force colored output"
-      echo "  --no-color     Disable colored output"
-      echo "  -h, --help     Show this help message"
+      echo "  -q, --quiet        Only print failures and the final result"
+      echo "  -l, --lint         Check script conventions compliance"
+      echo "  --fix              With --lint: auto-apply shellcheck fixes"
+      echo "  --format=FORMAT    Output format: table (default), csv, json, kv"
+      echo "  --json             Alias for --format=json"
+      echo "  --color            Force colored output"
+      echo "  --no-color         Disable colored output"
+      echo "  -h, --help         Show this help message"
       echo ""
       echo "Arguments:"
       echo "  directory      Path to the rig-seed project root (default: current directory)"
@@ -53,6 +60,17 @@ for arg in "$@"; do
     --color)
       use_color=always
       ;;
+    --format=*)
+      format="${arg#*=}"
+      case "$format" in
+        table|csv|json|kv) ;;
+        *)
+          echo "Error: unknown format '$format' (expected: table, csv, json, kv)" >&2
+          exit 1
+          ;;
+      esac
+      ;;
+    --json) format=json ;;
     --no-color)
       use_color=never
       ;;
@@ -79,10 +97,24 @@ setup_colors() {
 }
 setup_colors
 
+# --- Shared library ---
+
+# shellcheck source=scripts/lib.sh
+source "$(cd "$(dirname "$0")" && pwd)/scripts/lib.sh"
+
+# --- Structured result collection ---
+
+results=()
+
+add_result() {
+  local category="$1" status="$2" file="$3" message="$4"
+  results+=("${category}|${status}|${file}|${message}")
+}
+
 # --- Helpers ---
 
 info() {
-  if [ "$quiet" = false ]; then
+  if [ "$quiet" = false ] && [ "$format" = "table" ]; then
     printf '%b\n' "$1"
   fi
 }
@@ -91,10 +123,14 @@ check_file() {
   local path="$dir/$1"
   local label="${2:-$1}"
   if [ ! -f "$path" ]; then
-    printf "  ${RED}✗${RESET} missing %s (%s)\n" "$label" "$1"
+    if [ "$format" = "table" ]; then
+      printf "  ${RED}✗${RESET} missing %s (%s)\n" "$label" "$1"
+    fi
+    add_result "file" "fail" "$1" "missing $label"
     errors=$((errors + 1))
   else
     info "  ${GREEN}✓${RESET} $label"
+    add_result "file" "ok" "$1" "$label present"
   fi
 }
 
@@ -102,10 +138,14 @@ check_dir() {
   local path="$dir/$1"
   local label="${2:-$1}"
   if [ ! -d "$path" ]; then
-    printf "  ${RED}✗${RESET} missing directory %s (%s)\n" "$label" "$1"
+    if [ "$format" = "table" ]; then
+      printf "  ${RED}✗${RESET} missing directory %s (%s)\n" "$label" "$1"
+    fi
+    add_result "directory" "fail" "$1" "missing directory $label"
     errors=$((errors + 1))
   else
     info "  ${GREEN}✓${RESET} $label"
+    add_result "directory" "ok" "$1" "$label present"
   fi
 }
 
@@ -113,12 +153,19 @@ check_nonempty() {
   local path="$dir/$1"
   local label="${2:-$1}"
   if [ ! -f "$path" ]; then
-    printf "  ${RED}✗${RESET} missing %s (%s)\n" "$label" "$1"
+    if [ "$format" = "table" ]; then
+      printf "  ${RED}✗${RESET} missing %s (%s)\n" "$label" "$1"
+    fi
+    add_result "file" "fail" "$1" "missing $label"
     errors=$((errors + 1))
   elif [ ! -s "$path" ]; then
-    printf "  ${YELLOW}⚠${RESET} %s exists but is empty (%s)\n" "$label" "$1"
+    if [ "$format" = "table" ]; then
+      printf "  ${YELLOW}⚠${RESET} %s exists but is empty (%s)\n" "$label" "$1"
+    fi
+    add_result "file" "warn" "$1" "$label exists but is empty"
   else
     info "  ${GREEN}✓${RESET} $label"
+    add_result "file" "ok" "$1" "$label present"
   fi
 }
 
@@ -164,8 +211,12 @@ if [ -f "$session_count_file" ]; then
   day_val=$(tr -d '[:space:]' < "$session_count_file")
   if [[ "$day_val" =~ ^[0-9]+$ ]]; then
     info "  ${GREEN}✓${RESET} SESSION_COUNT is a valid integer ($day_val)"
+    add_result "format" "ok" "SESSION_COUNT" "valid integer ($day_val)"
   else
-    printf "  ${RED}✗${RESET} SESSION_COUNT must contain a single integer, got: '%s'\n" "$day_val"
+    if [ "$format" = "table" ]; then
+      printf "  ${RED}✗${RESET} SESSION_COUNT must contain a single integer, got: '%s'\n" "$day_val"
+    fi
+    add_result "format" "fail" "SESSION_COUNT" "invalid: $day_val"
     errors=$((errors + 1))
   fi
 fi
@@ -177,8 +228,12 @@ if [ -f "$day_count_file" ]; then
   dc_val=$(tr -d '[:space:]' < "$day_count_file")
   if [[ "$dc_val" =~ ^[0-9]+$ ]]; then
     info "  ${GREEN}✓${RESET} DAY_COUNT is a valid integer ($dc_val)"
+    add_result "format" "ok" "DAY_COUNT" "valid integer ($dc_val)"
   else
-    printf "  ${RED}✗${RESET} DAY_COUNT must contain a single integer, got: '%s'\n" "$dc_val"
+    if [ "$format" = "table" ]; then
+      printf "  ${RED}✗${RESET} DAY_COUNT must contain a single integer, got: '%s'\n" "$dc_val"
+    fi
+    add_result "format" "fail" "DAY_COUNT" "invalid: $dc_val"
     errors=$((errors + 1))
   fi
 fi
@@ -190,8 +245,12 @@ if [ -f "$day_date_file" ]; then
   dd_val=$(tr -d '[:space:]' < "$day_date_file")
   if [[ "$dd_val" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
     info "  ${GREEN}✓${RESET} DAY_DATE is a valid date ($dd_val)"
+    add_result "format" "ok" "DAY_DATE" "valid date ($dd_val)"
   else
-    printf "  ${RED}✗${RESET} DAY_DATE must contain a YYYY-MM-DD date, got: '%s'\n" "$dd_val"
+    if [ "$format" = "table" ]; then
+      printf "  ${RED}✗${RESET} DAY_DATE must contain a YYYY-MM-DD date, got: '%s'\n" "$dd_val"
+    fi
+    add_result "format" "fail" "DAY_DATE" "invalid: $dd_val"
     errors=$((errors + 1))
   fi
 fi
@@ -204,17 +263,26 @@ if [ -f "$beads_map" ]; then
   if command -v python3 &>/dev/null; then
     if python3 -c "import json; json.load(open('$beads_map'))" 2>/dev/null; then
       info "  ${GREEN}✓${RESET} .beads-external-map.json is valid JSON"
+      add_result "integration" "ok" ".beads-external-map.json" "valid JSON"
     else
-      printf "  ${YELLOW}⚠${RESET} .beads-external-map.json exists but is not valid JSON\n"
+      if [ "$format" = "table" ]; then
+        printf "  ${YELLOW}⚠${RESET} .beads-external-map.json exists but is not valid JSON\n"
+      fi
+      add_result "integration" "warn" ".beads-external-map.json" "invalid JSON"
     fi
   elif command -v jq &>/dev/null; then
     if jq empty "$beads_map" 2>/dev/null; then
       info "  ${GREEN}✓${RESET} .beads-external-map.json is valid JSON"
+      add_result "integration" "ok" ".beads-external-map.json" "valid JSON"
     else
-      printf "  ${YELLOW}⚠${RESET} .beads-external-map.json exists but is not valid JSON\n"
+      if [ "$format" = "table" ]; then
+        printf "  ${YELLOW}⚠${RESET} .beads-external-map.json exists but is not valid JSON\n"
+      fi
+      add_result "integration" "warn" ".beads-external-map.json" "invalid JSON"
     fi
   else
     info "  ${CYAN}ℹ${RESET} .beads-external-map.json present (install jq or python3 to validate)"
+    add_result "integration" "ok" ".beads-external-map.json" "present (no validator)"
   fi
 else
   info "  ${CYAN}ℹ${RESET} no .beads-external-map.json (ok — only needed for external integrations)"
@@ -233,14 +301,20 @@ if [ -f "$immutable_file" ]; then
       # Directory entry
       if [ -d "$path" ]; then
         info "  ${GREEN}✓${RESET} immutable directory $line exists"
+        add_result "immutable" "ok" "$line" "immutable directory present"
       else
         info "  ${CYAN}ℹ${RESET} immutable directory $line not yet created (ok for fresh template)"
+        add_result "immutable" "ok" "$line" "not yet created (ok for fresh template)"
       fi
     else
       if [ -f "$path" ]; then
         info "  ${GREEN}✓${RESET} immutable file $line exists"
+        add_result "immutable" "ok" "$line" "immutable file present"
       else
-        printf "  ${RED}✗${RESET} immutable file %s is listed but missing\n" "$line"
+        if [ "$format" = "table" ]; then
+          printf "  ${RED}✗${RESET} immutable file %s is listed but missing\n" "$line"
+        fi
+        add_result "immutable" "fail" "$line" "immutable file missing"
         errors=$((errors + 1))
       fi
     fi
@@ -277,31 +351,46 @@ if [ "$lint" = true ]; then
 
       # Check shebang
       if ! head -1 "$script" | grep -q '^#!/usr/bin/env bash\|^#!/bin/bash'; then
-        printf "  ${RED}✗${RESET} %s: missing bash shebang\n" "$rel"
+        if [ "$format" = "table" ]; then
+          printf "  ${RED}✗${RESET} %s: missing bash shebang\n" "$rel"
+        fi
+        add_result "lint" "fail" "$rel" "missing bash shebang"
         script_errors=1
       fi
 
       # Check --help / -h
       if ! grep -q '\-\-help\|\-h)' "$script" 2>/dev/null; then
-        printf "  ${RED}✗${RESET} %s: missing --help flag\n" "$rel"
+        if [ "$format" = "table" ]; then
+          printf "  ${RED}✗${RESET} %s: missing --help flag\n" "$rel"
+        fi
+        add_result "lint" "fail" "$rel" "missing --help flag"
         script_errors=1
       fi
 
       # Check set -euo pipefail
       if ! grep -q 'set -euo pipefail' "$script" 2>/dev/null; then
-        printf "  ${YELLOW}⚠${RESET} %s: missing 'set -euo pipefail'\n" "$rel"
+        if [ "$format" = "table" ]; then
+          printf "  ${YELLOW}⚠${RESET} %s: missing 'set -euo pipefail'\n" "$rel"
+        fi
+        add_result "lint" "warn" "$rel" "missing set -euo pipefail"
       fi
 
       # Check --color/--no-color
       if ! grep -q '\-\-no-color' "$script" 2>/dev/null; then
-        printf "  ${YELLOW}⚠${RESET} %s: missing --color/--no-color flags\n" "$rel"
+        if [ "$format" = "table" ]; then
+          printf "  ${YELLOW}⚠${RESET} %s: missing --color/--no-color flags\n" "$rel"
+        fi
+        add_result "lint" "warn" "$rel" "missing --color/--no-color flags"
       fi
 
       # Check RESULT line (only for validation/check scripts, not all scripts)
       # Look for scripts that do checks (have error counters or check functions)
       if grep -q 'errors=' "$script" 2>/dev/null || grep -q 'check_' "$script" 2>/dev/null; then
         if ! grep -q 'RESULT:' "$script" 2>/dev/null; then
-          printf "  ${YELLOW}⚠${RESET} %s: check-style script missing RESULT line\n" "$rel"
+          if [ "$format" = "table" ]; then
+            printf "  ${YELLOW}⚠${RESET} %s: check-style script missing RESULT line\n" "$rel"
+          fi
+          add_result "lint" "warn" "$rel" "check-style script missing RESULT line"
         fi
       fi
 
@@ -309,6 +398,7 @@ if [ "$lint" = true ]; then
         errors=$((errors + 1))
       else
         info "  ${GREEN}✓${RESET} $rel"
+        add_result "lint" "ok" "$rel" "conventions pass"
       fi
     done
   fi
@@ -372,6 +462,45 @@ if [ "$lint" = true ]; then
   fi
 fi
 
+# --- Structured Output ---
+
+if [ "$format" = "json" ]; then
+  result_status="passed"
+  if [ "$errors" -gt 0 ]; then result_status="failed"; fi
+  printf '{"directory":"%s","status":"%s","errors":%d,"checks":[' \
+    "$(json_escape "$dir")" "$result_status" "$errors"
+  first=true
+  for r in "${results[@]}"; do
+    IFS='|' read -r cat stat file msg <<< "$r"
+    if [ "$first" = true ]; then first=false; else printf ','; fi
+    printf '{"category":"%s","status":"%s","file":"%s","message":"%s"}' \
+      "$(json_escape "$cat")" "$stat" "$(json_escape "$file")" "$(json_escape "$msg")"
+  done
+  printf ']}\n'
+  if [ "$errors" -gt 0 ]; then exit 1; else exit 0; fi
+fi
+
+if [ "$format" = "csv" ]; then
+  printf 'category,status,file,message\n'
+  for r in "${results[@]}"; do
+    IFS='|' read -r cat stat file msg <<< "$r"
+    printf '%s,%s,%s,"%s"\n' "$cat" "$stat" "$file" "$msg"
+  done
+  if [ "$errors" -gt 0 ]; then exit 1; else exit 0; fi
+fi
+
+if [ "$format" = "kv" ]; then
+  printf 'directory=%s\n' "$dir"
+  printf 'status=%s\n' "$(if [ "$errors" -gt 0 ]; then echo "failed"; else echo "passed"; fi)"
+  printf 'errors=%d\n' "$errors"
+  for r in "${results[@]}"; do
+    IFS='|' read -r cat stat file msg <<< "$r"
+    printf '%s_%s=%s\n' "$cat" "$stat" "$msg"
+  done
+  if [ "$errors" -gt 0 ]; then exit 1; else exit 0; fi
+fi
+
+# Default: table format
 info ""
 if [ "$errors" -gt 0 ]; then
   printf "${BOLD}${RED}RESULT: %d check(s) failed${RESET}\n" "$errors"
