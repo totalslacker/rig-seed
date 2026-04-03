@@ -553,6 +553,10 @@ if [ -f "$dir/quickstart.sh" ] && ! grep -q '\-\-format=' "$dir/quickstart.sh" 2
   printf '  %bNOTE:%b' "$YELLOW" "$RESET"; echo " quickstart.sh missing --format flag (added Day 17)"
   echo "        Compare with upstream to add table/csv/json/kv output format support."
 fi
+if [ ! -f "$dir/scripts/lib.sh" ]; then
+  printf '  %bNOTE:%b' "$YELLOW" "$RESET"; echo " scripts/lib.sh missing (added Day 17)"
+  echo "        Shared shell library with json_escape/csv_escape — reduces duplication."
+fi
 echo "  ok"
 echo ""
 

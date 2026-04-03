@@ -88,14 +88,8 @@ setup_colors() {
 # shellcheck disable=SC2034  # Color vars used in output sections
 setup_colors
 
-json_escape() {
-  local s="$1"
-  s="${s//\\/\\\\}"
-  s="${s//\"/\\\"}"
-  s="${s//$'\n'/\\n}"
-  s="${s//$'\t'/\\t}"
-  printf '%s' "$s"
-}
+# shellcheck source=scripts/lib.sh
+source "$(cd "$(dirname "$0")" && pwd)/scripts/lib.sh"
 
 info() { [ "$format" = "table" ] && printf '%b\n' "$@" || true; }
 

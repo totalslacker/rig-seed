@@ -1158,6 +1158,28 @@ rm -rf "$QS_STRIP"
 
 echo ""
 
+# --- Step 25: migrate.sh lib.sh detection ---
+
+echo "--- Step 25: migrate.sh lib.sh detection ---"
+
+LIB_STRIP=$(mktemp -d "$TMPDIR_BASE/rigseed-lib-strip-XXXXXX")
+rsync -a --exclude='.git' --exclude='.beads' --exclude='.runtime' "$PROJECT_DIR/" "$LIB_STRIP/"
+(cd "$LIB_STRIP" && git init -q && git add -A && git commit -q -m "init")
+
+# Remove lib.sh to simulate old fork
+rm -f "$LIB_STRIP/scripts/lib.sh"
+
+mig_lib=$("$LIB_STRIP/scripts/migrate.sh" --dry-run "$LIB_STRIP" 2>&1 || true)
+if echo "$mig_lib" | grep -q 'lib.sh missing'; then
+  pass "migrate.sh detects missing scripts/lib.sh"
+else
+  fail "migrate.sh should detect missing scripts/lib.sh"
+fi
+
+rm -rf "$LIB_STRIP"
+
+echo ""
+
 # --- Summary ---
 
 echo "================================"
