@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # quickstart.sh — Initialize a freshly forked rig-seed project.
 #
-# Usage: ./quickstart.sh [-h|--help] [--check] [--format=FMT] [--color|--no-color]
+# Usage: ./quickstart.sh [-h|--help] [--check] [--verbose] [--format=FMT] [--color|--no-color]
 #
 # This script:
 #   1. Validates that all required template files exist
@@ -28,6 +28,7 @@ set -euo pipefail
 use_color=auto
 check_only=false
 format=table
+verbose=false
 
 for arg in "$@"; do
   case "$arg" in
@@ -47,6 +48,7 @@ Steps performed:
 
 Options:
   --check        Dry-run: validate the project without resetting any files
+  --verbose, -v  Show detailed state file analysis (with --check)
   --format=FMT   Output format: table (default), csv, json, kv
   --json         Alias for --format=json
   --color        Force colored output
@@ -60,6 +62,7 @@ HELP
       exit 0
       ;;
     --check) check_only=true ;;
+    --verbose|-v) verbose=true ;;
     --format=*) format="${arg#--format=}" ;;
     --json) format=json ;;
     --color) use_color=always ;;
@@ -222,7 +225,14 @@ if [ "$check_only" = true ]; then
   if [ -f "$dir/JOURNAL.md" ]; then
     entries=$(grep -c '^## \(Day\|Session\) ' "$dir/JOURNAL.md" 2>/dev/null) || entries=0
     info "  JOURNAL.md: $entries entries"
-    checks+=("JOURNAL.md|ok|$entries|$entries entries")
+    detail=""
+    if [ "$verbose" = true ] && [ "$entries" -gt 0 ]; then
+      latest=$(grep -m1 '^## \(Day\|Session\) ' "$dir/JOURNAL.md" 2>/dev/null || echo "")
+      goal=$(grep -m1 '^\*\*Goal\*\*' "$dir/JOURNAL.md" 2>/dev/null || echo "")
+      detail="latest: ${latest#\#\# }; ${goal}"
+      info "    JOURNAL.md: $detail"
+    fi
+    checks+=("JOURNAL.md|ok|$entries|$entries entries${detail:+|$detail}")
   else
     info "  ${YELLOW}WARNING${RESET}: JOURNAL.md not found"
     checks+=("JOURNAL.md|warning||not found")
@@ -237,7 +247,13 @@ if [ "$check_only" = true ]; then
       checks+=("SPECS.md|warning|$lines|looks empty")
     else
       info "  SPECS.md: $lines lines"
-      checks+=("SPECS.md|ok|$lines|$lines lines")
+      detail=""
+      if [ "$verbose" = true ]; then
+        title=$(grep -m1 '^## ' "$dir/SPECS.md" 2>/dev/null || echo "")
+        detail="first heading: ${title#\#\# }"
+        info "    SPECS.md: $detail"
+      fi
+      checks+=("SPECS.md|ok|$lines|$lines lines${detail:+|$detail}")
     fi
   else
     info "  ${YELLOW}WARNING${RESET}: SPECS.md not found"
@@ -250,7 +266,14 @@ if [ "$check_only" = true ]; then
     done_count=$(grep -c '^\- \[x\]' "$dir/ROADMAP.md" 2>/dev/null) || done_count=0
     todo_count=$(grep -c '^\- \[ \]' "$dir/ROADMAP.md" 2>/dev/null) || todo_count=0
     info "  ROADMAP.md: $done_count done, $todo_count remaining"
-    checks+=("ROADMAP.md|ok|$done_count done $todo_count remaining|")
+    detail=""
+    if [ "$verbose" = true ]; then
+      sections=$(grep -c '^## ' "$dir/ROADMAP.md" 2>/dev/null) || sections=0
+      latest_section=$(grep '^## ' "$dir/ROADMAP.md" 2>/dev/null | tail -1 || echo "")
+      detail="$sections sections; latest: ${latest_section#\#\# }"
+      info "    ROADMAP.md: $detail"
+    fi
+    checks+=("ROADMAP.md|ok|$done_count done $todo_count remaining|${detail}")
   else
     info "  ${YELLOW}WARNING${RESET}: ROADMAP.md not found"
     checks+=("ROADMAP.md|warning||not found")
@@ -260,7 +283,13 @@ if [ "$check_only" = true ]; then
   if [ -f "$dir/NEXT_STEPS.md" ]; then
     ns_count=$(grep -c '^\- \[ \]' "$dir/NEXT_STEPS.md" 2>/dev/null) || ns_count=0
     info "  NEXT_STEPS.md: $ns_count open items"
-    checks+=("NEXT_STEPS.md|ok|$ns_count|$ns_count open items")
+    detail=""
+    if [ "$verbose" = true ] && [ "$ns_count" -gt 0 ]; then
+      first_item=$(grep -m1 '^\- \[ \]' "$dir/NEXT_STEPS.md" 2>/dev/null | sed 's/^- \[ \] //' || echo "")
+      detail="next: $first_item"
+      info "    NEXT_STEPS.md: $detail"
+    fi
+    checks+=("NEXT_STEPS.md|ok|$ns_count|$ns_count open items${detail:+|$detail}")
   else
     info "  ${YELLOW}WARNING${RESET}: NEXT_STEPS.md not found"
     checks+=("NEXT_STEPS.md|warning||not found")
@@ -280,24 +309,28 @@ if [ "$check_only" = true ]; then
       "$result_status" "$errors" "$(json_escape "$dir")"
     first=true
     for c in "${checks[@]}"; do
-      IFS='|' read -r file status value msg <<< "$c"
+      IFS='|' read -r file status value msg detail <<< "$c"
       if [ "$first" = true ]; then first=false; else printf ','; fi
-      printf '{"file":"%s","status":"%s","value":"%s","message":"%s"}' \
+      printf '{"file":"%s","status":"%s","value":"%s","message":"%s"' \
         "$(json_escape "$file")" "$status" "$(json_escape "$value")" "$(json_escape "$msg")"
+      if [ -n "${detail:-}" ]; then
+        printf ',"detail":"%s"' "$(json_escape "$detail")"
+      fi
+      printf '}'
     done
     printf ']}\n'
     exit "$exit_code"
   elif [ "$format" = "csv" ]; then
     echo "file,status,value,message"
     for c in "${checks[@]}"; do
-      IFS='|' read -r file status value msg <<< "$c"
+      IFS='|' read -r file status value msg _detail <<< "$c"
       echo "$file,$status,$value,$msg"
     done
     echo "result,$result_status,$errors errors,"
     exit "$exit_code"
   elif [ "$format" = "kv" ]; then
     for c in "${checks[@]}"; do
-      IFS='|' read -r file status value msg <<< "$c"
+      IFS='|' read -r file status value msg _detail <<< "$c"
       if [ -n "$msg" ]; then
         echo "$file=$status ($msg)"
       else
