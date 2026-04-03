@@ -161,7 +161,7 @@ if [ "$check_only" = true ]; then
 
   # JOURNAL.md
   if [ -f "$dir/JOURNAL.md" ]; then
-    entries=$(grep -c '^## \(Day\|Session\) ' "$dir/JOURNAL.md" 2>/dev/null || echo "0")
+    entries=$(grep -c '^## \(Day\|Session\) ' "$dir/JOURNAL.md" 2>/dev/null) || entries=0
     echo "  JOURNAL.md: $entries entries"
   else
     echo "  ${YELLOW}WARNING${RESET}: JOURNAL.md not found"
@@ -183,8 +183,8 @@ if [ "$check_only" = true ]; then
 
   # ROADMAP.md
   if [ -f "$dir/ROADMAP.md" ]; then
-    done_count=$(grep -c '^\- \[x\]' "$dir/ROADMAP.md" 2>/dev/null || echo "0")
-    todo_count=$(grep -c '^\- \[ \]' "$dir/ROADMAP.md" 2>/dev/null || echo "0")
+    done_count=$(grep -c '^\- \[x\]' "$dir/ROADMAP.md" 2>/dev/null) || done_count=0
+    todo_count=$(grep -c '^\- \[ \]' "$dir/ROADMAP.md" 2>/dev/null) || todo_count=0
     echo "  ROADMAP.md: $done_count done, $todo_count remaining"
   else
     echo "  ${YELLOW}WARNING${RESET}: ROADMAP.md not found"
@@ -192,7 +192,7 @@ if [ "$check_only" = true ]; then
 
   # NEXT_STEPS.md
   if [ -f "$dir/NEXT_STEPS.md" ]; then
-    ns_count=$(grep -c '^\- \[ \]' "$dir/NEXT_STEPS.md" 2>/dev/null || echo "0")
+    ns_count=$(grep -c '^\- \[ \]' "$dir/NEXT_STEPS.md" 2>/dev/null) || ns_count=0
     echo "  NEXT_STEPS.md: $ns_count open items"
   else
     echo "  ${YELLOW}WARNING${RESET}: NEXT_STEPS.md not found"

@@ -201,7 +201,7 @@ if [ -f "$dir/DAY_COUNT" ]; then
 fi
 
 # Session count from journal
-session_count=$(grep -c '^## \(Day\|Session\) ' "$dir/JOURNAL.md" 2>/dev/null || echo "0")
+session_count=$(grep -c '^## \(Day\|Session\) ' "$dir/JOURNAL.md" 2>/dev/null) || session_count=0
 
 # Git metrics (only if in a git repo)
 total_commits=0
@@ -214,7 +214,7 @@ files_in_repo=0
 total_lines=0
 
 if git -C "$dir" rev-parse --git-dir &>/dev/null; then
-  total_commits=$(git -C "$dir" rev-list --count HEAD 2>/dev/null || echo "0")
+  total_commits=$(git -C "$dir" rev-list --count HEAD 2>/dev/null) || total_commits=0
 
   if [ "$total_commits" -gt 0 ]; then
     first_commit_date=$(git -C "$dir" log --reverse --format='%ci' | head -1 | cut -d' ' -f1 || true)
@@ -238,22 +238,22 @@ if git -C "$dir" rev-parse --git-dir &>/dev/null; then
   fi
 
   files_in_repo=$(git -C "$dir" ls-files | wc -l | tr -d ' ')
-  total_lines=$(git -C "$dir" ls-files -z | xargs -0 wc -l 2>/dev/null | tail -1 | awk '{print $1}' || echo "0")
+  total_lines=$(git -C "$dir" ls-files -z | xargs -0 wc -l 2>/dev/null | tail -1 | awk '{print $1}') || total_lines=0
 fi
 
 # Roadmap progress
 roadmap_checked=0
 roadmap_unchecked=0
 if [ -f "$dir/ROADMAP.md" ]; then
-  roadmap_checked=$(grep -c '^\- \[x\]' "$dir/ROADMAP.md" 2>/dev/null || echo "0")
-  roadmap_unchecked=$(grep -c '^\- \[ \]' "$dir/ROADMAP.md" 2>/dev/null || echo "0")
+  roadmap_checked=$(grep -c '^\- \[x\]' "$dir/ROADMAP.md" 2>/dev/null) || roadmap_checked=0
+  roadmap_unchecked=$(grep -c '^\- \[ \]' "$dir/ROADMAP.md" 2>/dev/null) || roadmap_unchecked=0
 fi
 roadmap_total=$((roadmap_checked + roadmap_unchecked))
 
 # Learnings count
 learnings_count=0
 if [ -f "$dir/LEARNINGS.md" ]; then
-  learnings_count=$(grep -c '^### ' "$dir/LEARNINGS.md" 2>/dev/null || echo "0")
+  learnings_count=$(grep -c '^### ' "$dir/LEARNINGS.md" 2>/dev/null) || learnings_count=0
 fi
 
 # --- Summary output (--summary) ---
@@ -411,7 +411,7 @@ if [ "$plan" = true ]; then
   # NEXT_STEPS.md content
   if [ -f "$dir/NEXT_STEPS.md" ]; then
     # Count items by category
-    priority_count=$(grep -c '^\- \[ \]' "$dir/NEXT_STEPS.md" 2>/dev/null || echo "0")
+    priority_count=$(grep -c '^\- \[ \]' "$dir/NEXT_STEPS.md" 2>/dev/null) || priority_count=0
     section ""
     section "Next steps ($priority_count items):"
     print_metric "Next steps items:" "next_steps_count" "$priority_count"
@@ -481,7 +481,7 @@ if [ "$plan" = true ]; then
 
   # Open GitHub issues count (if gh is available)
   if command -v gh &>/dev/null && git -C "$dir" rev-parse --git-dir &>/dev/null; then
-    open_issues=$(gh issue list --state open --limit 100 --json number 2>/dev/null | grep -c '"number"' || echo "0")
+    open_issues=$(gh issue list --state open --limit 100 --json number 2>/dev/null | grep -c '"number"') || open_issues=0
     print_metric "Open GitHub issues:" "open_issues" "$open_issues"
   fi
 

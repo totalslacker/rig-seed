@@ -215,7 +215,7 @@ run_health_check() {
     add_result "journal" "fail" "JOURNAL.md missing"
   else
     # Match all journal header formats: "## Day N — Session M", "## Session N", "## Day N"
-    entry_count=$(grep -c '^## \(Day [0-9].* — Session\|Session\|Day\) ' "$journal_file" 2>/dev/null || echo "0")
+    entry_count=$(grep -c '^## \(Day [0-9].* — Session\|Session\|Day\) ' "$journal_file" 2>/dev/null) || entry_count=0
     if [ "$entry_count" -eq 0 ]; then
       warn "JOURNAL.md has no session entries (no '## Day' or '## Session' headers found)"
       add_result "journal" "warn" "No session entries found"
@@ -307,8 +307,8 @@ run_health_check() {
   # Check ROADMAP.md has unchecked items (work remaining)
   roadmap_file="$dir/ROADMAP.md"
   if [ -f "$roadmap_file" ]; then
-    unchecked=$(grep -c '^\- \[ \]' "$roadmap_file" 2>/dev/null || echo "0")
-    checked=$(grep -c '^\- \[x\]' "$roadmap_file" 2>/dev/null || echo "0")
+    unchecked=$(grep -c '^\- \[ \]' "$roadmap_file" 2>/dev/null) || unchecked=0
+    checked=$(grep -c '^\- \[x\]' "$roadmap_file" 2>/dev/null) || checked=0
     if [ "$unchecked" -eq 0 ] && [ "$checked" -gt 0 ]; then
       warn "ROADMAP.md has no unchecked items — the agent may not know what to work on next"
       add_result "config" "warn" "ROADMAP.md: $checked done, 0 remaining"

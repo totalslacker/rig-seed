@@ -209,15 +209,15 @@ gather_metrics() {
   # Journal entry count
   local journal_entries=0
   if [ -f "$dir/JOURNAL.md" ]; then
-    journal_entries=$(grep -c '^## \(Day\|Session\) ' "$dir/JOURNAL.md" 2>/dev/null || echo "0")
+    journal_entries=$(grep -c '^## \(Day\|Session\) ' "$dir/JOURNAL.md" 2>/dev/null) || journal_entries=0
   fi
 
   # Roadmap progress
   local roadmap_done=0
   local roadmap_todo=0
   if [ -f "$dir/ROADMAP.md" ]; then
-    roadmap_done=$(grep -c '^\- \[x\]' "$dir/ROADMAP.md" 2>/dev/null || echo "0")
-    roadmap_todo=$(grep -c '^\- \[ \]' "$dir/ROADMAP.md" 2>/dev/null || echo "0")
+    roadmap_done=$(grep -c '^\- \[x\]' "$dir/ROADMAP.md" 2>/dev/null) || roadmap_done=0
+    roadmap_todo=$(grep -c '^\- \[ \]' "$dir/ROADMAP.md" 2>/dev/null) || roadmap_todo=0
   fi
   local roadmap_total=$((roadmap_done + roadmap_todo))
   local roadmap_pct=0
@@ -228,7 +228,7 @@ gather_metrics() {
   # Learnings
   local learnings=0
   if [ -f "$dir/LEARNINGS.md" ]; then
-    learnings=$(grep -c '^### ' "$dir/LEARNINGS.md" 2>/dev/null || echo "0")
+    learnings=$(grep -c '^### ' "$dir/LEARNINGS.md" 2>/dev/null) || learnings=0
   fi
 
   # Git metrics
