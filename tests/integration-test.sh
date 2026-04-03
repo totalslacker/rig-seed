@@ -1345,6 +1345,143 @@ rm -rf "$VAL_STRIP"
 
 echo ""
 
+# --- Step 30: release.sh --format ---
+
+echo "--- Step 30: release.sh --format ---"
+
+# JSON format (dry-run)
+rel_json=$(bash "$PROJECT_DIR/scripts/release.sh" --dry-run --format=json 2>&1)
+if echo "$rel_json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+assert all(k in d for k in ('new_tag','bump','dry_run','status','message')), 'missing keys'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "release.sh --dry-run --format=json produces valid JSON with expected fields"
+else
+  fail "release.sh --dry-run --format=json should produce valid JSON with expected fields"
+fi
+
+# CSV format
+rel_csv=$(bash "$PROJECT_DIR/scripts/release.sh" --dry-run --format=csv 2>&1)
+if echo "$rel_csv" | head -1 | grep -q 'latest_tag,new_tag,bump'; then
+  pass "release.sh --dry-run --format=csv has correct header"
+else
+  fail "release.sh --dry-run --format=csv should have latest_tag,new_tag,bump header"
+fi
+
+# KV format
+rel_kv=$(bash "$PROJECT_DIR/scripts/release.sh" --dry-run --format=kv 2>&1)
+if echo "$rel_kv" | grep -q '^new_tag=' && echo "$rel_kv" | grep -q '^status='; then
+  pass "release.sh --dry-run --format=kv contains new_tag and status"
+else
+  fail "release.sh --dry-run --format=kv should contain new_tag and status"
+fi
+
+# --json alias
+rel_alias=$(bash "$PROJECT_DIR/scripts/release.sh" --dry-run --json 2>&1)
+if echo "$rel_alias" | python3 -c "import json,sys; json.load(sys.stdin)" 2>/dev/null; then
+  pass "release.sh --json alias produces valid JSON"
+else
+  fail "release.sh --json alias should produce valid JSON"
+fi
+
+echo ""
+
+# --- Step 31: check-evolve-state.sh --format ---
+
+echo "--- Step 31: check-evolve-state.sh --format ---"
+
+# Create a branch with state file changes to test passing output
+CES_DIR=$(mktemp -d "$TMPDIR_BASE/rigseed-ces-XXXXXX")
+rsync -a --exclude='.git' --exclude='.beads' --exclude='.runtime' "$PROJECT_DIR/" "$CES_DIR/"
+(
+  cd "$CES_DIR"
+  git init -q
+  git add -A
+  git commit -q -m "Initial"
+  git checkout -q -b test-branch
+  echo "updated" >> JOURNAL.md
+  echo "updated" >> NEXT_STEPS.md
+  echo "99" > SESSION_COUNT
+  echo "updated" >> ROADMAP.md
+  echo "18" > DAY_COUNT
+  echo "2026-04-02" > DAY_DATE
+  git add -A
+  git commit -q -m "Session updates"
+)
+
+# JSON format
+ces_json=$(cd "$CES_DIR" && bash scripts/check-evolve-state.sh --format=json main 2>&1 || true)
+if echo "$ces_json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+assert all(k in d for k in ('base_branch','errors','warnings','result','checks')), 'missing keys'
+assert isinstance(d['checks'], list) and len(d['checks']) > 0, 'checks should be non-empty array'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "check-evolve-state.sh --format=json produces valid JSON with expected fields"
+else
+  fail "check-evolve-state.sh --format=json should produce valid JSON with expected fields"
+fi
+
+# CSV format
+ces_csv=$(cd "$CES_DIR" && bash scripts/check-evolve-state.sh --format=csv main 2>&1 || true)
+if echo "$ces_csv" | head -1 | grep -q 'file,type,status,message'; then
+  pass "check-evolve-state.sh --format=csv has correct header"
+else
+  fail "check-evolve-state.sh --format=csv should have file,type,status,message header"
+fi
+
+# KV format
+ces_kv=$(cd "$CES_DIR" && bash scripts/check-evolve-state.sh --format=kv main 2>&1 || true)
+if echo "$ces_kv" | grep -q '^result=' && echo "$ces_kv" | grep -q '^errors='; then
+  pass "check-evolve-state.sh --format=kv contains result and errors"
+else
+  fail "check-evolve-state.sh --format=kv should contain result and errors"
+fi
+
+# --json alias
+ces_alias=$(cd "$CES_DIR" && bash scripts/check-evolve-state.sh --json main 2>&1 || true)
+if echo "$ces_alias" | python3 -c "import json,sys; json.load(sys.stdin)" 2>/dev/null; then
+  pass "check-evolve-state.sh --json alias produces valid JSON"
+else
+  fail "check-evolve-state.sh --json alias should produce valid JSON"
+fi
+
+rm -rf "$CES_DIR"
+
+echo ""
+
+# --- Step 32: migrate.sh release.sh/check-evolve-state.sh --format detection ---
+
+echo "--- Step 32: migrate.sh release.sh/check-evolve-state.sh --format detection ---"
+
+MIG_STRIP=$(mktemp -d "$TMPDIR_BASE/rigseed-mig-strip-XXXXXX")
+rsync -a --exclude='.git' --exclude='.beads' --exclude='.runtime' "$PROJECT_DIR/" "$MIG_STRIP/"
+(cd "$MIG_STRIP" && git init -q && git add -A && git commit -q -m "init")
+
+# Remove --format from both scripts to simulate old fork
+sed -i '/--format/d' "$MIG_STRIP/scripts/release.sh"
+sed -i '/--format/d' "$MIG_STRIP/scripts/check-evolve-state.sh"
+
+mig_rel=$("$MIG_STRIP/scripts/migrate.sh" --dry-run "$MIG_STRIP" 2>&1 || true)
+if echo "$mig_rel" | grep -q 'release.sh missing --format'; then
+  pass "migrate.sh detects missing release.sh --format flag"
+else
+  fail "migrate.sh should detect missing release.sh --format flag"
+fi
+
+if echo "$mig_rel" | grep -q 'check-evolve-state.sh missing --format'; then
+  pass "migrate.sh detects missing check-evolve-state.sh --format flag"
+else
+  fail "migrate.sh should detect missing check-evolve-state.sh --format flag"
+fi
+
+rm -rf "$MIG_STRIP"
+
+echo ""
+
 # --- Summary ---
 
 echo "================================"
