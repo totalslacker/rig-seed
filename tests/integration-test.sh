@@ -1180,6 +1180,171 @@ rm -rf "$LIB_STRIP"
 
 echo ""
 
+# --- Step 26: validate.sh --format output ---
+
+echo "--- Step 26: validate.sh --format output ---"
+
+# JSON format
+val_json=$(bash "$PROJECT_DIR/validate.sh" --format=json "$PROJECT_DIR" 2>&1)
+if echo "$val_json" | python3 -c "import json,sys; d=json.load(sys.stdin); assert 'checks' in d and 'result' in d" 2>/dev/null; then
+  pass "validate.sh --format=json produces valid JSON with checks and result"
+else
+  fail "validate.sh --format=json should produce valid JSON with checks and result"
+fi
+
+# CSV format
+val_csv=$(bash "$PROJECT_DIR/validate.sh" --format=csv "$PROJECT_DIR" 2>&1)
+if echo "$val_csv" | head -1 | grep -q 'category,file,status,message'; then
+  pass "validate.sh --format=csv has correct header"
+else
+  fail "validate.sh --format=csv should have category,file,status,message header"
+fi
+
+# KV format
+val_kv=$(bash "$PROJECT_DIR/validate.sh" --format=kv "$PROJECT_DIR" 2>&1)
+if echo "$val_kv" | grep -q 'result=pass'; then
+  pass "validate.sh --format=kv includes result=pass"
+else
+  fail "validate.sh --format=kv should include result=pass"
+fi
+
+# --json alias
+val_alias=$(bash "$PROJECT_DIR/validate.sh" --json "$PROJECT_DIR" 2>&1)
+if echo "$val_alias" | python3 -c "import json,sys; json.load(sys.stdin)" 2>/dev/null; then
+  pass "validate.sh --json alias produces valid JSON"
+else
+  fail "validate.sh --json alias should produce valid JSON"
+fi
+
+# JSON schema: check that checks array has category, file, status, message
+if echo "$val_json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+c = d['checks'][0]
+assert all(k in c for k in ('category','file','status','message')), 'missing keys'
+" 2>/dev/null; then
+  pass "validate.sh --format=json check entries have required fields"
+else
+  fail "validate.sh --format=json check entries should have category, file, status, message"
+fi
+
+echo ""
+
+# --- Step 27: metrics-exporter.sh --once output ---
+
+echo "--- Step 27: metrics-exporter.sh --once output ---"
+
+EXPORTER="$PROJECT_DIR/docs/examples/monitoring/metrics-exporter.sh"
+
+# --once with default format (prometheus)
+exp_prom=$(bash "$EXPORTER" --once "$PROJECT_DIR" 2>&1)
+if echo "$exp_prom" | grep -q '# TYPE rigseed_'; then
+  pass "metrics-exporter.sh --once produces Prometheus format"
+else
+  fail "metrics-exporter.sh --once should produce Prometheus format"
+fi
+
+# --once --format=json
+exp_json=$(bash "$EXPORTER" --once --format=json "$PROJECT_DIR" 2>&1)
+if echo "$exp_json" | python3 -c "import json,sys; d=json.load(sys.stdin); assert 'metrics' in d and 'project' in d" 2>/dev/null; then
+  pass "metrics-exporter.sh --once --format=json produces valid JSON"
+else
+  fail "metrics-exporter.sh --once --format=json should produce valid JSON"
+fi
+
+# --once --format=csv
+exp_csv=$(bash "$EXPORTER" --once --format=csv "$PROJECT_DIR" 2>&1)
+if echo "$exp_csv" | head -1 | grep -q 'metric,value'; then
+  pass "metrics-exporter.sh --once --format=csv has correct header"
+else
+  fail "metrics-exporter.sh --once --format=csv should have metric,value header"
+fi
+
+# --once --format=kv
+exp_kv=$(bash "$EXPORTER" --once --format=kv "$PROJECT_DIR" 2>&1)
+if echo "$exp_kv" | grep -q 'session_count='; then
+  pass "metrics-exporter.sh --once --format=kv includes session_count"
+else
+  fail "metrics-exporter.sh --once --format=kv should include session_count"
+fi
+
+echo ""
+
+# --- Step 28: grafana.sh --format status (mocked docker) ---
+
+echo "--- Step 28: grafana.sh --format status (mocked docker) ---"
+
+# Create a mock docker/podman that returns fake container info
+MOCK_BIN=$(mktemp -d "$TMPDIR_BASE/mock-bin-XXXXXX")
+
+cat > "$MOCK_BIN/docker" << 'MOCKEOF'
+#!/usr/bin/env bash
+case "$*" in
+  *"compose"*) exit 0 ;;
+  *"inspect -f"*"rigseed-prometheus"*) echo "running" ;;
+  *"inspect -f"*"rigseed-grafana"*) echo "running" ;;
+  *"inspect rigseed-prometheus"*) exit 0 ;;
+  *"inspect rigseed-grafana"*) exit 0 ;;
+  *) echo "mock-docker: $*" >&2; exit 0 ;;
+esac
+MOCKEOF
+chmod +x "$MOCK_BIN/docker"
+
+# Also create docker-compose mock
+cat > "$MOCK_BIN/docker-compose" << 'MOCKEOF'
+#!/usr/bin/env bash
+exit 0
+MOCKEOF
+chmod +x "$MOCK_BIN/docker-compose"
+
+# Run grafana.sh status with mocked docker in PATH
+graf_json=$(PATH="$MOCK_BIN:$PATH" bash "$PROJECT_DIR/scripts/grafana.sh" --format=json status "$PROJECT_DIR" 2>&1 || true)
+if echo "$graf_json" | python3 -c "import json,sys; d=json.load(sys.stdin); assert 'components' in d" 2>/dev/null; then
+  pass "grafana.sh --format=json status produces valid JSON with components"
+else
+  fail "grafana.sh --format=json status should produce valid JSON with components"
+fi
+
+graf_csv=$(PATH="$MOCK_BIN:$PATH" bash "$PROJECT_DIR/scripts/grafana.sh" --format=csv status "$PROJECT_DIR" 2>&1 || true)
+if echo "$graf_csv" | head -1 | grep -q 'component,status,url'; then
+  pass "grafana.sh --format=csv status has correct header"
+else
+  fail "grafana.sh --format=csv status should have component,status,url header"
+fi
+
+graf_kv=$(PATH="$MOCK_BIN:$PATH" bash "$PROJECT_DIR/scripts/grafana.sh" --format=kv status "$PROJECT_DIR" 2>&1 || true)
+if echo "$graf_kv" | grep -q '_status='; then
+  pass "grafana.sh --format=kv status includes component status"
+else
+  fail "grafana.sh --format=kv status should include component status"
+fi
+
+rm -rf "$MOCK_BIN"
+
+echo ""
+
+# --- Step 29: migrate.sh detection for validate.sh --format ---
+
+echo "--- Step 29: migrate.sh validate.sh --format detection ---"
+
+VAL_STRIP=$(mktemp -d "$TMPDIR_BASE/rigseed-val-strip-XXXXXX")
+rsync -a --exclude='.git' --exclude='.beads' --exclude='.runtime' "$PROJECT_DIR/" "$VAL_STRIP/"
+(cd "$VAL_STRIP" && git init -q && git add -A && git commit -q -m "init")
+
+# Remove --format from validate.sh to simulate old fork
+sed -i '/--format/d' "$VAL_STRIP/validate.sh"
+
+mig_val=$("$VAL_STRIP/scripts/migrate.sh" --dry-run "$VAL_STRIP" 2>&1 || true)
+if echo "$mig_val" | grep -q 'validate.sh.*--format\|validate.sh missing --format'; then
+  pass "migrate.sh detects missing validate.sh --format flag"
+else
+  fail "migrate.sh should detect missing validate.sh --format flag"
+fi
+
+rm -rf "$VAL_STRIP"
+
+echo ""
+
 # --- Summary ---
 
 echo "================================"
