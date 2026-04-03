@@ -6,9 +6,9 @@ planning intent.
 
 ## Priority (do these first)
 
-- [ ] Add end-to-end test for check.sh with a real build system (Go or Python project)
+- [x] Add end-to-end test for check.sh with a real build system (Go or Python project) (Day 17)
 - [ ] Add `--format` flag to quickstart.sh for structured output
-- [ ] Add a CHANGELOG entry for the --format standardization across all scripts
+- [x] Add a CHANGELOG entry for the --format standardization across all scripts (Day 17)
 
 ## Suggested (consider these)
 

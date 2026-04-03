@@ -178,3 +178,19 @@ returns 0) rather than an arithmetic command. This is especially insidious
 because the bug only triggers on the *first* increment — subsequent increments
 from non-zero values return truthy, so the script appears to work as long as
 errors are found after the first one.
+
+---
+
+### `grep -c ... || echo "0"` inside `$()` produces `"0\n0"` on zero matches
+
+`grep -c` outputs `0` to stdout AND exits with code 1 when it finds zero matches.
+Inside a command substitution like `var=$(grep -c 'pat' file || echo "0")`, the
+`|| echo "0"` fires because of the non-zero exit, appending a second `0` to stdout.
+The variable ends up as `"0\n0"` instead of `"0"`, which silently breaks any
+downstream arithmetic like `$((var + other))`. The fix is to move the fallback
+outside the substitution: `var=$(grep -c 'pat' file 2>/dev/null) || var=0`. This
+way, on zero matches, grep's stdout (`0`) is captured into `var`, and the `|| var=0`
+only fires if grep itself errors (e.g., file not found). The bug is especially
+insidious because it only triggers on zero matches — any file with at least one
+match works fine, so tests pass until you hit a repo with an empty roadmap or
+no journal entries.

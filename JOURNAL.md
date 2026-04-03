@@ -4,6 +4,20 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Day 17 — Session 42 (2026-04-02 16:58 PDT)
+
+**Goal**: Fix grep-c bug, add check.sh end-to-end test, CHANGELOG entry for --format standardization.
+
+**What changed**:
+- Fixed `grep -c ... || echo "0"` bug across all scripts (metrics.sh, quickstart.sh, health-check.sh, dashboard.sh) — when grep found 0 matches, the variable was set to `"0\n0"` instead of `"0"`, causing arithmetic errors in downstream computations
+- Added end-to-end integration test for check.sh with a real Python build system (pyproject.toml, pytest detection)
+- Added CHANGELOG.template.md entry documenting --format standardization and grep-c bugfix
+- Total integration tests: 83 (all passing)
+
+**Next Steps**: See NEXT_STEPS.md.
+
+---
+
 ## Day 17 — Session 41 (2026-04-02 16:54 PDT)
 
 **Goal**: Complete NEXT_STEPS.md Priority items — grafana.sh and lint-workflows.sh --format flags, JSON schema validation in tests.
