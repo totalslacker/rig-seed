@@ -154,14 +154,8 @@ ok() {
   fi
 }
 
-json_escape() {
-  local s="$1"
-  s="${s//\\/\\\\}"
-  s="${s//\"/\\\"}"
-  s="${s//$'\n'/\\n}"
-  s="${s//$'\t'/\\t}"
-  printf '%s' "$s"
-}
+# shellcheck source=scripts/lib.sh
+source "$(cd "$(dirname "$0")" && pwd)/scripts/lib.sh"
 
 # --- Configuration ---
 

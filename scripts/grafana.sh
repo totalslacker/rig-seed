@@ -118,14 +118,8 @@ ok()    { printf "${GREEN}OK${RESET} %s\n" "$*"; }
 warn()  { printf "${YELLOW}WARN${RESET} %s\n" "$*"; }
 fail()  { printf "${RED}Error:${RESET} %s\n" "$*" >&2; }
 
-json_escape() {
-  local s="$1"
-  s="${s//\\/\\\\}"
-  s="${s//\"/\\\"}"
-  s="${s//$'\n'/\\n}"
-  s="${s//$'\t'/\\t}"
-  printf '%s' "$s"
-}
+# shellcheck source=scripts/lib.sh
+source "$(cd "$(dirname "$0")" && pwd)/lib.sh"
 
 # --- Validate command ---
 if [ -z "$COMMAND" ]; then

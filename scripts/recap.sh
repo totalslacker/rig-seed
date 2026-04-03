@@ -273,21 +273,8 @@ extract_next_steps() {
 
 # --- Output ---
 
-# Escape strings for JSON
-json_escape() {
-  local s="$1"
-  s="${s//\\/\\\\}"
-  s="${s//\"/\\\"}"
-  s="${s//$'\n'/\\n}"
-  printf '%s' "$s"
-}
-
-# CSV-escape: wrap in quotes, double internal quotes
-csv_escape() {
-  local s="$1"
-  s="${s//\"/\"\"}"
-  printf '"%s"' "$s"
-}
+# shellcheck source=scripts/lib.sh
+source "$(cd "$(dirname "$0")" && pwd)/lib.sh"
 
 if [ "$format" = "json" ]; then
   if [ "${#entries[@]}" -eq 1 ]; then

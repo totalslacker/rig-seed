@@ -112,21 +112,8 @@ setup_colors() {
 setup_colors
 
 # --- Structured output helpers ---
-
-json_escape() {
-  local s="$1"
-  s="${s//\\/\\\\}"
-  s="${s//\"/\\\"}"
-  s="${s//$'\n'/\\n}"
-  s="${s//$'\t'/\\t}"
-  printf '%s' "$s"
-}
-
-csv_escape() {
-  local s="$1"
-  s="${s//\"/\"\"}"
-  printf '"%s"' "$s"
-}
+# shellcheck source=scripts/lib.sh
+source "$(cd "$(dirname "$0")" && pwd)/lib.sh"
 
 # Output structured result and exit
 # Usage: output_result status message [changed_files...]

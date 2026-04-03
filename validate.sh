@@ -267,6 +267,12 @@ if [ "$lint" = true ]; then
   else
     for script in "${lint_files[@]}"; do
       rel="${script#"$dir"/}"
+
+      # Skip library files (sourced, not executed directly)
+      case "$rel" in
+        */lib.sh|lib.sh) info "  ${CYAN}ℹ${RESET} $rel (library — skipped)"; continue ;;
+      esac
+
       script_errors=0
 
       # Check shebang

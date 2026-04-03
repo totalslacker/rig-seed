@@ -147,21 +147,14 @@ if [ ! -f "$dir/SESSION_COUNT" ] || [ ! -f "$dir/JOURNAL.md" ]; then
   exit 1
 fi
 
+# shellcheck source=scripts/lib.sh
+source "$(cd "$(dirname "$0")" && pwd)/scripts/lib.sh"
+
 # --- Metrics function (for --watch support) ---
 
 run_metrics() {
 
 # --- Helpers ---
-
-json_escape() {
-  local s="$1"
-  s="${s//\\/\\\\}"
-  s="${s//\"/\\\"}"
-  s="${s//$'\n'/\\n}"
-  s="${s//$'\t'/\\t}"
-  # Strip other control characters
-  printf '%s' "$s" | tr -d '\000-\010\013\014\016-\037'
-}
 
 # Accumulate metrics for csv/json output
 metric_keys=()
