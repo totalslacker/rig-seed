@@ -4,6 +4,20 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Day 18 — Session 47 (2026-04-03)
+
+**Goal**: Fill test coverage gaps — sync-upstream.sh, check-evolve-state.sh edge cases, quickstart.sh --verbose.
+
+**What changed**:
+- Added end-to-end integration tests for sync-upstream.sh with a mocked bare upstream remote: dry-run detection, JSON format output, live sync applying changes, and up-to-date check after sync (6 tests)
+- Added check-evolve-state.sh edge case tests: no-changes branch (zero commits ahead) returns `no_changes` in JSON/KV, and partial updates (only JOURNAL.md modified) correctly flags missing NEXT_STEPS.md and SESSION_COUNT as failures (4 tests)
+- Added `--verbose` / `-v` flag to quickstart.sh `--check` mode: shows detailed state file analysis (latest journal entry, ROADMAP section count, SPECS heading, NEXT_STEPS first item); includes `detail` field in `--format=json` output (3 tests)
+- Total integration tests: 125 (all passing)
+
+**Next Steps**: See NEXT_STEPS.md.
+
+---
+
 ## Day 17 — Session 46 (2026-04-02 22:51 PDT)
 
 **Goal**: Complete --format flag standardization across all scripts.

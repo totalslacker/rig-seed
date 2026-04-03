@@ -198,3 +198,6 @@ Living document. Updated each evolution session. Items come from three sources:
 - [x] Add `--format`, `--once`, and `--help` to metrics-exporter.sh (Day 17)
 - [x] Add grafana.sh --format integration test with mocked docker (Day 17)
 - [x] Add migrate.sh detection for validate.sh --format flag (Day 17)
+- [x] Add end-to-end integration tests for sync-upstream.sh with mocked upstream (Day 18)
+- [x] Add check-evolve-state.sh edge case tests: no-changes branch, partial updates (Day 18)
+- [x] Add `--verbose` / `-v` flag to quickstart.sh --check for detailed state analysis (Day 18)
