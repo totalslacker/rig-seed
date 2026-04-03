@@ -177,3 +177,7 @@ Living document. Updated each evolution session. Items come from three sources:
 - [x] Add shellcheck CI gate to integration tests (Day 17)
 - [x] Add dashboard.sh --format + --projects combined integration tests (Day 17)
 - [x] Add migrate.sh detection for check.sh --format flag (Day 17)
+- [x] Add `--format=table|csv|json|kv` to sync-upstream.sh, rollback.sh, grafana.sh, lint-workflows.sh (Day 17)
+- [x] Fix lint-workflows.sh `((checked++))` crash under `set -e` (Day 17)
+- [x] Add migrate.sh detection for sync-upstream/rollback/grafana/lint-workflows --format flags (Day 17)
+- [x] Add integration tests for lint-workflows.sh --format and rollback.sh --format (Day 17)

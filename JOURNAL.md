@@ -4,6 +4,22 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Day 17 — Session 40 (2026-04-02 18:43 PDT)
+
+**Goal**: Complete remaining --format flags (sync-upstream.sh, rollback.sh, grafana.sh, lint-workflows.sh), fix lint-workflows.sh crash, add migrate.sh detection and integration tests.
+
+**What changed**:
+- Added `--format=table|csv|json|kv` flag to sync-upstream.sh, rollback.sh, grafana.sh, and lint-workflows.sh — all scripts now support unified format output
+- Fixed `((checked++))` crash in lint-workflows.sh under `set -e` (same `$((var + 1))` pattern applied in earlier sessions)
+- Added migrate.sh detection for sync-upstream.sh, rollback.sh, grafana.sh, and lint-workflows.sh --format flags
+- Added integration tests for lint-workflows.sh --format (Step 17) and rollback.sh --format (Step 18)
+- Verified all GitHub issues (#8, #9, #23) are already closed upstream
+- Total integration tests: 71 (all passing)
+
+**Next Steps**: See NEXT_STEPS.md.
+
+---
+
 ## Day 17 — Session 39 (2026-04-02 13:13 PDT)
 
 **Goal**: Complete NEXT_STEPS.md Priority items — check.sh --format flag, shellcheck CI gate, dashboard.sh --projects+--format integration tests.
