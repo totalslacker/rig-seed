@@ -1180,6 +1180,161 @@ rm -rf "$LIB_STRIP"
 
 echo ""
 
+# --- Step 26: validate.sh --format tests ---
+
+echo "--- Step 26: validate.sh --format ---"
+
+# JSON format
+val_json=$("$WORK_DIR/validate.sh" --format=json "$WORK_DIR" 2>&1 || true)
+if echo "$val_json" | python3 -m json.tool > /dev/null 2>&1; then
+  pass "validate.sh --format=json produces valid JSON"
+else
+  fail "validate.sh --format=json should produce valid JSON"
+fi
+if echo "$val_json" | grep -q '"status"'; then
+  pass "validate.sh JSON output contains status field"
+else
+  fail "validate.sh JSON output should contain status field"
+fi
+if echo "$val_json" | grep -q '"checks"'; then
+  pass "validate.sh JSON output contains checks array"
+else
+  fail "validate.sh JSON output should contain checks array"
+fi
+
+# JSON schema validation
+val_valid=$(python3 -c "
+import json, sys
+d = json.loads(sys.stdin.read())
+errs = []
+if 'status' not in d: errs.append('missing status')
+if 'errors' not in d: errs.append('missing errors')
+if 'checks' not in d: errs.append('missing checks')
+elif not isinstance(d['checks'], list): errs.append('checks not array')
+elif len(d['checks']) > 0:
+    c = d['checks'][0]
+    for f in ['category','status','file','message']:
+        if f not in c: errs.append(f'check missing {f}')
+print(', '.join(errs) if errs else 'ok')
+" <<< "$val_json" 2>&1)
+if [ "$val_valid" = "ok" ]; then
+  pass "validate.sh JSON schema: status, errors, checks[] with category/status/file/message"
+else
+  fail "validate.sh JSON schema validation: $val_valid"
+fi
+
+# CSV format
+val_csv=$("$WORK_DIR/validate.sh" --format=csv "$WORK_DIR" 2>&1 || true)
+if echo "$val_csv" | head -1 | grep -q 'category,status,file,message'; then
+  pass "validate.sh --format=csv has correct header"
+else
+  fail "validate.sh --format=csv should have category,status,file,message header"
+fi
+
+# KV format
+val_kv=$("$WORK_DIR/validate.sh" --format=kv "$WORK_DIR" 2>&1 || true)
+if echo "$val_kv" | grep -q '^status='; then
+  pass "validate.sh --format=kv contains status key"
+else
+  fail "validate.sh --format=kv should contain status= line"
+fi
+if echo "$val_kv" | grep -q '^errors='; then
+  pass "validate.sh --format=kv contains errors key"
+else
+  fail "validate.sh --format=kv should contain errors= line"
+fi
+
+# --json alias
+val_alias=$("$WORK_DIR/validate.sh" --json "$WORK_DIR" 2>&1 || true)
+if echo "$val_alias" | python3 -m json.tool > /dev/null 2>&1; then
+  pass "validate.sh --json alias produces valid JSON"
+else
+  fail "validate.sh --json alias should produce valid JSON"
+fi
+
+echo ""
+
+# --- Step 27: grafana.sh --format tests (mocking docker) ---
+
+echo "--- Step 27: grafana.sh --format (mocked docker) ---"
+
+# grafana.sh status command requires docker but we can test format parsing
+# by creating a mock docker that returns expected output
+MOCK_BIN=$(mktemp -d "$TMPDIR_BASE/rigseed-mock-bin-XXXXXX")
+cat > "$MOCK_BIN/docker" << 'MOCKEOF'
+#!/usr/bin/env bash
+case "$*" in
+  "compose version") echo "Docker Compose version v2.0.0" ;;
+  "inspect rigseed-prometheus") exit 1 ;;
+  "inspect rigseed-grafana") exit 1 ;;
+  *) exit 1 ;;
+esac
+MOCKEOF
+chmod +x "$MOCK_BIN/docker"
+
+# Run grafana.sh status with mock docker in PATH
+graf_json=$(PATH="$MOCK_BIN:$PATH" "$WORK_DIR/scripts/grafana.sh" status --format=json 2>&1 || true)
+if echo "$graf_json" | python3 -m json.tool > /dev/null 2>&1; then
+  pass "grafana.sh --format=json produces valid JSON"
+else
+  fail "grafana.sh --format=json should produce valid JSON"
+fi
+if echo "$graf_json" | grep -q '"components"'; then
+  pass "grafana.sh JSON output contains components array"
+else
+  fail "grafana.sh JSON output should contain components array"
+fi
+
+graf_csv=$(PATH="$MOCK_BIN:$PATH" "$WORK_DIR/scripts/grafana.sh" status --format=csv 2>&1 || true)
+if echo "$graf_csv" | head -1 | grep -q 'component,status,url'; then
+  pass "grafana.sh --format=csv has correct header"
+else
+  fail "grafana.sh --format=csv should have component,status,url header"
+fi
+
+graf_kv=$(PATH="$MOCK_BIN:$PATH" "$WORK_DIR/scripts/grafana.sh" status --format=kv 2>&1 || true)
+if echo "$graf_kv" | grep -q '_status='; then
+  pass "grafana.sh --format=kv contains status keys"
+else
+  fail "grafana.sh --format=kv should contain _status= lines"
+fi
+
+rm -rf "$MOCK_BIN"
+
+echo ""
+
+# --- Step 28: metrics-exporter.sh --format tests ---
+
+echo "--- Step 28: metrics-exporter.sh --format ---"
+
+exp_json=$("$WORK_DIR/docs/examples/monitoring/metrics-exporter.sh" --format=json "$WORK_DIR" 2>&1 || true)
+if echo "$exp_json" | python3 -m json.tool > /dev/null 2>&1; then
+  pass "metrics-exporter.sh --format=json produces valid JSON"
+else
+  fail "metrics-exporter.sh --format=json should produce valid JSON"
+fi
+if echo "$exp_json" | grep -q '"metrics"'; then
+  pass "metrics-exporter.sh JSON output contains metrics object"
+else
+  fail "metrics-exporter.sh JSON output should contain metrics object"
+fi
+
+exp_csv=$("$WORK_DIR/docs/examples/monitoring/metrics-exporter.sh" --format=csv "$WORK_DIR" 2>&1 || true)
+if echo "$exp_csv" | head -1 | grep -q 'metric,value'; then
+  pass "metrics-exporter.sh --format=csv has correct header"
+else
+  fail "metrics-exporter.sh --format=csv should have metric,value header"
+fi
+
+exp_kv=$("$WORK_DIR/docs/examples/monitoring/metrics-exporter.sh" --format=kv "$WORK_DIR" 2>&1 || true)
+if echo "$exp_kv" | grep -q '^project='; then
+  pass "metrics-exporter.sh --format=kv contains project key"
+else
+  fail "metrics-exporter.sh --format=kv should contain project= line"
+fi
+
+echo ""
+
 # --- Summary ---
 
 echo "================================"
