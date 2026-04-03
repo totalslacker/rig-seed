@@ -4,6 +4,20 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Day 17 — Session 45 (2026-04-02 21:45 PDT)
+
+**Goal**: Complete --format flag coverage for the last two scripts (validate.sh, metrics-exporter.sh) and add grafana.sh --format integration tests with mocked docker.
+
+**What changed**:
+- Added `--format=table|csv|json|kv` with `--json` alias to validate.sh — structured result collection across all check categories (file, directory, format, immutable, integration, lint)
+- Added `--format=prometheus|json|csv|kv` to metrics-exporter.sh — non-prometheus formats print to stdout and exit without starting a server, useful for debugging and piping
+- Added 17 integration tests: validate.sh JSON/CSV/KV output and schema validation, grafana.sh --format with mocked docker, metrics-exporter.sh JSON/CSV/KV output, and migrate.sh detection for new --format flags
+- Total integration tests: 107 (all passing)
+
+**Next Steps**: See NEXT_STEPS.md.
+
+---
+
 ## Day 17 — Session 44 (2026-04-02 18:51 PDT)
 
 **Goal**: Consolidate duplicated json_escape/csv_escape into shared library, reduce code duplication across 7 scripts.
