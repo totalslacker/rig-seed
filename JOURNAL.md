@@ -4,6 +4,22 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Day 17 — Session 46 (2026-04-02 22:51 PDT)
+
+**Goal**: Complete --format flag standardization across all scripts.
+
+**What changed**:
+- Added `--format=table|csv|json|kv` flag to release.sh (dry-run and release modes) with `--json` alias
+- Added `--format=table|csv|json|kv` flag to check-evolve-state.sh with `--json` alias and structured result collection
+- Added migrate.sh detection for missing --format in release.sh and check-evolve-state.sh
+- Added 10 integration tests: release.sh JSON/CSV/KV format output, check-evolve-state.sh JSON/CSV/KV output, --json alias, and migrate.sh detection for both scripts
+- Discovered NEXT_STEPS.md was stale — all three priority items (validate.sh --format, metrics-exporter.sh --format, grafana.sh --format tests) were already implemented
+- Total integration tests: 113 (all passing)
+
+**Next Steps**: See NEXT_STEPS.md.
+
+---
+
 ## Day 17 — Session 45 (2026-04-02 21:42 PDT)
 
 **Goal**: Add --format flag to validate.sh, --format/--once to metrics-exporter.sh, grafana.sh --format integration test.
