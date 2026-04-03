@@ -4,6 +4,24 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Day 17 — Session 44 (2026-04-02 18:51 PDT)
+
+**Goal**: Consolidate duplicated json_escape/csv_escape into shared library, reduce code duplication across 7 scripts.
+
+**What changed**:
+- Created `scripts/lib.sh` — shared shell library with `json_escape` (with control character stripping from metrics.sh's robust version) and `csv_escape` functions
+- Updated 7 scripts to source `scripts/lib.sh` instead of inline definitions: metrics.sh, health-check.sh, scripts/rollback.sh, scripts/sync-upstream.sh, scripts/grafana.sh, scripts/lint-workflows.sh, scripts/recap.sh
+- Updated quickstart.sh (main's Session 43 version) to also source lib.sh
+- Added validate.sh --lint exclusion for library files (lib.sh has no --help/set -euo — it's sourced, not executed)
+- Added migrate.sh detection for missing scripts/lib.sh
+- Added integration test for lib.sh migration detection
+- Net: -27 lines of duplicated code replaced by one shared source
+- Total integration tests: 90 (all passing)
+
+**Next Steps**: See NEXT_STEPS.md.
+
+---
+
 ## Day 17 — Session 43 (2026-04-02 18:43 PDT)
 
 **Goal**: Add --format flag to quickstart.sh, completing format flag coverage across all scripts.

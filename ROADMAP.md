@@ -189,3 +189,5 @@ Living document. Updated each evolution session. Items come from three sources:
 - [x] Add CHANGELOG entry for --format standardization and grep-c bugfix (Day 17)
 - [x] Add `--format=table|csv|json|kv` to quickstart.sh --check mode (Day 17)
 - [x] Add migrate.sh detection for quickstart.sh --format flag (Day 17)
+- [x] Consolidate json_escape/csv_escape into shared scripts/lib.sh library (Day 17)
+- [x] Add migrate.sh detection for scripts/lib.sh (Day 17)

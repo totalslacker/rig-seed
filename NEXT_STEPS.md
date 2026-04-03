@@ -18,5 +18,5 @@ planning intent.
 
 ## Deferred (not now, but don't forget)
 
-- [ ] Consolidate json_escape function into a shared shell library (reduces duplication but adds source dependency — may hurt portability for forks)
+- [x] Consolidate json_escape function into a shared shell library (done Day 17 Session 44 — scripts/lib.sh)
 - [ ] Make bead creation mandatory before implementation in Step 4 (needs Gas Town formula update, not a rig-seed change)
