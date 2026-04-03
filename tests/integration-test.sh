@@ -1482,6 +1482,220 @@ rm -rf "$MIG_STRIP"
 
 echo ""
 
+# --- Step 33: sync-upstream.sh end-to-end (mocked upstream) ---
+
+echo "--- Step 33: sync-upstream.sh end-to-end (mocked upstream) ---"
+
+# Create a mock "upstream" bare repo from the project
+SYNC_UPSTREAM_DIR=$(mktemp -d "$TMPDIR_BASE/rigseed-sync-upstream-XXXXXX")
+SYNC_FORK_DIR=$(mktemp -d "$TMPDIR_BASE/rigseed-sync-fork-XXXXXX")
+
+# Set up bare upstream repo
+(
+  cd "$SYNC_UPSTREAM_DIR"
+  git init -q --bare
+)
+
+# Set up fork repo with project files
+rsync -a --exclude='.git' --exclude='.beads' --exclude='.runtime' "$PROJECT_DIR/" "$SYNC_FORK_DIR/"
+(
+  cd "$SYNC_FORK_DIR"
+  git init -q
+  git add -A
+  git commit -q -m "Initial fork"
+  git remote add origin "$SYNC_UPSTREAM_DIR"
+  git push -q origin HEAD:main
+)
+
+# Now simulate upstream changes: push a new commit to the "upstream" bare repo
+SYNC_CLONE=$(mktemp -d "$TMPDIR_BASE/rigseed-sync-clone-XXXXXX")
+(
+  cd "$SYNC_CLONE"
+  git clone -q "$SYNC_UPSTREAM_DIR" .
+  # Modify an infrastructure file (one that syncs)
+  echo "# Updated upstream validate.sh" >> validate.sh
+  echo "# New upstream doc content" >> docs/EVOLUTION.md
+  git add -A
+  git commit -q -m "Upstream improvement"
+  git push -q origin main
+)
+rm -rf "$SYNC_CLONE"
+
+# Test 1: dry-run detects changes
+sync_dry=$(cd "$SYNC_FORK_DIR" && bash scripts/sync-upstream.sh --dry-run --upstream="$SYNC_UPSTREAM_DIR" --no-color 2>&1 || true)
+if echo "$sync_dry" | grep -q 'dry run complete'; then
+  pass "sync-upstream.sh --dry-run detects upstream changes"
+else
+  fail "sync-upstream.sh --dry-run should detect upstream changes"
+fi
+
+# Test 2: dry-run JSON format
+sync_dry_json=$(cd "$SYNC_FORK_DIR" && bash scripts/sync-upstream.sh --dry-run --upstream="$SYNC_UPSTREAM_DIR" --format=json 2>&1 || true)
+if echo "$sync_dry_json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+assert d['status'] == 'dry-run', 'status should be dry-run'
+assert d['changes'] > 0, 'should have changes'
+assert 'files' in d, 'should have files array'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "sync-upstream.sh --dry-run --format=json produces valid JSON with files"
+else
+  fail "sync-upstream.sh --dry-run --format=json should produce valid JSON with files"
+fi
+
+# Test 3: live sync applies changes
+sync_live=$(cd "$SYNC_FORK_DIR" && bash scripts/sync-upstream.sh --upstream="$SYNC_UPSTREAM_DIR" --no-color 2>&1 || true)
+if echo "$sync_live" | grep -q 'sync complete'; then
+  pass "sync-upstream.sh live sync merges upstream changes"
+else
+  fail "sync-upstream.sh live sync should merge upstream changes"
+fi
+
+# Verify the synced file was actually updated
+if grep -q "Updated upstream validate.sh" "$SYNC_FORK_DIR/validate.sh"; then
+  pass "sync-upstream.sh actually applied upstream file changes"
+else
+  fail "sync-upstream.sh should have applied upstream file changes to validate.sh"
+fi
+
+# Test 4: running again shows up-to-date
+sync_noop=$(cd "$SYNC_FORK_DIR" && bash scripts/sync-upstream.sh --upstream="$SYNC_UPSTREAM_DIR" --format=kv 2>&1 || true)
+if echo "$sync_noop" | grep -q 'status=up-to-date'; then
+  pass "sync-upstream.sh reports up-to-date after sync"
+else
+  fail "sync-upstream.sh should report up-to-date after sync"
+fi
+
+rm -rf "$SYNC_UPSTREAM_DIR" "$SYNC_FORK_DIR"
+
+echo ""
+
+# --- Step 34: check-evolve-state.sh edge cases ---
+
+echo "--- Step 34: check-evolve-state.sh edge cases ---"
+
+# Edge case 1: no-changes branch (zero commits ahead of base)
+CES_NOCHANGE=$(mktemp -d "$TMPDIR_BASE/rigseed-ces-nochange-XXXXXX")
+rsync -a --exclude='.git' --exclude='.beads' --exclude='.runtime' "$PROJECT_DIR/" "$CES_NOCHANGE/"
+(
+  cd "$CES_NOCHANGE"
+  git init -q
+  git add -A
+  git commit -q -m "Initial"
+  git checkout -q -b test-branch
+  # No additional commits — branch is identical to main
+)
+
+ces_nochange_out=$(cd "$CES_NOCHANGE" && bash scripts/check-evolve-state.sh --format=json main 2>&1 || true)
+if echo "$ces_nochange_out" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+assert d['result'] == 'no_changes', f'expected no_changes, got {d[\"result\"]}'
+assert d['errors'] == 0
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "check-evolve-state.sh returns no_changes for zero-commit branch (JSON)"
+else
+  fail "check-evolve-state.sh should return no_changes for zero-commit branch"
+fi
+
+# KV format for no-changes
+ces_nochange_kv=$(cd "$CES_NOCHANGE" && bash scripts/check-evolve-state.sh --format=kv main 2>&1 || true)
+if echo "$ces_nochange_kv" | grep -q 'result=no_changes'; then
+  pass "check-evolve-state.sh returns no_changes in KV format"
+else
+  fail "check-evolve-state.sh should return no_changes in KV format"
+fi
+
+rm -rf "$CES_NOCHANGE"
+
+# Edge case 2: partial updates (only some required files modified)
+CES_PARTIAL=$(mktemp -d "$TMPDIR_BASE/rigseed-ces-partial-XXXXXX")
+rsync -a --exclude='.git' --exclude='.beads' --exclude='.runtime' "$PROJECT_DIR/" "$CES_PARTIAL/"
+(
+  cd "$CES_PARTIAL"
+  git init -q
+  git add -A
+  git commit -q -m "Initial"
+  git checkout -q -b test-branch
+  # Only update JOURNAL.md — omit NEXT_STEPS.md and SESSION_COUNT (required)
+  echo "## Day 99 — test" >> JOURNAL.md
+  git add JOURNAL.md
+  git commit -q -m "Partial session update"
+)
+
+ces_partial_json=$(cd "$CES_PARTIAL" && bash scripts/check-evolve-state.sh --format=json main 2>&1 || true)
+if echo "$ces_partial_json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+assert d['result'] == 'fail', f'expected fail, got {d[\"result\"]}'
+assert d['errors'] >= 2, f'expected >=2 errors, got {d[\"errors\"]}'
+# Check that JOURNAL.md passed but NEXT_STEPS.md and SESSION_COUNT failed
+statuses = {c['file']: c['status'] for c in d['checks']}
+assert statuses.get('JOURNAL.md') == 'pass', 'JOURNAL.md should pass'
+assert statuses.get('NEXT_STEPS.md') == 'fail', 'NEXT_STEPS.md should fail'
+assert statuses.get('SESSION_COUNT') == 'fail', 'SESSION_COUNT should fail'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "check-evolve-state.sh detects partial updates (missing NEXT_STEPS.md, SESSION_COUNT)"
+else
+  fail "check-evolve-state.sh should detect partial updates with per-file status"
+fi
+
+# CSV format for partial updates should show fail rows
+ces_partial_csv=$(cd "$CES_PARTIAL" && bash scripts/check-evolve-state.sh --format=csv main 2>&1 || true)
+if echo "$ces_partial_csv" | grep -q 'NEXT_STEPS.md,required,fail' && echo "$ces_partial_csv" | grep -q 'JOURNAL.md,required,pass'; then
+  pass "check-evolve-state.sh CSV shows pass/fail per required file"
+else
+  fail "check-evolve-state.sh CSV should show pass/fail per required file"
+fi
+
+rm -rf "$CES_PARTIAL"
+
+echo ""
+
+# --- Step 35: quickstart.sh --check --verbose ---
+
+echo "--- Step 35: quickstart.sh --check --verbose ---"
+
+QS_VERBOSE=$(mktemp -d "$TMPDIR_BASE/rigseed-qs-verbose-XXXXXX")
+rsync -a --exclude='.git' --exclude='.beads' --exclude='.runtime' "$PROJECT_DIR/" "$QS_VERBOSE/"
+(cd "$QS_VERBOSE" && git init -q && git add -A && git commit -q -m "Initial")
+
+# Test --verbose shows extra detail
+qs_verbose=$(cd "$QS_VERBOSE" && bash quickstart.sh --check --verbose 2>&1 || true)
+if echo "$qs_verbose" | grep -q 'JOURNAL.md:'; then
+  pass "quickstart.sh --check --verbose shows detailed JOURNAL.md analysis"
+else
+  fail "quickstart.sh --check --verbose should show detailed JOURNAL.md analysis"
+fi
+
+if echo "$qs_verbose" | grep -q 'ROADMAP.md:'; then
+  pass "quickstart.sh --check --verbose shows detailed ROADMAP.md analysis"
+else
+  fail "quickstart.sh --check --verbose should show detailed ROADMAP.md analysis"
+fi
+
+# Test that --verbose with --format=json adds detail to output
+qs_verbose_json=$(cd "$QS_VERBOSE" && bash quickstart.sh --check --verbose --format=json 2>&1 || true)
+if echo "$qs_verbose_json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+# Verbose JSON should include detail field in at least one check
+has_detail = any('detail' in c for c in d.get('checks', []))
+assert has_detail, 'verbose mode should add detail field to checks'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "quickstart.sh --check --verbose --format=json includes detail fields"
+else
+  fail "quickstart.sh --check --verbose --format=json should include detail fields"
+fi
+
+rm -rf "$QS_VERBOSE"
+
+echo ""
+
 # --- Summary ---
 
 echo "================================"
