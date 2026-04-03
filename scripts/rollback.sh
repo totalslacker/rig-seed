@@ -12,6 +12,7 @@
 #   -n, --dry-run    Show what would be reverted without doing it
 #   --commit=SHA     Revert a specific commit (default: HEAD)
 #   --no-verify      Skip build verification after revert (not recommended)
+#   --format=FMT     Output format: table (default), csv, json, kv
 #   --color          Force colored output
 #   --no-color       Disable colored output
 #
@@ -26,6 +27,7 @@ dry_run=false
 target="HEAD"
 verify=true
 use_color=auto
+format=table
 
 for arg in "$@"; do
   case "$arg" in
@@ -41,6 +43,12 @@ for arg in "$@"; do
       ;;
     --no-verify)
       verify=false
+      ;;
+    --format=*)
+      format="${arg#*=}"
+      ;;
+    --json)
+      format=json
       ;;
     --color)
       use_color=always
@@ -91,20 +99,37 @@ fi
 
 commit_msg=$(git log --oneline -1 "$commit_sha")
 is_merge=$(git cat-file -p "$commit_sha" | grep -c "^parent " || true)
+commit_type=$([ "$is_merge" -gt 1 ] && echo "merge" || echo "regular")
+files_changed=$(git diff --name-only "${commit_sha}^..${commit_sha}" 2>/dev/null | wc -l | tr -d ' ')
 
-printf '%b\n' "${CYAN}=== Rollback ===${RESET}"
-echo ""
-echo "Target commit: $commit_msg"
-echo "SHA:           $commit_sha"
-echo "Type:          $([ "$is_merge" -gt 1 ] && echo "merge commit" || echo "regular commit")"
-echo ""
-
-# Show what files were changed
-echo "Files changed:"
-git diff --stat "${commit_sha}^..${commit_sha}" 2>/dev/null | sed 's/^/  /'
-echo ""
-
+# --- Structured output for dry-run ---
 if [ "$dry_run" = true ]; then
+  if [ "$format" = "json" ]; then
+    printf '{"action":"dry_run","target":"%s","type":"%s","files_changed":%s,"message":"%s"}\n' \
+      "$commit_sha" "$commit_type" "$files_changed" "$(echo "$commit_msg" | sed 's/"/\\"/g')"
+    exit 0
+  elif [ "$format" = "csv" ]; then
+    echo "action,target,type,files_changed,message"
+    echo "dry_run,$commit_sha,$commit_type,$files_changed,\"$commit_msg\""
+    exit 0
+  elif [ "$format" = "kv" ]; then
+    echo "action=dry_run"
+    echo "target=$commit_sha"
+    echo "type=$commit_type"
+    echo "files_changed=$files_changed"
+    echo "message=$commit_msg"
+    exit 0
+  fi
+  # table format
+  printf '%b\n' "${CYAN}=== Rollback ===${RESET}"
+  echo ""
+  echo "Target commit: $commit_msg"
+  echo "SHA:           $commit_sha"
+  echo "Type:          $commit_type commit"
+  echo ""
+  echo "Files changed:"
+  git diff --stat "${commit_sha}^..${commit_sha}" 2>/dev/null | sed 's/^/  /'
+  echo ""
   echo "--- Dry Run ---"
   echo "Would revert: $commit_msg"
   if [ "$is_merge" -gt 1 ]; then
@@ -116,6 +141,18 @@ if [ "$dry_run" = true ]; then
   echo "RESULT: dry run — no changes made"
   exit 0
 fi
+
+printf '%b\n' "${CYAN}=== Rollback ===${RESET}"
+echo ""
+echo "Target commit: $commit_msg"
+echo "SHA:           $commit_sha"
+echo "Type:          $commit_type commit"
+echo ""
+
+# Show what files were changed
+echo "Files changed:"
+git diff --stat "${commit_sha}^..${commit_sha}" 2>/dev/null | sed 's/^/  /'
+echo ""
 
 # --- Perform the revert ---
 
@@ -190,6 +227,25 @@ if [ "$verify" = true ]; then
 fi
 
 echo ""
+
+# --- Structured output for completed rollback ---
+if [ "$format" = "json" ]; then
+  printf '{"action":"reverted","target":"%s","type":"%s","files_changed":%s,"result":"success"}\n' \
+    "$commit_sha" "$commit_type" "$files_changed"
+  exit 0
+elif [ "$format" = "csv" ]; then
+  echo "action,target,type,files_changed,result"
+  echo "reverted,$commit_sha,$commit_type,$files_changed,success"
+  exit 0
+elif [ "$format" = "kv" ]; then
+  echo "action=reverted"
+  echo "target=$commit_sha"
+  echo "type=$commit_type"
+  echo "files_changed=$files_changed"
+  echo "result=success"
+  exit 0
+fi
+
 printf '%b\n' "${CYAN}=== Rollback Complete ===${RESET}"
 echo ""
 echo "Next steps:"

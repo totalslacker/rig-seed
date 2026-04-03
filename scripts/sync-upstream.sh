@@ -9,6 +9,7 @@
 # Options:
 #   --dry-run     Show what would change without applying
 #   --upstream    Override upstream URL (default: from config.toml or rig-seed GitHub)
+#   --format=FMT  Output format: table (default), csv, json, kv
 #   --color       Force colored output
 #   --no-color    Disable colored output
 #   -h, --help    Show this help
@@ -27,6 +28,7 @@ REMOTE_NAME="rig-seed-upstream"
 dry_run=false
 upstream_url=""
 use_color=auto
+format=table
 
 # --- Options ---
 
@@ -40,6 +42,8 @@ for arg in "$@"; do
       echo "Options:"
       echo "  --dry-run     Show what would change without applying"
       echo "  --upstream    Override upstream URL"
+      echo "  --format=FMT  Output format: table (default), csv, json, kv"
+      echo "  --json        Alias for --format=json"
       echo "  --color       Force colored output"
       echo "  --no-color    Disable colored output"
       echo "  -h, --help    Show this help"
@@ -69,6 +73,12 @@ for arg in "$@"; do
       ;;
     --upstream=*)
       upstream_url="${arg#*=}"
+      ;;
+    --format=*)
+      format="${arg#*=}"
+      ;;
+    --json)
+      format=json
       ;;
     --color)
       use_color=always
@@ -215,6 +225,19 @@ for file in "${SYNC_FILES[@]}"; do
 done
 
 if [ $changes -eq 0 ]; then
+  if [ "$format" = "json" ]; then
+    printf '{"result":"up_to_date","changes":0,"upstream":"%s"}\n' "$upstream_url"
+    exit 0
+  elif [ "$format" = "csv" ]; then
+    echo "result,changes,upstream"
+    echo "up_to_date,0,$upstream_url"
+    exit 0
+  elif [ "$format" = "kv" ]; then
+    echo "result=up_to_date"
+    echo "changes=0"
+    echo "upstream=$upstream_url"
+    exit 0
+  fi
   printf '%b\n' "  ${GREEN}(no changes — already up to date)${RESET}"
   echo ""
   echo "RESULT: already in sync with upstream"
@@ -225,6 +248,19 @@ echo ""
 printf '%b\n' "${BOLD}$changes file(s) have upstream changes${RESET}"
 
 if [ "$dry_run" = true ]; then
+  if [ "$format" = "json" ]; then
+    printf '{"result":"dry_run","changes":%d,"upstream":"%s"}\n' "$changes" "$upstream_url"
+    exit 0
+  elif [ "$format" = "csv" ]; then
+    echo "result,changes,upstream"
+    echo "dry_run,$changes,$upstream_url"
+    exit 0
+  elif [ "$format" = "kv" ]; then
+    echo "result=dry_run"
+    echo "changes=$changes"
+    echo "upstream=$upstream_url"
+    exit 0
+  fi
   echo ""
   echo "RESULT: dry run complete — run without --dry-run to apply"
   exit 0
@@ -238,22 +274,44 @@ printf '%b\n' "${CYAN}Merging upstream changes...${RESET}"
 # Use a merge strategy that favors our version for project-specific files
 # and takes upstream for template infrastructure
 if git merge "$upstream_ref" --no-edit --allow-unrelated-histories 2>/dev/null; then
-  echo ""
-  echo "RESULT: upstream sync complete — review changes with 'git diff HEAD~1'"
+  if [ "$format" = "json" ]; then
+    printf '{"result":"synced","changes":%d,"upstream":"%s"}\n' "$changes" "$upstream_url"
+  elif [ "$format" = "csv" ]; then
+    echo "result,changes,upstream"
+    echo "synced,$changes,$upstream_url"
+  elif [ "$format" = "kv" ]; then
+    echo "result=synced"
+    echo "changes=$changes"
+    echo "upstream=$upstream_url"
+  else
+    echo ""
+    echo "RESULT: upstream sync complete — review changes with 'git diff HEAD~1'"
+  fi
   exit 0
 else
-  echo ""
-  printf '%b\n' "${YELLOW}Merge conflicts detected. Project-specific files to keep yours:${RESET}"
-  echo ""
-  for file in "${NEVER_SYNC[@]}"; do
-    if git diff --name-only --diff-filter=U 2>/dev/null | grep -q "^${file}$"; then
-      echo "  git checkout --ours $file && git add $file"
-    fi
-  done
-  echo ""
-  echo "After resolving conflicts:"
-  echo "  git commit"
-  echo ""
-  echo "RESULT: merge conflicts — manual resolution needed"
+  if [ "$format" = "json" ]; then
+    printf '{"result":"conflicts","changes":%d,"upstream":"%s"}\n' "$changes" "$upstream_url"
+  elif [ "$format" = "csv" ]; then
+    echo "result,changes,upstream"
+    echo "conflicts,$changes,$upstream_url"
+  elif [ "$format" = "kv" ]; then
+    echo "result=conflicts"
+    echo "changes=$changes"
+    echo "upstream=$upstream_url"
+  else
+    echo ""
+    printf '%b\n' "${YELLOW}Merge conflicts detected. Project-specific files to keep yours:${RESET}"
+    echo ""
+    for file in "${NEVER_SYNC[@]}"; do
+      if git diff --name-only --diff-filter=U 2>/dev/null | grep -q "^${file}$"; then
+        echo "  git checkout --ours $file && git add $file"
+      fi
+    done
+    echo ""
+    echo "After resolving conflicts:"
+    echo "  git commit"
+    echo ""
+    echo "RESULT: merge conflicts — manual resolution needed"
+  fi
   exit 1
 fi
