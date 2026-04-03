@@ -557,6 +557,14 @@ if [ -f "$dir/validate.sh" ] && ! grep -q '\-\-format=' "$dir/validate.sh" 2>/de
   printf '  %bNOTE:%b' "$YELLOW" "$RESET"; echo " validate.sh missing --format flag (added Day 17)"
   echo "        Compare with upstream to add table/csv/json/kv output format support."
 fi
+if [ -f "$dir/scripts/release.sh" ] && ! grep -q '\-\-format=' "$dir/scripts/release.sh" 2>/dev/null; then
+  printf '  %bNOTE:%b' "$YELLOW" "$RESET"; echo " scripts/release.sh missing --format flag (added Day 17)"
+  echo "        Compare with upstream to add table/csv/json/kv output format support."
+fi
+if [ -f "$dir/scripts/check-evolve-state.sh" ] && ! grep -q '\-\-format=' "$dir/scripts/check-evolve-state.sh" 2>/dev/null; then
+  printf '  %bNOTE:%b' "$YELLOW" "$RESET"; echo " scripts/check-evolve-state.sh missing --format flag (added Day 17)"
+  echo "        Compare with upstream to add table/csv/json/kv output format support."
+fi
 if [ ! -f "$dir/scripts/lib.sh" ]; then
   printf '  %bNOTE:%b' "$YELLOW" "$RESET"; echo " scripts/lib.sh missing (added Day 17)"
   echo "        Shared shell library with json_escape/csv_escape — reduces duplication."
