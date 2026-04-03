@@ -557,6 +557,12 @@ if [ ! -f "$dir/scripts/lib.sh" ]; then
   printf '  %bNOTE:%b' "$YELLOW" "$RESET"; echo " scripts/lib.sh missing (added Day 17)"
   echo "        Shared shell library with json_escape/csv_escape — reduces duplication."
 fi
+if [ -f "$dir/validate.sh" ] && ! grep -q '\-\-format=' "$dir/validate.sh" 2>/dev/null; then
+  printf '  %bNOTE:%b' "$YELLOW" "$RESET"; echo " validate.sh missing --format flag (added Day 17)"
+fi
+if [ -f "$dir/docs/examples/monitoring/metrics-exporter.sh" ] && ! grep -q '\-\-format=' "$dir/docs/examples/monitoring/metrics-exporter.sh" 2>/dev/null; then
+  printf '  %bNOTE:%b' "$YELLOW" "$RESET"; echo " metrics-exporter.sh missing --format flag (added Day 17)"
+fi
 echo "  ok"
 echo ""
 

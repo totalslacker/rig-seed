@@ -1301,6 +1301,20 @@ fi
 
 rm -rf "$MOCK_BIN"
 
+# migrate.sh detection for validate.sh --format
+VAL_STRIP=$(mktemp -d "$TMPDIR_BASE/rigseed-val-strip-XXXXXX")
+rsync -a --exclude='.git' --exclude='.beads' --exclude='.runtime' "$PROJECT_DIR/" "$VAL_STRIP/"
+(cd "$VAL_STRIP" && git init -q && git add -A && git commit -q -m "init")
+sed -i '/--format=/d' "$VAL_STRIP/validate.sh"
+sed -i '/--json/d' "$VAL_STRIP/validate.sh"
+mig_val=$("$VAL_STRIP/scripts/migrate.sh" --dry-run "$VAL_STRIP" 2>&1 || true)
+if echo "$mig_val" | grep -q 'validate.sh missing --format'; then
+  pass "migrate.sh detects missing validate.sh --format flag"
+else
+  fail "migrate.sh should detect missing validate.sh --format flag"
+fi
+rm -rf "$VAL_STRIP"
+
 echo ""
 
 # --- Step 28: metrics-exporter.sh --format tests ---
