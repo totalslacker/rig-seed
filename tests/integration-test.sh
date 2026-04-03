@@ -628,6 +628,103 @@ fi
 rm -rf "$MIGRATE_DIR"
 echo ""
 
+# --- Step 14: shellcheck CI gate ---
+
+echo "--- Step 14: shellcheck CI gate ---"
+
+if command -v shellcheck >/dev/null 2>&1; then
+  # Run shellcheck at warning level on all template scripts
+  # Info and style are advisory; warnings and errors must be clean
+  sc_scripts=(
+    "$WORK_DIR/validate.sh"
+    "$WORK_DIR/health-check.sh"
+    "$WORK_DIR/metrics.sh"
+    "$WORK_DIR/quickstart.sh"
+  )
+  for s in "$WORK_DIR"/scripts/*.sh; do
+    [ -f "$s" ] && sc_scripts+=("$s")
+  done
+
+  sc_fail=0
+  for s in "${sc_scripts[@]}"; do
+    if ! shellcheck -S warning "$s" > /dev/null 2>&1; then
+      echo "  shellcheck warnings in: $(basename "$s")"
+      sc_fail=1
+    fi
+  done
+
+  if [ "$sc_fail" -eq 0 ]; then
+    pass "shellcheck -S warning passes on all template scripts"
+  else
+    fail "shellcheck -S warning found issues in template scripts"
+  fi
+
+  # Verify shellcheck catches a known-bad script
+  BAD_SCRIPT=$(mktemp "$TMPDIR_BASE/rigseed-sc-XXXXXX.sh")
+  cat > "$BAD_SCRIPT" << 'BADSH'
+#!/usr/bin/env bash
+echo $UNDEFINED_VAR
+BADSH
+  if shellcheck -S warning "$BAD_SCRIPT" > /dev/null 2>&1; then
+    fail "shellcheck should flag unquoted undefined variable"
+  else
+    pass "shellcheck correctly flags known-bad script"
+  fi
+  rm -f "$BAD_SCRIPT"
+else
+  pass "shellcheck CI gate skipped (shellcheck not installed)"
+fi
+
+echo ""
+
+# --- Step 15: check.sh --format ---
+
+echo "--- Step 15: check.sh --format ---"
+
+# JSON format (via --format=json, not --json alias)
+chk_json=$("$WORK_DIR/scripts/check.sh" --format=json "$WORK_DIR" 2>&1 || true)
+if echo "$chk_json" | python3 -m json.tool > /dev/null 2>&1; then
+  pass "check.sh --format=json produces valid JSON"
+else
+  fail "check.sh --format=json should produce valid JSON"
+fi
+if echo "$chk_json" | grep -q '"result"'; then
+  pass "check.sh JSON output contains result field"
+else
+  fail "check.sh JSON output should contain result field"
+fi
+
+# CSV format
+chk_csv=$("$WORK_DIR/scripts/check.sh" --format=csv "$WORK_DIR" 2>&1 || true)
+if echo "$chk_csv" | head -1 | grep -q 'name,status'; then
+  pass "check.sh --format=csv has correct header"
+else
+  fail "check.sh --format=csv should have name,status header"
+fi
+
+# KV format
+chk_kv=$("$WORK_DIR/scripts/check.sh" --format=kv "$WORK_DIR" 2>&1 || true)
+if echo "$chk_kv" | grep -q '^result='; then
+  pass "check.sh --format=kv contains result key"
+else
+  fail "check.sh --format=kv should contain result= line"
+fi
+if echo "$chk_kv" | grep -q '^passed='; then
+  pass "check.sh --format=kv contains passed key"
+else
+  fail "check.sh --format=kv should contain passed= line"
+fi
+
+# --json alias still works
+chk_alias=$("$WORK_DIR/scripts/check.sh" --json "$WORK_DIR" 2>&1 || true)
+if echo "$chk_alias" | python3 -m json.tool > /dev/null 2>&1; then
+  pass "check.sh --json alias still produces valid JSON"
+else
+  fail "check.sh --json alias should produce valid JSON"
+fi
+
+echo ""
+
 # --- Summary ---
 
 echo "================================"
