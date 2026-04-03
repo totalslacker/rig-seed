@@ -836,6 +836,174 @@ fi
 rm -rf "$MIG_DIR"
 echo ""
 
+# --- Step 19: lint-workflows.sh --format tests ---
+
+echo "--- Step 19: lint-workflows.sh --format ---"
+
+# Create a temp project with a workflow file for lint testing
+LW_DIR=$(mktemp -d "$TMPDIR_BASE/rigseed-lw-XXXXXX")
+mkdir -p "$LW_DIR/.github/workflows"
+cat > "$LW_DIR/.github/workflows/ci.yml" << 'YML'
+name: CI
+on: push
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo hello
+YML
+
+# JSON format
+lw_json=$(bash "$PROJECT_DIR/scripts/lint-workflows.sh" --format=json --no-color "$LW_DIR" 2>&1 || true)
+if echo "$lw_json" | grep -q '"files_checked"' && echo "$lw_json" | grep -q '"result"'; then
+  pass "lint-workflows.sh --format=json outputs JSON with expected fields"
+else
+  fail "lint-workflows.sh --format=json missing expected JSON fields"
+fi
+
+# Validate JSON with python3 if available
+if command -v python3 &>/dev/null; then
+  if echo "$lw_json" | python3 -c "import sys,json; json.load(sys.stdin)" 2>/dev/null; then
+    pass "lint-workflows.sh --format=json produces valid JSON"
+  else
+    fail "lint-workflows.sh --format=json produces invalid JSON"
+  fi
+fi
+
+# CSV format
+lw_csv=$(bash "$PROJECT_DIR/scripts/lint-workflows.sh" --format=csv --no-color "$LW_DIR" 2>&1 || true)
+if echo "$lw_csv" | grep -q 'file,severity,message'; then
+  pass "lint-workflows.sh --format=csv has correct header"
+else
+  fail "lint-workflows.sh --format=csv missing expected header row"
+fi
+
+# KV format
+lw_kv=$(bash "$PROJECT_DIR/scripts/lint-workflows.sh" --format=kv --no-color "$LW_DIR" 2>&1 || true)
+if echo "$lw_kv" | grep -q 'result='; then
+  pass "lint-workflows.sh --format=kv contains result key"
+else
+  fail "lint-workflows.sh --format=kv missing result= line"
+fi
+if echo "$lw_kv" | grep -q 'errors='; then
+  pass "lint-workflows.sh --format=kv contains errors key"
+else
+  fail "lint-workflows.sh --format=kv missing errors= line"
+fi
+
+rm -rf "$LW_DIR"
+echo ""
+
+# --- Step 20: JSON schema validation for structured output ---
+
+echo "--- Step 20: JSON schema validation ---"
+
+if command -v python3 &>/dev/null; then
+  # Validate health-check.sh JSON structure
+  hc_json_val=$("$WORK_DIR/health-check.sh" --format=json "$WORK_DIR" 2>&1 || true)
+  hc_valid=$(echo "$hc_json_val" | python3 -c "
+import sys, json
+try:
+    d = json.load(sys.stdin)
+    assert 'status' in d, 'missing status'
+    assert 'errors' in d, 'missing errors'
+    assert 'checks' in d, 'missing checks'
+    assert isinstance(d['checks'], list), 'checks not a list'
+    print('valid')
+except Exception as e:
+    print(f'invalid: {e}')
+" 2>/dev/null || echo "invalid: python error")
+  if [ "$hc_valid" = "valid" ]; then
+    pass "health-check.sh JSON schema: status, errors, checks[] present"
+  else
+    fail "health-check.sh JSON schema validation: $hc_valid"
+  fi
+
+  # Validate check.sh JSON structure
+  ck_json_val=$("$WORK_DIR/scripts/check.sh" --format=json "$WORK_DIR" 2>&1 || true)
+  ck_valid=$(echo "$ck_json_val" | python3 -c "
+import sys, json
+try:
+    d = json.load(sys.stdin)
+    assert 'result' in d, 'missing result'
+    assert 'checks' in d, 'missing checks'
+    assert isinstance(d['checks'], list), 'checks not a list'
+    print('valid')
+except Exception as e:
+    print(f'invalid: {e}')
+" 2>/dev/null || echo "invalid: python error")
+  if [ "$ck_valid" = "valid" ]; then
+    pass "check.sh JSON schema: result, checks[] present"
+  else
+    fail "check.sh JSON schema validation: $ck_valid"
+  fi
+
+  # Validate metrics.sh JSON structure
+  mt_json_val=$("$WORK_DIR/metrics.sh" --format=json --no-color "$WORK_DIR" 2>/dev/null || true)
+  mt_valid=$(printf '%s' "$mt_json_val" | python3 -c "
+import sys, json
+try:
+    d = json.load(sys.stdin)
+    assert isinstance(d, dict), 'not an object'
+    assert 'day_count' in d, 'missing day_count'
+    print('valid')
+except Exception as e:
+    print(f'invalid: {e}')
+" 2>/dev/null || echo "invalid: python error")
+  if [ "$mt_valid" = "valid" ]; then
+    pass "metrics.sh JSON schema: valid object with day_count"
+  else
+    fail "metrics.sh JSON schema validation: $mt_valid"
+  fi
+else
+  echo "  (skipping JSON validation — python3 not available)"
+fi
+echo ""
+
+# --- Step 21: migrate.sh detection for grafana.sh and lint-workflows.sh --format ---
+
+echo "--- Step 21: migrate.sh grafana/lint-workflows --format detection ---"
+
+MIG_DIR2=$(mktemp -d "$TMPDIR_BASE/rigseed-mig2-XXXXXX")
+git -C "$MIG_DIR2" init -q
+mkdir -p "$MIG_DIR2/scripts" "$MIG_DIR2/.evolve"
+echo "1" > "$MIG_DIR2/DAY_COUNT"
+echo "1" > "$MIG_DIR2/SESSION_COUNT"
+echo "2026-01-01" > "$MIG_DIR2/DAY_DATE"
+echo "# Journal" > "$MIG_DIR2/JOURNAL.md"
+echo "# Identity" > "$MIG_DIR2/IDENTITY.md"
+echo "# Specs" > "$MIG_DIR2/SPECS.md"
+echo "# Roadmap" > "$MIG_DIR2/ROADMAP.md"
+echo "# Learnings" > "$MIG_DIR2/LEARNINGS.md"
+echo "# Personality" > "$MIG_DIR2/PERSONALITY.md"
+echo "# Next" > "$MIG_DIR2/NEXT_STEPS.md"
+cat > "$MIG_DIR2/.evolve/config.toml" << 'TOML'
+[schedule]
+interval = "24h"
+TOML
+echo "IDENTITY.md" > "$MIG_DIR2/.evolve/IMMUTABLE.txt"
+# Create scripts without --format flag
+echo '#!/usr/bin/env bash' > "$MIG_DIR2/scripts/grafana.sh"
+echo '#!/usr/bin/env bash' > "$MIG_DIR2/scripts/lint-workflows.sh"
+git -C "$MIG_DIR2" add -A
+git -C "$MIG_DIR2" commit -q -m "init"
+
+mig_out2=$(bash "$PROJECT_DIR/scripts/migrate.sh" --dry-run --no-color "$MIG_DIR2" 2>&1 || true)
+if echo "$mig_out2" | grep -q 'grafana.sh missing --format'; then
+  pass "migrate.sh detects grafana.sh missing --format flag"
+else
+  fail "migrate.sh failed to detect grafana.sh missing --format flag"
+fi
+if echo "$mig_out2" | grep -q 'lint-workflows.sh missing --format'; then
+  pass "migrate.sh detects lint-workflows.sh missing --format flag"
+else
+  fail "migrate.sh failed to detect lint-workflows.sh missing --format flag"
+fi
+
+rm -rf "$MIG_DIR2"
+echo ""
+
 # --- Summary ---
 
 echo "================================"

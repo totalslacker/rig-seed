@@ -153,6 +153,16 @@ run_metrics() {
 
 # --- Helpers ---
 
+json_escape() {
+  local s="$1"
+  s="${s//\\/\\\\}"
+  s="${s//\"/\\\"}"
+  s="${s//$'\n'/\\n}"
+  s="${s//$'\t'/\\t}"
+  # Strip other control characters
+  printf '%s' "$s" | tr -d '\000-\010\013\014\016-\037'
+}
+
 # Accumulate metrics for csv/json output
 metric_keys=()
 metric_values=()
@@ -350,14 +360,14 @@ if [ "$format" = "json" ]; then
     else
       printf ','
     fi
-    # Emit numbers as bare values, strings as quoted
+    # Emit numbers as bare values, strings as quoted (with escaping)
     if [[ "$value" =~ ^[0-9]+$ ]]; then
       printf '"%s":%s' "$key" "$value"
     elif [[ "$value" =~ ^[0-9]+%$ ]]; then
       # Strip % for JSON, store as number
       printf '"%s":%s' "$key" "${value%\%}"
     else
-      printf '"%s":"%s"' "$key" "$value"
+      printf '"%s":"%s"' "$key" "$(json_escape "$value")"
     fi
   done
   # Don't close JSON yet if --plan will append more data
@@ -524,9 +534,7 @@ if [ "$plan" = true ]; then
     first=true
     for entry in "${plan_roadmap_items[@]}"; do
       if [ "$first" = true ]; then first=false; else printf ','; fi
-      # Escape quotes in entry
-      escaped="${entry//\"/\\\"}"
-      printf '"%s"' "$escaped"
+      printf '"%s"' "$(json_escape "$entry")"
     done
     printf ']'
 
@@ -537,8 +545,7 @@ if [ "$plan" = true ]; then
       if [ "$first" = true ]; then first=false; else printf ','; fi
       status="${entry%%:*}"
       rest="${entry#*:}"
-      escaped="${rest//\"/\\\"}"
-      printf '{"status":"%s","item":"%s"}' "$status" "$escaped"
+      printf '{"status":"%s","item":"%s"}' "$status" "$(json_escape "$rest")"
     done
     printf ']'
 
@@ -548,8 +555,7 @@ if [ "$plan" = true ]; then
       first=true
       for entry in "${plan_recent_goals[@]}"; do
         if [ "$first" = true ]; then first=false; else printf ','; fi
-        escaped="${entry//\"/\\\"}"
-        printf '"%s"' "$escaped"
+        printf '"%s"' "$(json_escape "$entry")"
       done
       printf ']'
     fi
