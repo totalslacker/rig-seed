@@ -10,9 +10,10 @@
 #   2. Auto-detect secondary build systems (package.json, Cargo.toml, etc.)
 #   3. Run all detected checks — ALL must pass
 #
-# Usage: ./scripts/check.sh [-q|--quiet] [--json] [--color|--no-color] [directory]
+# Usage: ./scripts/check.sh [-q|--quiet] [--format=table|csv|json|kv] [--color|--no-color] [directory]
 #   -q, --quiet    Suppress passing checks and info lines; only show failures
-#   --json         Output results as a JSON object
+#   --format=FMT   Output format: table (default), csv, json, kv
+#   --json         Alias for --format=json
 #   --color        Force colored output
 #   --no-color     Disable colored output
 #   directory      Project root (default: current directory)
@@ -31,7 +32,8 @@ if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
     echo ""
     echo "Options:"
     echo "  -q, --quiet    Suppress passing checks and info lines; only show failures"
-    echo "  --json         Output results as a JSON object"
+    echo "  --format=FMT   Output format: table (default), csv, json, kv"
+    echo "  --json         Alias for --format=json"
     echo "  --color        Force colored output"
     echo "  --no-color     Disable colored output"
     echo "  directory      Project root (default: current directory)"
@@ -47,18 +49,24 @@ fi
 
 # --- Parse arguments ---
 quiet=false
-json=false
+format=table
 use_color=auto
 dir="."
 for arg in "$@"; do
   case "$arg" in
     -q|--quiet) quiet=true ;;
-    --json) json=true ;;
+    --format=*) format="${arg#*=}" ;;
+    --json) format=json ;;
     --color) use_color=always ;;
     --no-color) use_color=never ;;
     *) dir="$arg" ;;
   esac
 done
+# Backward compat: treat json format as structured output (suppress info)
+json=false
+if [ "$format" = "json" ] || [ "$format" = "csv" ] || [ "$format" = "kv" ]; then
+  json=true  # reuse existing $json flag to suppress info output
+fi
 cd "$dir"
 
 # --- Color setup ---
@@ -341,15 +349,15 @@ fi
 
 # --- Summary ---
 
-if [ "$json" = true ]; then
-  # Build JSON output
-  local_result="passed"
-  if [ $failed -gt 0 ]; then
-    local_result="failed"
-  elif [ $passed -eq 0 ] && [ ${#config_commands[@]} -eq 0 ]; then
-    local_result="no_checks"
-  fi
+# Determine result
+local_result="passed"
+if [ $failed -gt 0 ]; then
+  local_result="failed"
+elif [ $passed -eq 0 ] && [ ${#config_commands[@]} -eq 0 ]; then
+  local_result="no_checks"
+fi
 
+if [ "$format" = "json" ]; then
   # Build checks array
   checks_json=""
   for item in "${json_checks[@]}"; do
@@ -367,6 +375,32 @@ if [ "$json" = true ]; then
   exit 0
 fi
 
+if [ "$format" = "csv" ]; then
+  echo "name,status"
+  for item in "${json_checks[@]}"; do
+    n=$(echo "$item" | sed 's/.*"name":"\([^"]*\)".*/\1/')
+    s=$(echo "$item" | sed 's/.*"status":"\([^"]*\)".*/\1/')
+    echo "$n,$s"
+  done
+  [ $failed -gt 0 ] && exit 1
+  exit 0
+fi
+
+if [ "$format" = "kv" ]; then
+  echo "result=$local_result"
+  echo "passed=$passed"
+  echo "failed=$failed"
+  echo "skipped=$skipped"
+  for item in "${json_checks[@]}"; do
+    n=$(echo "$item" | sed 's/.*"name":"\([^"]*\)".*/\1/')
+    s=$(echo "$item" | sed 's/.*"status":"\([^"]*\)".*/\1/')
+    echo "check_${n// /_}=$s"
+  done
+  [ $failed -gt 0 ] && exit 1
+  exit 0
+fi
+
+# Default: table format
 info ""
 info "${CYAN}=== Check Summary ===${RESET}"
 info "  Passed:  $passed"
