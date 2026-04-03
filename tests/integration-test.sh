@@ -743,6 +743,80 @@ fi
 rm -rf "$DASH_DIR"
 echo ""
 
+# --- Step 17: lint-workflows.sh --format ---
+echo "--- Step 17: lint-workflows.sh --format ---"
+
+# lint-workflows.sh needs a .github/workflows dir; create one in WORK_DIR
+mkdir -p "$WORK_DIR/.github/workflows"
+cat > "$WORK_DIR/.github/workflows/test.yml" <<'YML'
+name: Test
+on: push
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "test"
+YML
+
+lwf_json=$("$PROJECT_DIR/scripts/lint-workflows.sh" --format=json "$WORK_DIR" 2>&1 || true)
+if echo "$lwf_json" | grep -q '"files_checked"'; then
+  pass "lint-workflows.sh --format=json has files_checked field"
+else
+  fail "lint-workflows.sh --format=json missing files_checked field"
+fi
+
+lwf_csv=$("$PROJECT_DIR/scripts/lint-workflows.sh" --format=csv "$WORK_DIR" 2>&1 || true)
+# CSV should have header or be empty (no errors found = no rows beyond header attempt)
+if echo "$lwf_csv" | head -1 | grep -q 'file,severity,message'; then
+  pass "lint-workflows.sh --format=csv has correct header"
+else
+  fail "lint-workflows.sh --format=csv missing header"
+fi
+
+lwf_kv=$("$PROJECT_DIR/scripts/lint-workflows.sh" --format=kv "$WORK_DIR" 2>&1 || true)
+if echo "$lwf_kv" | grep -q 'files_checked='; then
+  pass "lint-workflows.sh --format=kv contains files_checked key"
+else
+  fail "lint-workflows.sh --format=kv missing files_checked key"
+fi
+
+lwf_json_alias=$("$PROJECT_DIR/scripts/lint-workflows.sh" --json "$WORK_DIR" 2>&1 || true)
+if echo "$lwf_json_alias" | grep -q '"files_checked"'; then
+  pass "lint-workflows.sh --json alias produces JSON"
+else
+  fail "lint-workflows.sh --json alias does not produce JSON"
+fi
+
+rm -rf "$WORK_DIR/.github/workflows"
+echo ""
+
+# --- Step 18: rollback.sh --format (dry-run only) ---
+echo "--- Step 18: rollback.sh --format ---"
+
+# rollback.sh --dry-run --format needs a git repo with at least one commit
+rb_json=$(cd "$WORK_DIR" && "$PROJECT_DIR/scripts/rollback.sh" --dry-run --format=json 2>&1 || true)
+if echo "$rb_json" | grep -q '"result"'; then
+  pass "rollback.sh --format=json --dry-run has result field"
+else
+  fail "rollback.sh --format=json --dry-run missing result field"
+fi
+
+rb_csv=$(cd "$WORK_DIR" && "$PROJECT_DIR/scripts/rollback.sh" --dry-run --format=csv 2>&1 || true)
+if echo "$rb_csv" | head -1 | grep -q 'result,commit'; then
+  pass "rollback.sh --format=csv --dry-run has correct header"
+else
+  fail "rollback.sh --format=csv --dry-run missing header"
+fi
+
+rb_kv=$(cd "$WORK_DIR" && "$PROJECT_DIR/scripts/rollback.sh" --dry-run --format=kv 2>&1 || true)
+if echo "$rb_kv" | grep -q 'result='; then
+  pass "rollback.sh --format=kv --dry-run contains result key"
+else
+  fail "rollback.sh --format=kv --dry-run missing result key"
+fi
+echo ""
+
 # --- Summary ---
 
 echo "================================"

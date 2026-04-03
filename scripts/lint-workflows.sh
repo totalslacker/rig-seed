@@ -130,7 +130,7 @@ info "${CYAN}=== Workflow Lint ===${RESET}"
 info ""
 
 for wf in "${files[@]}"; do
-  ((checked++))
+  checked=$((checked + 1))
   wf_name=$(basename "$wf")
   info "${CYAN}--- $wf_name ---${RESET}"
 
