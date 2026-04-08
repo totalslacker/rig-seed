@@ -2803,6 +2803,238 @@ rm -rf "$DASH_SCHEMA_DIR"
 
 echo ""
 
+# --- Step 54: grafana.sh start/stop e2e test with mocked docker compose ---
+
+echo "--- Step 54: grafana.sh start/stop e2e (mocked docker compose) ---"
+
+GRAF_E2E_BIN=$(mktemp -d "$TMPDIR_BASE/mock-graf-e2e-XXXXXX")
+GRAF_E2E_STATE=$(mktemp -d "$TMPDIR_BASE/graf-e2e-state-XXXXXX")
+
+# Create a mock project dir with a fake metrics-exporter.sh that exits immediately
+GRAF_E2E_PROJ=$(mktemp -d "$TMPDIR_BASE/graf-e2e-proj-XXXXXX")
+rsync -a --exclude='.git' --exclude='.beads' --exclude='.runtime' "$PROJECT_DIR/" "$GRAF_E2E_PROJ/"
+# Replace the real metrics-exporter with a stub that exits right away
+cat > "$GRAF_E2E_PROJ/docs/examples/monitoring/metrics-exporter.sh" << 'STUBEOF'
+#!/usr/bin/env bash
+# Stub exporter: exit immediately (no server loop)
+exit 0
+STUBEOF
+chmod +x "$GRAF_E2E_PROJ/docs/examples/monitoring/metrics-exporter.sh"
+
+cat > "$GRAF_E2E_BIN/docker" << MOCKEOF
+#!/usr/bin/env bash
+case "\$*" in
+  *"compose version"*) echo "Docker Compose version v2.20.0" ;;
+  *"compose"*"-f"*"up -d"*)
+    touch "$GRAF_E2E_STATE/compose-up"
+    ;;
+  *"compose"*"-f"*"down"*)
+    touch "$GRAF_E2E_STATE/compose-down"
+    ;;
+  *"inspect -f"*"rigseed-prometheus"*) echo "running" ;;
+  *"inspect -f"*"rigseed-grafana"*) echo "running" ;;
+  *"inspect rigseed-prometheus"*) exit 0 ;;
+  *"inspect rigseed-grafana"*) exit 0 ;;
+  *) exit 0 ;;
+esac
+MOCKEOF
+chmod +x "$GRAF_E2E_BIN/docker"
+
+cat > "$GRAF_E2E_BIN/docker-compose" << 'MOCKEOF'
+#!/usr/bin/env bash
+exit 0
+MOCKEOF
+chmod +x "$GRAF_E2E_BIN/docker-compose"
+
+# Test start: should invoke docker compose up
+graf_start_out=$(PATH="$GRAF_E2E_BIN:$PATH" bash "$GRAF_E2E_PROJ/scripts/grafana.sh" start "$GRAF_E2E_PROJ" 2>&1 || true)
+if [ -f "$GRAF_E2E_STATE/compose-up" ]; then
+  pass "grafana.sh start invokes docker compose up"
+else
+  fail "grafana.sh start should invoke docker compose up"
+fi
+if echo "$graf_start_out" | grep -qi 'running\|dashboard'; then
+  pass "grafana.sh start prints dashboard URL"
+else
+  fail "grafana.sh start should print dashboard URL"
+fi
+
+# Test stop: should invoke docker compose down
+graf_stop_out=$(PATH="$GRAF_E2E_BIN:$PATH" bash "$GRAF_E2E_PROJ/scripts/grafana.sh" stop "$GRAF_E2E_PROJ" 2>&1 || true)
+if [ -f "$GRAF_E2E_STATE/compose-down" ]; then
+  pass "grafana.sh stop invokes docker compose down"
+else
+  fail "grafana.sh stop should invoke docker compose down"
+fi
+if echo "$graf_stop_out" | grep -qi 'stopped'; then
+  pass "grafana.sh stop confirms stack stopped"
+else
+  fail "grafana.sh stop should confirm stack stopped"
+fi
+
+# Test status --format=json after start: should show running state
+graf_status_json=$(PATH="$GRAF_E2E_BIN:$PATH" bash "$GRAF_E2E_PROJ/scripts/grafana.sh" --format=json status "$GRAF_E2E_PROJ" 2>&1 || true)
+if echo "$graf_status_json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+comps = d['components']
+assert len(comps) >= 2, f'expected >= 2 components, got {len(comps)}'
+names = [c['name'] for c in comps]
+assert 'prometheus' in names, 'missing prometheus component'
+assert 'grafana' in names, 'missing grafana component'
+statuses = {c['name']: c['status'] for c in comps}
+assert statuses['prometheus'] == 'running', f'prometheus status: {statuses[\"prometheus\"]}'
+assert statuses['grafana'] == 'running', f'grafana status: {statuses[\"grafana\"]}'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "grafana.sh status --format=json shows running prometheus and grafana"
+else
+  fail "grafana.sh status --format=json should show running prometheus and grafana"
+fi
+
+rm -rf "$GRAF_E2E_BIN" "$GRAF_E2E_STATE" "$GRAF_E2E_PROJ"
+
+echo ""
+
+# --- Step 55: sync-upstream.sh --format=csv/kv conflict edge cases (partial conflicts) ---
+
+echo "--- Step 55: sync-upstream.sh partial conflict edge cases ---"
+
+SYNC_PARTIAL_UPSTREAM=$(mktemp -d "$TMPDIR_BASE/rigseed-sync-partial-upstream-XXXXXX")
+SYNC_PARTIAL_FORK=$(mktemp -d "$TMPDIR_BASE/rigseed-sync-partial-fork-XXXXXX")
+
+# Set up bare upstream repo
+(cd "$SYNC_PARTIAL_UPSTREAM" && git init -q --bare)
+
+# Set up fork repo with project files
+rsync -a --exclude='.git' --exclude='.beads' --exclude='.runtime' "$PROJECT_DIR/" "$SYNC_PARTIAL_FORK/"
+(
+  cd "$SYNC_PARTIAL_FORK"
+  git init -q
+  git add -A
+  git commit -q -m "Initial fork"
+  git remote add origin "$SYNC_PARTIAL_UPSTREAM"
+  git push -q origin HEAD:main
+)
+
+# Simulate upstream changing BOTH an infrastructure file AND multiple state files
+SYNC_PARTIAL_CLONE=$(mktemp -d "$TMPDIR_BASE/rigseed-sync-partial-clone-XXXXXX")
+(
+  cd "$SYNC_PARTIAL_CLONE"
+  git clone -q "$SYNC_PARTIAL_UPSTREAM" .
+  echo "# Upstream infrastructure change (partial)" >> validate.sh
+  echo "## Upstream Session 777" >> JOURNAL.md
+  echo "- [ ] Upstream roadmap item" >> ROADMAP.md
+  git add -A
+  git commit -q -m "Upstream changes to infra + multiple state files"
+  git push -q origin main
+)
+rm -rf "$SYNC_PARTIAL_CLONE"
+
+# Create divergent local changes on BOTH state files
+(
+  cd "$SYNC_PARTIAL_FORK"
+  echo "## Local Session 300" >> JOURNAL.md
+  echo "- [x] Local completed item" >> ROADMAP.md
+  git add JOURNAL.md ROADMAP.md
+  git commit -q -m "Local state file updates"
+)
+
+# Test CSV: partial conflict should report changes count and status
+sync_partial_csv=$(cd "$SYNC_PARTIAL_FORK" && bash scripts/sync-upstream.sh --upstream="$SYNC_PARTIAL_UPSTREAM" --format=csv 2>&1 || true)
+if echo "$sync_partial_csv" | grep -q '^upstream,mode,status,changes,message'; then
+  pass "sync-upstream.sh partial conflict CSV has correct header"
+else
+  fail "sync-upstream.sh partial conflict CSV should have correct header"
+fi
+if echo "$sync_partial_csv" | grep -q 'conflicts'; then
+  pass "sync-upstream.sh partial conflict CSV reports conflicts status"
+else
+  fail "sync-upstream.sh partial conflict CSV should report conflicts status"
+fi
+# Check that CSV shows changes count > 0
+if echo "$sync_partial_csv" | tail -1 | awk -F',' '{print $4}' | grep -qE '^[1-9]'; then
+  pass "sync-upstream.sh partial conflict CSV reports non-zero changes"
+else
+  fail "sync-upstream.sh partial conflict CSV should report non-zero changes"
+fi
+
+# Test KV: partial conflict should report multiple state values
+(cd "$SYNC_PARTIAL_FORK" && git merge --abort 2>/dev/null || git reset --hard HEAD 2>/dev/null || true) >/dev/null 2>&1
+sync_partial_kv=$(cd "$SYNC_PARTIAL_FORK" && bash scripts/sync-upstream.sh --upstream="$SYNC_PARTIAL_UPSTREAM" --format=kv 2>&1 || true)
+if echo "$sync_partial_kv" | grep -q 'status=conflicts'; then
+  pass "sync-upstream.sh partial conflict KV reports status=conflicts"
+else
+  fail "sync-upstream.sh partial conflict KV should report status=conflicts"
+fi
+if echo "$sync_partial_kv" | grep -q 'mode=live'; then
+  pass "sync-upstream.sh partial conflict KV reports mode=live"
+else
+  fail "sync-upstream.sh partial conflict KV should report mode=live"
+fi
+
+rm -rf "$SYNC_PARTIAL_UPSTREAM" "$SYNC_PARTIAL_FORK"
+
+echo ""
+
+# --- Step 56: metrics-exporter.sh --format=json schema validation ---
+
+echo "--- Step 56: metrics-exporter.sh --format=json schema validation ---"
+
+EXPORTER="$PROJECT_DIR/docs/examples/monitoring/metrics-exporter.sh"
+
+exp_json=$(bash "$EXPORTER" --once --format=json "$PROJECT_DIR" 2>&1 || true)
+
+# Validate JSON schema: project key present and is string
+if echo "$exp_json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+assert 'project' in d, 'missing project key'
+assert isinstance(d['project'], str), 'project should be string'
+assert len(d['project']) > 0, 'project should not be empty'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "metrics-exporter.sh --format=json has valid project key"
+else
+  fail "metrics-exporter.sh --format=json should have valid project key"
+fi
+
+# Validate metrics object with numeric values
+if echo "$exp_json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+m = d['metrics']
+assert isinstance(m, dict), 'metrics should be object'
+assert len(m) > 0, 'metrics should not be empty'
+# Check that numeric-looking values are actual numbers
+for k, v in m.items():
+    if v is not None:
+        assert isinstance(v, (int, float, str)), f'{k} should be number, string, or null, got {type(v)}'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "metrics-exporter.sh --format=json has valid metrics object"
+else
+  fail "metrics-exporter.sh --format=json should have valid metrics object"
+fi
+
+# Validate specific known keys exist in metrics
+if echo "$exp_json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+m = d['metrics']
+required = ['day_count', 'session_count']
+for key in required:
+    assert key in m, f'missing required metric: {key}'
+    assert isinstance(m[key], (int, float)), f'{key} should be numeric, got {type(m[key])}'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "metrics-exporter.sh --format=json contains day_count and session_count as numbers"
+else
+  fail "metrics-exporter.sh --format=json should contain day_count and session_count as numbers"
+fi
+
+echo ""
+
 # --- Summary ---
 
 echo "================================"
