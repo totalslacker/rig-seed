@@ -221,3 +221,6 @@ Living document. Updated each evolution session. Items come from three sources:
 - [x] Add metrics.sh --plan --since --format=json schema validation tests (Day 19)
 - [x] Add check-evolve-state.sh edge case CSV/KV tests (no-changes CSV, partial-updates KV) (Day 19)
 - [x] Add quickstart.sh --check --verbose --format=csv/kv integration tests (Day 19)
+- [x] Add rollback.sh live (non-dry-run) rollback with --format integration tests (Day 20)
+- [x] Add quickstart.sh --check edge case tests (template failure, empty SPECS.md) (Day 20)
+- [x] Add dashboard.sh --format=json schema validation tests (Day 20)

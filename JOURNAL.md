@@ -4,6 +4,20 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Day 20 — Session 53 (2026-04-08)
+
+**Goal**: Fill remaining integration test gaps from NEXT_STEPS.md priority list.
+
+**What changed**:
+- Added 7 rollback.sh live (non-dry-run) rollback integration tests: JSON schema validation with status=success, file content actually reverted, Revert commit created, CSV header and success status, KV status and type keys
+- Added 4 quickstart.sh --check edge case tests: template validation failure in JSON/CSV/KV formats, nearly empty SPECS.md detection in JSON
+- Added 3 dashboard.sh --format=json schema validation tests: correct types and values for known project, roadmap percentage computation, multi-project array with correct length
+- Total integration tests: 196 (all passing)
+
+**Next Steps**: See NEXT_STEPS.md.
+
+---
+
 ## Day 19 — Session 52 (2026-04-07)
 
 **Goal**: Fill remaining integration test gaps from NEXT_STEPS.md priority list.
