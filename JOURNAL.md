@@ -4,6 +4,20 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Day 19 — Session 52 (2026-04-07)
+
+**Goal**: Fill remaining integration test gaps from NEXT_STEPS.md priority list.
+
+**What changed**:
+- Added 4 check-evolve-state.sh edge case tests: no-changes CSV header and empty rows, partial-updates KV per-file pass/fail and error count
+- Added 4 quickstart.sh --check --verbose --format=csv/kv tests: CSV header and SESSION_COUNT row, KV result/file entries and errors count
+- Cleaned up NEXT_STEPS.md: checked off 7 items already implemented (dashboard kv, rollback format, grafana csv/kv, lint-workflows format), added fresh priorities
+- Total integration tests: 182 (all passing)
+
+**Next Steps**: See NEXT_STEPS.md.
+
+---
+
 ## Day 19 — Session 51 (2026-04-07)
 
 **Goal**: Fill test coverage gaps from NEXT_STEPS.md priority list.

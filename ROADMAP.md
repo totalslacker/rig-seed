@@ -219,3 +219,5 @@ Living document. Updated each evolution session. Items come from three sources:
 - [x] Add validate.sh --verbose --format=csv/kv integration tests (Day 19)
 - [x] Add release.sh actual (non-dry-run) --format=json integration test (Day 19)
 - [x] Add metrics.sh --plan --since --format=json schema validation tests (Day 19)
+- [x] Add check-evolve-state.sh edge case CSV/KV tests (no-changes CSV, partial-updates KV) (Day 19)
+- [x] Add quickstart.sh --check --verbose --format=csv/kv integration tests (Day 19)
