@@ -258,8 +258,36 @@ if [ "$summary" = true ]; then
     roadmap_info="roadmap ${roadmap_checked}/${roadmap_total} (${pct}%)"
   else
     roadmap_info="roadmap n/a"
+    pct="n/a"
   fi
-  printf '%b\n' "Day ${BOLD}${day_count}${RESET} | Session ${BOLD}${session_counter}${RESET} | ${roadmap_info} | ${total_commits} commits | last: ${last_commit_date:-n/a}"
+  case "$format" in
+    json)
+      printf '{"day_count":%s,"session_counter":%s,"roadmap_checked":%s,"roadmap_unchecked":%s,"roadmap_total":%s' \
+        "$day_count" "$session_counter" "$roadmap_checked" "$roadmap_unchecked" "$roadmap_total"
+      if [ "$roadmap_total" -gt 0 ]; then
+        printf ',"roadmap_pct":%s' "$pct"
+      fi
+      printf ',"total_commits":%s,"last_commit_date":"%s"}\n' \
+        "$total_commits" "$(json_escape "${last_commit_date:-n/a}")"
+      ;;
+    csv)
+      echo "day_count,session_counter,roadmap_checked,roadmap_unchecked,roadmap_total,roadmap_pct,total_commits,last_commit_date"
+      echo "${day_count},${session_counter},${roadmap_checked},${roadmap_unchecked},${roadmap_total},${pct},${total_commits},${last_commit_date:-n/a}"
+      ;;
+    kv)
+      echo "day_count=${day_count}"
+      echo "session_counter=${session_counter}"
+      echo "roadmap_checked=${roadmap_checked}"
+      echo "roadmap_unchecked=${roadmap_unchecked}"
+      echo "roadmap_total=${roadmap_total}"
+      echo "roadmap_pct=${pct}"
+      echo "total_commits=${total_commits}"
+      echo "last_commit_date=${last_commit_date:-n/a}"
+      ;;
+    *)
+      printf '%b\n' "Day ${BOLD}${day_count}${RESET} | Session ${BOLD}${session_counter}${RESET} | ${roadmap_info} | ${total_commits} commits | last: ${last_commit_date:-n/a}"
+      ;;
+  esac
   return 0 2>/dev/null || exit 0
 fi
 
