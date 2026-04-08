@@ -2019,6 +2019,186 @@ fi
 
 echo ""
 
+# --- Step 42: sync-upstream.sh conflict resolution (divergent state files) ---
+
+echo "--- Step 42: sync-upstream.sh conflict resolution ---"
+
+SYNC_CONFLICT_UPSTREAM=$(mktemp -d "$TMPDIR_BASE/rigseed-sync-conflict-upstream-XXXXXX")
+SYNC_CONFLICT_FORK=$(mktemp -d "$TMPDIR_BASE/rigseed-sync-conflict-fork-XXXXXX")
+
+# Set up bare upstream repo
+(
+  cd "$SYNC_CONFLICT_UPSTREAM"
+  git init -q --bare
+)
+
+# Set up fork repo with project files
+rsync -a --exclude='.git' --exclude='.beads' --exclude='.runtime' "$PROJECT_DIR/" "$SYNC_CONFLICT_FORK/"
+(
+  cd "$SYNC_CONFLICT_FORK"
+  git init -q
+  git add -A
+  git commit -q -m "Initial fork"
+  git remote add origin "$SYNC_CONFLICT_UPSTREAM"
+  git push -q origin HEAD:main
+)
+
+# Simulate upstream changing both an infrastructure file AND a state file (JOURNAL.md)
+SYNC_CONFLICT_CLONE=$(mktemp -d "$TMPDIR_BASE/rigseed-sync-conflict-clone-XXXXXX")
+(
+  cd "$SYNC_CONFLICT_CLONE"
+  git clone -q "$SYNC_CONFLICT_UPSTREAM" .
+  echo "# Upstream infrastructure change" >> validate.sh
+  echo "## Upstream Session 999" >> JOURNAL.md
+  git add -A
+  git commit -q -m "Upstream changes including state file"
+  git push -q origin main
+)
+rm -rf "$SYNC_CONFLICT_CLONE"
+
+# Now modify the same state file locally (create divergent changes)
+(
+  cd "$SYNC_CONFLICT_FORK"
+  echo "## Local Session 100" >> JOURNAL.md
+  git add JOURNAL.md
+  git commit -q -m "Local journal update"
+)
+
+# Test 1: live sync should detect conflicts (exit 1) and mention manual resolution
+sync_conflict=$(cd "$SYNC_CONFLICT_FORK" && bash scripts/sync-upstream.sh --upstream="$SYNC_CONFLICT_UPSTREAM" --no-color 2>&1 || true)
+if echo "$sync_conflict" | grep -qi 'conflict\|manual resolution'; then
+  pass "sync-upstream.sh detects merge conflicts with divergent state files"
+else
+  fail "sync-upstream.sh should detect merge conflicts with divergent state files"
+fi
+
+# Test 2: JSON format should report conflicts status
+# Clean up from the failed merge first
+(cd "$SYNC_CONFLICT_FORK" && git merge --abort 2>/dev/null || git reset --hard HEAD 2>/dev/null || true) >/dev/null 2>&1
+sync_conflict_json=$(cd "$SYNC_CONFLICT_FORK" && bash scripts/sync-upstream.sh --upstream="$SYNC_CONFLICT_UPSTREAM" --format=json 2>&1 || true)
+# Extract only the JSON line (git merge messages may precede it on stderr)
+if echo "$sync_conflict_json" | grep '^{' | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+assert d['status'] == 'conflicts', f'status should be conflicts, got {d[\"status\"]}'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "sync-upstream.sh --format=json reports conflicts status"
+else
+  fail "sync-upstream.sh --format=json should report conflicts status"
+fi
+
+# Test 3: KV format should report conflicts
+(cd "$SYNC_CONFLICT_FORK" && git merge --abort 2>/dev/null || git reset --hard HEAD 2>/dev/null || true) >/dev/null 2>&1
+sync_conflict_kv=$(cd "$SYNC_CONFLICT_FORK" && bash scripts/sync-upstream.sh --upstream="$SYNC_CONFLICT_UPSTREAM" --format=kv 2>&1 || true)
+if echo "$sync_conflict_kv" | grep -q 'status=conflicts'; then
+  pass "sync-upstream.sh --format=kv reports conflicts status"
+else
+  fail "sync-upstream.sh --format=kv should report conflicts status"
+fi
+
+rm -rf "$SYNC_CONFLICT_UPSTREAM" "$SYNC_CONFLICT_FORK"
+
+echo ""
+
+# --- Step 43: validate.sh --verbose tests ---
+
+echo "--- Step 43: validate.sh --verbose ---"
+
+# Table: --verbose shows detailed state analysis
+v_verbose=$(bash "$PROJECT_DIR/validate.sh" --verbose --no-color "$PROJECT_DIR" 2>&1 || true)
+if echo "$v_verbose" | grep -qi 'Detail.*lines\|Detail.*sections\|Detail.*entries'; then
+  pass "validate.sh --verbose shows detailed state file info"
+else
+  fail "validate.sh --verbose should show detailed state file info"
+fi
+if echo "$v_verbose" | grep -qi 'Detail.*done.*remaining'; then
+  pass "validate.sh --verbose shows ROADMAP detail"
+else
+  fail "validate.sh --verbose should show ROADMAP detail"
+fi
+if echo "$v_verbose" | grep -qi 'Detail.*open.*done'; then
+  pass "validate.sh --verbose shows NEXT_STEPS detail"
+else
+  fail "validate.sh --verbose should show NEXT_STEPS detail"
+fi
+
+# JSON: --verbose --format=json should include verbose detail in messages
+v_verbose_json=$(bash "$PROJECT_DIR/validate.sh" --verbose --format=json "$PROJECT_DIR" 2>&1 || true)
+if echo "$v_verbose_json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+checks = d['checks']
+detail_checks = [c for c in checks if 'sections' in c.get('message', '') or 'lines' in c.get('message', '') or 'entries' in c.get('message', '') or 'open' in c.get('message', '')]
+assert len(detail_checks) >= 3, f'expected >= 3 verbose detail checks, got {len(detail_checks)}'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "validate.sh --verbose --format=json includes verbose detail in messages"
+else
+  fail "validate.sh --verbose --format=json should include verbose detail in messages"
+fi
+
+# Without --verbose, messages should NOT contain detail
+v_normal_json=$(bash "$PROJECT_DIR/validate.sh" --format=json "$PROJECT_DIR" 2>&1 || true)
+if echo "$v_normal_json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+checks = d['checks']
+detail_checks = [c for c in checks if 'sections' in c.get('message', '') or 'entries' in c.get('message', '')]
+assert len(detail_checks) == 0, f'expected 0 verbose detail checks without --verbose, got {len(detail_checks)}'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "validate.sh --format=json without --verbose has no detail"
+else
+  fail "validate.sh --format=json without --verbose should have no detail"
+fi
+
+echo ""
+
+# --- Step 44: metrics.sh --summary --format=json schema validation ---
+
+echo "--- Step 44: metrics.sh --summary --format=json schema validation ---"
+
+m_summary_json=$(bash "$PROJECT_DIR/metrics.sh" --summary --format=json "$PROJECT_DIR" 2>&1 || true)
+if echo "$m_summary_json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+# Validate required keys and types
+required_int = ['day_count', 'session_counter', 'roadmap_checked', 'roadmap_unchecked', 'roadmap_total', 'total_commits']
+for key in required_int:
+    assert key in d, f'missing required key: {key}'
+    assert isinstance(d[key], int), f'{key} should be int, got {type(d[key]).__name__}'
+assert 'last_commit_date' in d, 'missing last_commit_date'
+assert isinstance(d['last_commit_date'], str), 'last_commit_date should be string'
+# roadmap_pct should exist when roadmap_total > 0
+if d['roadmap_total'] > 0:
+    assert 'roadmap_pct' in d, 'roadmap_pct should exist when roadmap_total > 0'
+    assert isinstance(d['roadmap_pct'], int), 'roadmap_pct should be int'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "metrics.sh --summary --format=json has valid schema (required keys + types)"
+else
+  fail "metrics.sh --summary --format=json should have valid schema"
+fi
+
+# Test that values are reasonable
+if echo "$m_summary_json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+assert d['day_count'] > 0, 'day_count should be > 0'
+assert d['session_counter'] > 0, 'session_counter should be > 0'
+assert d['roadmap_checked'] >= 0, 'roadmap_checked should be >= 0'
+assert d['total_commits'] > 0, 'total_commits should be > 0'
+assert d['last_commit_date'] != 'n/a', 'last_commit_date should not be n/a'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "metrics.sh --summary --format=json has reasonable values"
+else
+  fail "metrics.sh --summary --format=json should have reasonable values"
+fi
+
+echo ""
+
 # --- Summary ---
 
 echo "================================"
