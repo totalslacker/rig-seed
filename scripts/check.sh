@@ -95,6 +95,9 @@ setup_colors() {
 }
 setup_colors
 
+# shellcheck source=scripts/lib.sh
+source "$(cd "$(dirname "$0")" && pwd)/lib.sh"
+
 passed=0
 failed=0
 skipped=0
@@ -376,7 +379,7 @@ if [ "$format" = "json" ]; then
   # Build checks array
   checks_json=""
   for i in "${!check_names[@]}"; do
-    entry="{\"name\":\"${check_names[$i]}\",\"status\":\"${check_statuses[$i]}\"}"
+    entry="{\"name\":\"$(json_escape "${check_names[$i]}")\",\"status\":\"$(json_escape "${check_statuses[$i]}")\"}"
     if [ -n "$checks_json" ]; then
       checks_json="$checks_json,$entry"
     else
@@ -385,12 +388,12 @@ if [ "$format" = "json" ]; then
   done
 
   printf '{"result":"%s","passed":%d,"failed":%d,"skipped":%d,"checks":[%s]}\n' \
-    "$local_result" "$passed" "$failed" "$skipped" "$checks_json"
+    "$(json_escape "$local_result")" "$passed" "$failed" "$skipped" "$checks_json"
 
 elif [ "$format" = "csv" ]; then
   echo "name,status"
   for i in "${!check_names[@]}"; do
-    printf '%s,%s\n' "${check_names[$i]}" "${check_statuses[$i]}"
+    printf '%s,%s\n' "$(csv_escape "${check_names[$i]}")" "$(csv_escape "${check_statuses[$i]}")"
   done
   echo ""
   echo "result,$local_result"

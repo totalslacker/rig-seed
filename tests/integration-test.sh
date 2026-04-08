@@ -1017,6 +1017,7 @@ if command -v python3 &>/dev/null; then
   mkdir -p "$CK_DIR/.evolve" "$CK_DIR/scripts" "$CK_DIR/tests"
   cp "$PROJECT_DIR/.evolve/config.toml" "$CK_DIR/.evolve/config.toml"
   cp "$PROJECT_DIR/scripts/check.sh" "$CK_DIR/scripts/check.sh"
+  cp "$PROJECT_DIR/scripts/lib.sh" "$CK_DIR/scripts/lib.sh"
   chmod +x "$CK_DIR/scripts/check.sh"
 
   # Create a Python project with pyproject.toml and a passing test

@@ -158,6 +158,9 @@ setup_colors() {
 }
 setup_colors
 
+# shellcheck source=scripts/lib.sh
+source "$(cd "$(dirname "$0")" && pwd)/lib.sh"
+
 # --- Auto-discover rig-seed projects ---
 if [ -n "$projects_dir" ]; then
   if [ ! -d "$projects_dir" ]; then
@@ -270,15 +273,15 @@ gather_metrics() {
   case "$format" in
     json)
       printf '{"name":"%s","day_count":%d,"sessions":%d,"commits":%d,"roadmap_done":%d,"roadmap_total":%d,"roadmap_pct":%d,"learnings":%d,"last_commit":"%s","velocity":"%s"}' \
-        "$name" "$day_count" "$session_counter" "$total_commits" \
+        "$(json_escape "$name")" "$day_count" "$session_counter" "$total_commits" \
         "$roadmap_done" "$roadmap_total" "$roadmap_pct" "$learnings" \
-        "$last_commit" "$sessions_per_week"
+        "$(json_escape "$last_commit")" "$(json_escape "$sessions_per_week")"
       ;;
     csv)
       printf '%s,%d,%d,%d,%d,%d,%d,%d,%s,%s\n' \
-        "$name" "$day_count" "$session_counter" "$total_commits" \
+        "$(csv_escape "$name")" "$day_count" "$session_counter" "$total_commits" \
         "$roadmap_done" "$roadmap_total" "$roadmap_pct" "$learnings" \
-        "$last_commit" "$sessions_per_week"
+        "$(csv_escape "$last_commit")" "$(csv_escape "$sessions_per_week")"
       ;;
     kv)
       echo "project=$name"

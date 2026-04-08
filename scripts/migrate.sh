@@ -581,6 +581,15 @@ if [ ! -f "$dir/scripts/lib.sh" ]; then
   printf '  %bNOTE:%b' "$YELLOW" "$RESET"; echo " scripts/lib.sh missing (added Day 17)"
   echo "        Shared shell library with json_escape/csv_escape — reduces duplication."
 fi
+# Day 18: check.sh and dashboard.sh should source lib.sh for safe JSON/CSV escaping
+if [ -f "$dir/scripts/check.sh" ] && ! grep -q 'lib\.sh' "$dir/scripts/check.sh" 2>/dev/null; then
+  printf '  %bNOTE:%b' "$YELLOW" "$RESET"; echo " scripts/check.sh not sourcing lib.sh (added Day 18)"
+  echo "        JSON/CSV output needs json_escape/csv_escape for safe string handling."
+fi
+if [ -f "$dir/scripts/dashboard.sh" ] && ! grep -q 'lib\.sh' "$dir/scripts/dashboard.sh" 2>/dev/null; then
+  printf '  %bNOTE:%b' "$YELLOW" "$RESET"; echo " scripts/dashboard.sh not sourcing lib.sh (added Day 18)"
+  echo "        JSON/CSV output needs json_escape/csv_escape for safe string handling."
+fi
 echo "  ok"
 echo ""
 
