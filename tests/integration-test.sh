@@ -2199,6 +2199,122 @@ fi
 
 echo ""
 
+# --- Step 45: sync-upstream.sh conflict resolution CSV format ---
+
+echo "--- Step 45: sync-upstream.sh conflict --format=csv ---"
+
+SYNC_CSV_UPSTREAM=$(mktemp -d "$TMPDIR_BASE/rigseed-sync-csv-upstream-XXXXXX")
+SYNC_CSV_FORK=$(mktemp -d "$TMPDIR_BASE/rigseed-sync-csv-fork-XXXXXX")
+
+# Set up bare upstream repo
+(
+  cd "$SYNC_CSV_UPSTREAM"
+  git init -q --bare
+)
+
+# Set up fork repo with project files
+rsync -a --exclude='.git' --exclude='.beads' --exclude='.runtime' "$PROJECT_DIR/" "$SYNC_CSV_FORK/"
+(
+  cd "$SYNC_CSV_FORK"
+  git init -q
+  git add -A
+  git commit -q -m "Initial fork"
+  git remote add origin "$SYNC_CSV_UPSTREAM"
+  git push -q origin HEAD:main
+)
+
+# Simulate upstream changing a state file
+SYNC_CSV_CLONE=$(mktemp -d "$TMPDIR_BASE/rigseed-sync-csv-clone-XXXXXX")
+(
+  cd "$SYNC_CSV_CLONE"
+  git clone -q "$SYNC_CSV_UPSTREAM" .
+  echo "# Upstream infra change" >> validate.sh
+  echo "## Upstream Session 888" >> JOURNAL.md
+  git add -A
+  git commit -q -m "Upstream changes"
+  git push -q origin main
+)
+rm -rf "$SYNC_CSV_CLONE"
+
+# Create divergent local change on same state file
+(
+  cd "$SYNC_CSV_FORK"
+  echo "## Local Session 200" >> JOURNAL.md
+  git add JOURNAL.md
+  git commit -q -m "Local journal update"
+)
+
+# Test: CSV format should report conflicts status with proper header
+(cd "$SYNC_CSV_FORK" && git merge --abort 2>/dev/null || git reset --hard HEAD 2>/dev/null || true) >/dev/null 2>&1
+sync_conflict_csv=$(cd "$SYNC_CSV_FORK" && bash scripts/sync-upstream.sh --upstream="$SYNC_CSV_UPSTREAM" --format=csv 2>&1 || true)
+if echo "$sync_conflict_csv" | grep -q '^upstream,mode,status,changes,message'; then
+  pass "sync-upstream.sh --format=csv conflict output has CSV header"
+else
+  fail "sync-upstream.sh --format=csv conflict output should have CSV header"
+fi
+if echo "$sync_conflict_csv" | grep -q 'conflicts'; then
+  pass "sync-upstream.sh --format=csv reports conflicts status"
+else
+  fail "sync-upstream.sh --format=csv should report conflicts status"
+fi
+
+rm -rf "$SYNC_CSV_UPSTREAM" "$SYNC_CSV_FORK"
+
+echo ""
+
+# --- Step 46: migrate.sh validate.sh --verbose detection test ---
+
+echo "--- Step 46: migrate.sh validate.sh --verbose detection ---"
+
+DETECT_VERBOSE_DIR=$(mktemp -d "$TMPDIR_BASE/rigseed-detect-verbose-XXXXXX")
+cp -r "$WORK_DIR"/* "$WORK_DIR"/.* "$DETECT_VERBOSE_DIR/" 2>/dev/null || true
+# Remove --verbose from validate.sh to simulate missing Day 19 feature
+if [ -f "$DETECT_VERBOSE_DIR/validate.sh" ]; then
+  sed -i '/--verbose\|-v)/d' "$DETECT_VERBOSE_DIR/validate.sh"
+fi
+detect_verbose_output=$("$WORK_DIR/scripts/migrate.sh" --dry-run --no-color "$DETECT_VERBOSE_DIR" 2>&1)
+if echo "$detect_verbose_output" | grep -q "validate.sh missing --verbose"; then
+  pass "migrate.sh detects missing --verbose in validate.sh (Day 19)"
+else
+  fail "migrate.sh should detect missing --verbose flag in validate.sh"
+fi
+
+rm -rf "$DETECT_VERBOSE_DIR"
+
+echo ""
+
+# --- Step 47: health-check.sh --verbose --format=csv/kv tests ---
+
+echo "--- Step 47: health-check.sh --verbose --format=csv/kv ---"
+
+# CSV: --verbose should include detail in message column
+hc_verbose_csv=$(bash "$PROJECT_DIR/health-check.sh" --verbose --format=csv "$PROJECT_DIR" 2>&1 || true)
+if echo "$hc_verbose_csv" | grep -q '^category,status,message'; then
+  pass "health-check.sh --verbose --format=csv has CSV header"
+else
+  fail "health-check.sh --verbose --format=csv should have CSV header"
+fi
+if echo "$hc_verbose_csv" | grep -qi 'sections\|lines\|latest\|entries'; then
+  pass "health-check.sh --verbose --format=csv includes verbose detail in messages"
+else
+  fail "health-check.sh --verbose --format=csv should include verbose detail in messages"
+fi
+
+# KV: --verbose should include detail in check values
+hc_verbose_kv=$(bash "$PROJECT_DIR/health-check.sh" --verbose --format=kv "$PROJECT_DIR" 2>&1 || true)
+if echo "$hc_verbose_kv" | grep -q '^project='; then
+  pass "health-check.sh --verbose --format=kv has project key"
+else
+  fail "health-check.sh --verbose --format=kv should have project key"
+fi
+if echo "$hc_verbose_kv" | grep -qi 'sections\|lines\|latest\|entries'; then
+  pass "health-check.sh --verbose --format=kv includes verbose detail"
+else
+  fail "health-check.sh --verbose --format=kv should include verbose detail"
+fi
+
+echo ""
+
 # --- Summary ---
 
 echo "================================"
