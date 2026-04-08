@@ -240,3 +240,6 @@ Living document. Updated each evolution session. Items come from three sources:
 - [x] Add validate.sh --lint --fix e2e tests with real shellcheck warning (Day 21)
 - [x] Add recap.sh --format=json schema validation tests (Day 21)
 - [x] Add check.sh JSON escaping tests with special characters in commands (Day 21)
+- [x] Add grafana.sh --port custom port propagation tests (Day 21)
+- [x] Add sync-upstream.sh live merge (non-conflict) with --format=json/csv/kv tests (Day 21)
+- [x] Add metrics-exporter.sh Prometheus format negative test for non-numeric values (Day 21)

@@ -4,21 +4,24 @@ Updated at the end of each evolution session. Read at the start of the next.
 
 ## Priority (do these first)
 
-- [ ] Add grafana.sh --port custom port test (verify non-default port propagates)
-- [ ] Add sync-upstream.sh live merge (non-conflict) with --format=json/csv/kv tests
-- [ ] Add metrics-exporter.sh Prometheus format negative test (verify non-numeric values skipped)
-
-## Suggested (consider these)
-
 - [ ] Add validate.sh --lint convention checks for missing RESULT line test
 - [ ] Add dashboard.sh --projects auto-discovery with mixed valid/invalid dirs test
 - [ ] Add metrics.sh --watch mode timeout and multi-cycle test
+
+## Suggested (consider these)
+
+- [ ] Add release.sh --format=csv/kv with actual tag creation test
+- [ ] Add health-check.sh --verbose --watch combined mode test
+- [ ] Add quickstart.sh --check --verbose edge case (missing IDENTITY.md) test
 
 ## Deferred (not now, but don't forget)
 
 - [x] Add validate.sh --lint --fix e2e test with real shellcheck warning (done Day 21 Session 59)
 - [x] Add recap.sh --format=json schema validation test (done Day 21 Session 59)
 - [x] Add check.sh JSON escaping test with special characters (done Day 21 Session 59)
+- [x] Add grafana.sh --port custom port test (done Day 21 Session 60)
+- [x] Add sync-upstream.sh live merge (non-conflict) with --format=json/csv/kv tests (done Day 21 Session 60)
+- [x] Add metrics-exporter.sh Prometheus format negative test (done Day 21 Session 60)
 - [x] Add grafana.sh status with dead exporter PID detection test (done Day 21 Session 58)
 - [x] Add sync-upstream.sh dry-run with partial changes detection test (done Day 21 Session 58)
 - [x] Add check.sh multi-build-system detection test (done Day 21 Session 58)

@@ -4,6 +4,20 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Day 21 — Session 60 (2026-04-08)
+
+**Goal**: Fill remaining NEXT_STEPS.md priority test gaps.
+
+**What changed**:
+- Added 4 grafana.sh --port custom port propagation tests: JSON grafana_port field reflects non-default port, JSON grafana URL contains custom port, KV grafana_port key, CSV grafana row URL
+- Added 5 sync-upstream.sh live merge (non-conflict) with --format tests: JSON reports mode=live/status=synced with changes count, CSV has correct header and reports live/synced, KV reports mode=live and status=synced
+- Added 6 metrics-exporter.sh Prometheus format negative tests: numeric day_count emitted, date values skipped, n/a skipped, empty values skipped, %-suffixed values skipped (non-numeric), plain numeric age_days emitted
+- Total integration tests: 277 (all passing)
+
+**Next Steps**: See NEXT_STEPS.md.
+
+---
+
 ## Day 21 — Session 59 (2026-04-08)
 
 **Goal**: Fill integration test gaps from NEXT_STEPS.md priority list.
