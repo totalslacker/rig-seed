@@ -9,10 +9,10 @@ Evolution session log. Most recent entry first. Never delete entries.
 **Goal**: Fill test coverage gaps from NEXT_STEPS.md priority list.
 
 **What changed**:
-- Added sync-upstream.sh conflict resolution test for `--format=csv` output: verifies CSV header and `conflicts` status on divergent state files
-- Added migrate.sh integration test for validate.sh `--verbose` flag detection: strips `--verbose` from validate.sh and verifies migrate.sh detects the missing feature
-- Added health-check.sh `--verbose --format=csv` and `--verbose --format=kv` integration tests: verifies verbose detail (sections, lines, latest, entries) appears in structured output messages
-- Total integration tests: 164 (all passing)
+- Added 5 validate.sh `--verbose --format=csv/kv` integration tests: CSV header, verbose detail in messages, no detail without --verbose, KV errors and result keys
+- Added 2 release.sh actual (non-dry-run) `--format=json` integration tests: valid JSON with status=released, tag creation verified against bare remote
+- Added 3 metrics.sh `--plan --since --format=json` schema validation tests: plan object structure (roadmap_unchecked, next_steps as lists), recent_goals array presence, correct value types
+- Total integration tests: 174 (all passing)
 
 **Next Steps**: See NEXT_STEPS.md.
 

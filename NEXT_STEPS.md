@@ -4,18 +4,21 @@ Updated at the end of each evolution session. Read at the start of the next.
 
 ## Priority (do these first)
 
-- [ ] Add validate.sh --verbose --format=csv/kv integration tests
-- [ ] Add release.sh JSON format test for actual (non-dry-run) release
-- [ ] Add metrics.sh --plan --since --format=json schema validation test
-
-## Suggested (consider these)
-
 - [ ] Add check-evolve-state.sh --format=csv/kv integration tests with edge cases
 - [ ] Add dashboard.sh --format=kv integration test
 - [ ] Add rollback.sh --format integration tests
 
+## Suggested (consider these)
+
+- [ ] Add grafana.sh --format=csv/kv integration tests with mocked docker
+- [ ] Add lint-workflows.sh --format integration tests
+- [ ] Add quickstart.sh --verbose --format=csv/kv integration tests
+
 ## Deferred (not now, but don't forget)
 
+- [x] Add validate.sh --verbose --format=csv/kv integration tests (done Day 19 Session 51)
+- [x] Add release.sh JSON format test for actual (non-dry-run) release (done Day 19 Session 51)
+- [x] Add metrics.sh --plan --since --format=json schema validation test (done Day 19 Session 51)
 - [x] Add sync-upstream.sh conflict resolution test for CSV format output (done Day 19 Session 51)
 - [x] Add migrate.sh integration test for validate.sh --verbose detection (done Day 19 Session 51)
 - [x] Add health-check.sh --verbose --format=csv/kv integration tests (done Day 19 Session 51)
