@@ -2279,6 +2279,17 @@ else
   fail "migrate.sh should detect missing --verbose flag in validate.sh"
 fi
 
+# Also remove --verbose from health-check.sh
+if [ -f "$DETECT_VERBOSE_DIR/health-check.sh" ]; then
+  sed -i '/--verbose\|-v)/d' "$DETECT_VERBOSE_DIR/health-check.sh"
+fi
+migrate_hc_output=$("$WORK_DIR/scripts/migrate.sh" --dry-run --no-color "$DETECT_VERBOSE_DIR" 2>&1)
+if echo "$migrate_hc_output" | grep -q "health-check.sh missing --verbose"; then
+  pass "migrate.sh detects missing health-check.sh --verbose flag (Day 19)"
+else
+  fail "migrate.sh should detect missing health-check.sh --verbose flag"
+fi
+
 rm -rf "$DETECT_VERBOSE_DIR"
 
 echo ""
@@ -2311,6 +2322,126 @@ if echo "$hc_verbose_kv" | grep -qi 'sections\|lines\|latest\|entries'; then
   pass "health-check.sh --verbose --format=kv includes verbose detail"
 else
   fail "health-check.sh --verbose --format=kv should include verbose detail"
+fi
+
+echo ""
+
+# --- Step 48: validate.sh --verbose --format=csv/kv ---
+
+echo "--- Step 48: validate.sh --verbose --format=csv/kv ---"
+
+# CSV format with verbose
+v_verbose_csv=$(bash "$PROJECT_DIR/validate.sh" --verbose --format=csv "$PROJECT_DIR" 2>&1 || true)
+if echo "$v_verbose_csv" | head -1 | grep -q 'category,file,status,message'; then
+  pass "validate.sh --verbose --format=csv has correct CSV header"
+else
+  fail "validate.sh --verbose --format=csv should have category,file,status,message header"
+fi
+
+if echo "$v_verbose_csv" | grep -qi 'sections\|lines\|entries\|open'; then
+  pass "validate.sh --verbose --format=csv includes verbose detail in messages"
+else
+  fail "validate.sh --verbose --format=csv should include verbose detail in messages"
+fi
+
+# KV format with verbose
+v_verbose_kv=$(bash "$PROJECT_DIR/validate.sh" --verbose --format=kv "$PROJECT_DIR" 2>&1 || true)
+if echo "$v_verbose_kv" | grep -q '^errors='; then
+  pass "validate.sh --verbose --format=kv includes errors key"
+else
+  fail "validate.sh --verbose --format=kv should include errors key"
+fi
+
+if echo "$v_verbose_kv" | grep -q '^result='; then
+  pass "validate.sh --verbose --format=kv includes result key"
+else
+  fail "validate.sh --verbose --format=kv should include result key"
+fi
+
+echo ""
+
+# --- Step 49: release.sh non-dry-run --format=json ---
+
+echo "--- Step 49: release.sh non-dry-run --format=json ---"
+
+RELEASE_DIR=$(mktemp -d "$TMPDIR_BASE/rigseed-release-live-XXXXXX")
+RELEASE_BARE=$(mktemp -d "$TMPDIR_BASE/rigseed-release-bare-XXXXXX")
+git init -q --bare "$RELEASE_BARE"
+git clone -q "$RELEASE_BARE" "$RELEASE_DIR"
+rsync -a --exclude='.git' --exclude='.beads' --exclude='.runtime' "$WORK_DIR/" "$RELEASE_DIR/"
+(cd "$RELEASE_DIR" && git add -A && git commit -q -m "initial" && git push -q origin HEAD)
+
+# Tag v0.1.0 so release can bump from it
+(cd "$RELEASE_DIR" && git tag v0.1.0 && git push -q origin v0.1.0)
+
+# Do a non-dry-run release with JSON format
+release_json_raw=$(cd "$RELEASE_DIR" && bash scripts/release.sh --format=json 2>&1 || true)
+# Extract just the JSON line (git push output may precede it)
+release_json=$(echo "$release_json_raw" | grep '^{')
+if echo "$release_json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+assert d['dry_run'] == False, 'should not be dry run'
+assert d['status'] == 'released', f'status should be released, got {d[\"status\"]}'
+assert d['new_tag'].startswith('v'), 'new_tag should start with v'
+assert d['latest_tag'] == 'v0.1.0', f'latest_tag should be v0.1.0, got {d[\"latest_tag\"]}'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "release.sh non-dry-run --format=json has correct schema and values"
+else
+  fail "release.sh non-dry-run --format=json should have correct schema and values"
+fi
+
+# Verify the tag was actually created
+if (cd "$RELEASE_DIR" && git tag | grep -q 'v0.1.1'); then
+  pass "release.sh non-dry-run actually creates the tag"
+else
+  fail "release.sh non-dry-run should actually create the tag"
+fi
+
+rm -rf "$RELEASE_DIR" "$RELEASE_BARE"
+echo ""
+
+# --- Step 50: metrics.sh --plan --since --format=json schema validation ---
+
+echo "--- Step 50: metrics.sh --plan --since --format=json schema validation ---"
+
+plan_since_json=$("$PROJECT_DIR/metrics.sh" --plan --since 2 --format=json --no-color "$PROJECT_DIR" 2>/dev/null || true)
+if echo "$plan_since_json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+assert 'plan' in d, 'missing plan object'
+plan = d['plan']
+assert 'roadmap_unchecked' in plan, 'missing roadmap_unchecked'
+assert 'next_steps' in plan, 'missing next_steps'
+assert isinstance(plan['roadmap_unchecked'], list), 'roadmap_unchecked should be list'
+assert isinstance(plan['next_steps'], list), 'next_steps should be list'
+if len(plan['next_steps']) > 0:
+    step = plan['next_steps'][0]
+    assert 'status' in step, 'next_step missing status'
+    assert 'item' in step, 'next_step missing item'
+assert 'recent_goals' in plan, 'missing recent_goals with --since'
+assert isinstance(plan['recent_goals'], list), 'recent_goals should be list'
+assert len(plan['recent_goals']) > 0, 'recent_goals should not be empty with --since 2'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "metrics.sh --plan --since --format=json has valid plan schema"
+else
+  fail "metrics.sh --plan --since --format=json should have valid plan schema"
+fi
+
+# Validate that recent_goals contain session info
+if echo "$plan_since_json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+goals = d['plan']['recent_goals']
+for g in goals:
+    assert 'Day' in g or 'Session' in g, f'goal should reference Day/Session: {g}'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "metrics.sh --plan --since --format=json recent_goals contain session references"
+else
+  fail "metrics.sh --plan --since --format=json recent_goals should contain session references"
 fi
 
 echo ""
