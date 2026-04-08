@@ -6,6 +6,7 @@
 #
 # Options:
 #   -q, --quiet              Only print problems and the final result
+#   -v, --verbose            Show detailed state file analysis
 #   -w, --watch [interval]   Re-run continuously (default: 60s)
 #   --format=FORMAT          Output format: table (default), csv, json, kv
 #   --json                   Alias for --format=json
@@ -26,6 +27,7 @@ set -euo pipefail
 # --- Options ---
 
 quiet=false
+verbose=false
 watch=false
 watch_interval=60
 use_color=auto
@@ -41,6 +43,7 @@ while [ $# -gt 0 ]; do
       echo ""
       echo "Options:"
       echo "  -q, --quiet              Only print problems and the final result"
+      echo "  -v, --verbose            Show detailed state file analysis"
       echo "  -w, --watch [seconds]    Re-run continuously (default: 60s)"
       echo "  --format=FORMAT          Output format: table (default), csv, json, kv"
       echo "  --json                   Alias for --format=json"
@@ -63,6 +66,10 @@ while [ $# -gt 0 ]; do
       ;;
     -q|--quiet)
       quiet=true
+      shift
+      ;;
+    -v|--verbose)
+      verbose=true
       shift
       ;;
     -w|--watch)
@@ -214,8 +221,15 @@ run_health_check() {
       warn "JOURNAL.md has no session entries (no '## Day' or '## Session' headers found)"
       add_result "journal" "warn" "No session entries found"
     else
+      journal_detail=""
+      if [ "$verbose" = true ]; then
+        latest_entry=$(grep -m1 '^## \(Day [0-9].* — Session\|Session\|Day\) ' "$journal_file" 2>/dev/null || echo "")
+        goal_line=$(grep -m1 '^\*\*Goal\*\*' "$journal_file" 2>/dev/null || echo "")
+        journal_detail="latest: ${latest_entry#\#\# }${goal_line:+; $goal_line}"
+        info "    Journal detail: $journal_detail"
+      fi
       ok "JOURNAL.md has $entry_count session entries"
-      add_result "journal" "ok" "JOURNAL.md has $entry_count session entries"
+      add_result "journal" "ok" "JOURNAL.md has $entry_count session entries${journal_detail:+ ($journal_detail)}"
 
       # Check if the latest entry mentions a recent day/session number
       # Extract session number from any format: "Day N — Session M", "Session N", "Day N"
@@ -293,8 +307,15 @@ run_health_check() {
       warn "SPECS.md appears to still have placeholder text"
       add_result "config" "warn" "SPECS.md has placeholder text"
     else
+      specs_detail=""
+      if [ "$verbose" = true ]; then
+        specs_lines=$(wc -l < "$specs_file" | tr -d ' ')
+        specs_heading=$(grep -m1 '^## ' "$specs_file" 2>/dev/null || echo "")
+        specs_detail="$specs_lines lines; first heading: ${specs_heading#\#\# }"
+        info "    Specs detail: $specs_detail"
+      fi
       ok "SPECS.md has content"
-      add_result "config" "ok" "SPECS.md has content"
+      add_result "config" "ok" "SPECS.md has content${specs_detail:+ ($specs_detail)}"
     fi
   fi
 
@@ -303,12 +324,19 @@ run_health_check() {
   if [ -f "$roadmap_file" ]; then
     unchecked=$(grep -c '^\- \[ \]' "$roadmap_file" 2>/dev/null) || unchecked=0
     checked=$(grep -c '^\- \[x\]' "$roadmap_file" 2>/dev/null) || checked=0
+    roadmap_detail=""
+    if [ "$verbose" = true ]; then
+      sections=$(grep -c '^## ' "$roadmap_file" 2>/dev/null) || sections=0
+      latest_section=$(grep '^## ' "$roadmap_file" 2>/dev/null | tail -1 || echo "")
+      roadmap_detail="$sections sections; latest: ${latest_section#\#\# }"
+      info "    Roadmap detail: $roadmap_detail"
+    fi
     if [ "$unchecked" -eq 0 ] && [ "$checked" -gt 0 ]; then
       warn "ROADMAP.md has no unchecked items — the agent may not know what to work on next"
-      add_result "config" "warn" "ROADMAP.md: $checked done, 0 remaining"
+      add_result "config" "warn" "ROADMAP.md: $checked done, 0 remaining${roadmap_detail:+ ($roadmap_detail)}"
     else
       ok "ROADMAP.md: $checked done, $unchecked remaining"
-      add_result "config" "ok" "ROADMAP.md: $checked done, $unchecked remaining"
+      add_result "config" "ok" "ROADMAP.md: $checked done, $unchecked remaining${roadmap_detail:+ ($roadmap_detail)}"
     fi
   fi
 

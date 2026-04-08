@@ -11,8 +11,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `--format=table|csv|json|kv` flag on all scripts: metrics.sh, recap.sh, dashboard.sh,
   health-check.sh, check.sh, sync-upstream.sh, rollback.sh, lint-workflows.sh, grafana.sh
 - `--json` alias on all scripts for quick JSON output
+- `--format` support for metrics.sh `--summary` mode (table, csv, json, kv output)
+- `--verbose` / `-v` flag for health-check.sh with detailed journal, ROADMAP, and SPECS analysis
 - JSON schema validation in integration tests
 - End-to-end test for check.sh with real Python build system
+- End-to-end tests for release.sh with real tag creation (patch/minor/major bumps, dry-run)
+- Integration tests for validate.sh `--lint --fix --format` (combined --fix and --format flags)
 - migrate.sh detection for missing `--format` flags on all scripts
 
 ### Changed

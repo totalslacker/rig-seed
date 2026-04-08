@@ -1873,6 +1873,152 @@ rm -rf "$REL_DIR" "$REL_BARE"
 
 echo ""
 
+# --- Step 40: validate.sh --lint --fix --format integration tests ---
+
+echo "--- Step 40: validate.sh --lint --fix --format ---"
+
+# Set up a project with a shellcheck-fixable issue
+FIX_FMT_DIR=$(mktemp -d "$TMPDIR_BASE/rigseed-fixfmt-XXXXXX")
+cp -r "$WORK_DIR"/* "$WORK_DIR"/.* "$FIX_FMT_DIR/" 2>/dev/null || true
+# Introduce a shellcheck-detectable issue (unquoted array expansion)
+cat > "$FIX_FMT_DIR/scripts/test-fixable.sh" << 'SCRIPT'
+#!/usr/bin/env bash
+# test-fixable.sh — test script for --fix --format testing
+set -euo pipefail
+
+for arg in "$@"; do
+  case "$arg" in
+    -h|--help) echo "help"; exit 0 ;;
+    --color) echo "color" ;;
+    --no-color) echo "no-color" ;;
+  esac
+done
+
+items=( one two three )
+echo ${items[@]}
+SCRIPT
+chmod +x "$FIX_FMT_DIR/scripts/test-fixable.sh"
+
+if command -v shellcheck >/dev/null 2>&1; then
+  # JSON: --lint --fix --format=json should produce valid JSON with shellcheck results
+  fix_json=$("$FIX_FMT_DIR/validate.sh" --lint --fix --format=json --no-color "$FIX_FMT_DIR" 2>&1 || true)
+  if echo "$fix_json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+sc_checks = [c for c in d['checks'] if c['category'] == 'shellcheck']
+assert len(sc_checks) > 0, 'no shellcheck checks found'
+assert 'errors' in d and 'result' in d
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+    pass "validate.sh --lint --fix --format=json produces valid JSON with shellcheck results"
+  else
+    fail "validate.sh --lint --fix --format=json should produce valid JSON with shellcheck results"
+  fi
+
+  # Restore the fixable script for CSV test
+  cat > "$FIX_FMT_DIR/scripts/test-fixable.sh" << 'SCRIPT'
+#!/usr/bin/env bash
+# test-fixable.sh — test script for --fix --format testing
+set -euo pipefail
+
+for arg in "$@"; do
+  case "$arg" in
+    -h|--help) echo "help"; exit 0 ;;
+    --color) echo "color" ;;
+    --no-color) echo "no-color" ;;
+  esac
+done
+
+items=( one two three )
+echo ${items[@]}
+SCRIPT
+
+  # CSV: --lint --fix --format=csv should include shellcheck rows
+  fix_csv=$("$FIX_FMT_DIR/validate.sh" --lint --fix --format=csv --no-color "$FIX_FMT_DIR" 2>&1 || true)
+  if echo "$fix_csv" | head -1 | grep -q '^category,'; then
+    pass "validate.sh --lint --fix --format=csv has CSV header"
+  else
+    fail "validate.sh --lint --fix --format=csv should have CSV header"
+  fi
+  if echo "$fix_csv" | grep -q '^shellcheck,'; then
+    pass "validate.sh --lint --fix --format=csv includes shellcheck rows"
+  else
+    fail "validate.sh --lint --fix --format=csv should include shellcheck rows"
+  fi
+
+  # Restore the fixable script for KV test
+  cat > "$FIX_FMT_DIR/scripts/test-fixable.sh" << 'SCRIPT'
+#!/usr/bin/env bash
+# test-fixable.sh — test script for --fix --format testing
+set -euo pipefail
+
+for arg in "$@"; do
+  case "$arg" in
+    -h|--help) echo "help"; exit 0 ;;
+    --color) echo "color" ;;
+    --no-color) echo "no-color" ;;
+  esac
+done
+
+items=( one two three )
+echo ${items[@]}
+SCRIPT
+
+  # KV: --lint --fix --format=kv should include shellcheck entries
+  fix_kv=$("$FIX_FMT_DIR/validate.sh" --lint --fix --format=kv --no-color "$FIX_FMT_DIR" 2>&1 || true)
+  if echo "$fix_kv" | grep -q '^shellcheck_'; then
+    pass "validate.sh --lint --fix --format=kv includes shellcheck entries"
+  else
+    fail "validate.sh --lint --fix --format=kv should include shellcheck entries"
+  fi
+  if echo "$fix_kv" | grep -q '^errors='; then
+    pass "validate.sh --lint --fix --format=kv includes errors count"
+  else
+    fail "validate.sh --lint --fix --format=kv should include errors count"
+  fi
+else
+  pass "validate.sh --lint --fix --format tests skipped (shellcheck not installed)"
+fi
+
+rm -rf "$FIX_FMT_DIR"
+
+echo ""
+
+# --- Step 41: health-check.sh --verbose tests ---
+
+echo "--- Step 41: health-check.sh --verbose ---"
+
+# Table: --verbose shows detailed state analysis
+hc_verbose=$(bash "$PROJECT_DIR/health-check.sh" --verbose --no-color "$PROJECT_DIR" 2>&1 || true)
+if echo "$hc_verbose" | grep -qi 'latest.*session\|latest.*day\|entries.*found\|journal.*detail'; then
+  pass "health-check.sh --verbose shows detailed journal info"
+else
+  fail "health-check.sh --verbose should show detailed journal info"
+fi
+if echo "$hc_verbose" | grep -qi 'done.*remaining\|roadmap.*section'; then
+  pass "health-check.sh --verbose shows ROADMAP detail"
+else
+  fail "health-check.sh --verbose should show ROADMAP detail"
+fi
+
+# JSON: --verbose --format=json should include verbose detail in messages
+hc_verbose_json=$(bash "$PROJECT_DIR/health-check.sh" --verbose --format=json "$PROJECT_DIR" 2>&1 || true)
+if echo "$hc_verbose_json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+checks = d['checks']
+# Verbose appends detail like 'sections' or 'latest' or 'lines' to messages
+detail_checks = [c for c in checks if 'sections' in c.get('message', '') or 'lines' in c.get('message', '') or 'latest' in c.get('message', '')]
+assert len(detail_checks) > 0, 'no verbose detail in check messages'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "health-check.sh --verbose --format=json includes verbose detail in messages"
+else
+  fail "health-check.sh --verbose --format=json should include verbose detail in messages"
+fi
+
+echo ""
+
 # --- Summary ---
 
 echo "================================"
