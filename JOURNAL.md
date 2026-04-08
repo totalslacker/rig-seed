@@ -4,6 +4,20 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Day 21 — Session 59 (2026-04-08)
+
+**Goal**: Fill integration test gaps from NEXT_STEPS.md priority list.
+
+**What changed**:
+- Added 4 validate.sh --lint --fix e2e tests: --lint detects SC2155 warning in injected script, --lint --fix reports unfixable issue, --lint --format=json shows shellcheck fail status for test script, --lint --fix --format=json includes shellcheck results
+- Added 4 recap.sh --format=json schema validation tests: required keys (header, goal, full_entry), header contains Day/Session, full_entry longer than header, includes next_steps key
+- Added 4 check.sh JSON escaping tests with special characters in build commands: JSON parses successfully, check names are valid strings, CSV has correct header, KV has result key
+- Total integration tests: ~271 (all passing)
+
+**Next Steps**: See NEXT_STEPS.md.
+
+---
+
 ## Day 21 — Session 58 (2026-04-08)
 
 **Goal**: Complete NEXT_STEPS.md priority items: grafana.sh dead PID detection, sync-upstream.sh dry-run, check.sh multi-build-system tests.

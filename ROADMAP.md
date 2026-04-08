@@ -237,3 +237,6 @@ Living document. Updated each evolution session. Items come from three sources:
 - [x] Add grafana.sh status dead exporter PID detection tests (Day 21)
 - [x] Add sync-upstream.sh --dry-run partial changes detection tests (Day 21)
 - [x] Add check.sh multi-build-system detection tests (go.mod + package.json + frontend) (Day 21)
+- [x] Add validate.sh --lint --fix e2e tests with real shellcheck warning (Day 21)
+- [x] Add recap.sh --format=json schema validation tests (Day 21)
+- [x] Add check.sh JSON escaping tests with special characters in commands (Day 21)
