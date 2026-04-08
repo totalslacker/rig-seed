@@ -1696,6 +1696,183 @@ rm -rf "$QS_VERBOSE"
 
 echo ""
 
+# --- Step 37: validate.sh --lint --format integration tests ---
+
+echo "--- Step 37: validate.sh --lint --format ---"
+
+# JSON: lint results appear in checks array with category="lint"
+lint_json=$(bash "$PROJECT_DIR/validate.sh" --lint --format=json --no-color "$PROJECT_DIR" 2>&1)
+if echo "$lint_json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+lint_checks = [c for c in d['checks'] if c['category'] == 'lint']
+assert len(lint_checks) > 0, 'no lint checks found'
+assert all(k in lint_checks[0] for k in ('category','file','status','message')), 'missing keys'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "validate.sh --lint --format=json includes lint checks with correct schema"
+else
+  fail "validate.sh --lint --format=json should include lint checks with correct schema"
+fi
+
+# JSON: shellcheck results appear too
+if echo "$lint_json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+sc_checks = [c for c in d['checks'] if c['category'] == 'shellcheck']
+assert len(sc_checks) > 0, 'no shellcheck checks found'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "validate.sh --lint --format=json includes shellcheck checks"
+else
+  if command -v shellcheck &>/dev/null; then
+    fail "validate.sh --lint --format=json should include shellcheck checks"
+  else
+    pass "validate.sh --lint --format=json shellcheck test skipped (not installed)"
+  fi
+fi
+
+# CSV: lint category rows present
+lint_csv=$(bash "$PROJECT_DIR/validate.sh" --lint --format=csv --no-color "$PROJECT_DIR" 2>&1)
+if echo "$lint_csv" | grep -q '^lint,'; then
+  pass "validate.sh --lint --format=csv includes lint category rows"
+else
+  fail "validate.sh --lint --format=csv should include lint category rows"
+fi
+
+# KV: lint results present
+lint_kv=$(bash "$PROJECT_DIR/validate.sh" --lint --format=kv --no-color "$PROJECT_DIR" 2>&1)
+if echo "$lint_kv" | grep -q '^lint_'; then
+  pass "validate.sh --lint --format=kv includes lint key-value entries"
+else
+  fail "validate.sh --lint --format=kv should include lint key-value entries"
+fi
+
+echo ""
+
+# --- Step 38: metrics.sh --summary --format tests ---
+
+echo "--- Step 38: metrics.sh --summary --format ---"
+
+# JSON
+sum_json=$(bash "$PROJECT_DIR/metrics.sh" --summary --format=json "$PROJECT_DIR" 2>&1)
+if echo "$sum_json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+assert 'day_count' in d and 'session_counter' in d and 'total_commits' in d
+assert isinstance(d['day_count'], int)
+assert isinstance(d['total_commits'], int)
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "metrics.sh --summary --format=json produces valid JSON with expected fields"
+else
+  fail "metrics.sh --summary --format=json should produce valid JSON with expected fields"
+fi
+
+# CSV
+sum_csv=$(bash "$PROJECT_DIR/metrics.sh" --summary --format=csv "$PROJECT_DIR" 2>&1)
+if echo "$sum_csv" | head -1 | grep -q 'day_count,session_counter'; then
+  pass "metrics.sh --summary --format=csv has correct header"
+else
+  fail "metrics.sh --summary --format=csv should have day_count,session_counter header"
+fi
+
+# KV
+sum_kv=$(bash "$PROJECT_DIR/metrics.sh" --summary --format=kv "$PROJECT_DIR" 2>&1)
+if echo "$sum_kv" | grep -q 'day_count=' && echo "$sum_kv" | grep -q 'total_commits='; then
+  pass "metrics.sh --summary --format=kv includes day_count and total_commits"
+else
+  fail "metrics.sh --summary --format=kv should include day_count and total_commits"
+fi
+
+# Table (default) still works
+sum_table=$(bash "$PROJECT_DIR/metrics.sh" --summary --no-color "$PROJECT_DIR" 2>&1)
+if echo "$sum_table" | grep -q '|.*commits'; then
+  pass "metrics.sh --summary (table) still produces pipe-delimited output"
+else
+  fail "metrics.sh --summary (table) should still produce pipe-delimited output"
+fi
+
+echo ""
+
+# --- Step 39: release.sh end-to-end test ---
+
+echo "--- Step 39: release.sh end-to-end ---"
+
+REL_DIR=$(mktemp -d "$TMPDIR_BASE/rigseed-release-e2e-XXXXXX")
+REL_BARE=$(mktemp -d "$TMPDIR_BASE/rigseed-release-bare-XXXXXX")
+git init -q --bare "$REL_BARE"
+rsync -a --exclude='.git' --exclude='.beads' --exclude='.runtime' "$PROJECT_DIR/" "$REL_DIR/"
+(
+  cd "$REL_DIR"
+  git init -q
+  git remote add origin "$REL_BARE"
+  git add -A
+  git commit -q -m "Initial fork"
+  git push -q origin HEAD 2>/dev/null
+)
+
+# Test 1: first release (patch bump from base v0.1.0) creates v0.1.1
+rel_out=$(cd "$REL_DIR" && bash scripts/release.sh --no-color 2>&1 || true)
+if git -C "$REL_DIR" tag -l 'v*' | grep -q 'v0.1.1'; then
+  pass "release.sh creates v0.1.1 tag (patch bump from base v0.1.0)"
+else
+  fail "release.sh should create v0.1.1 tag (patch bump from base v0.1.0)"
+fi
+
+# Test 2: second patch bump creates v0.1.2
+rel_out2=$(cd "$REL_DIR" && bash scripts/release.sh patch --no-color 2>&1 || true)
+if git -C "$REL_DIR" tag -l 'v*' | grep -q 'v0.1.2'; then
+  pass "release.sh patch bump creates v0.1.2"
+else
+  fail "release.sh patch bump should create v0.1.2"
+fi
+
+# Test 3: minor bump creates v0.2.0
+rel_out3=$(cd "$REL_DIR" && bash scripts/release.sh minor --no-color 2>&1 || true)
+if git -C "$REL_DIR" tag -l 'v*' | grep -q 'v0.2.0'; then
+  pass "release.sh minor bump creates v0.2.0"
+else
+  fail "release.sh minor bump should create v0.2.0"
+fi
+
+# Test 4: major bump creates v1.0.0
+rel_out4=$(cd "$REL_DIR" && bash scripts/release.sh major --no-color 2>&1 || true)
+if git -C "$REL_DIR" tag -l 'v*' | grep -q 'v1.0.0'; then
+  pass "release.sh major bump creates v1.0.0"
+else
+  fail "release.sh major bump should create v1.0.0"
+fi
+
+# Test 5: dry-run does NOT create a tag
+tag_count_before=$(git -C "$REL_DIR" tag -l 'v*' | wc -l)
+rel_dry=$(cd "$REL_DIR" && bash scripts/release.sh --dry-run --no-color 2>&1 || true)
+tag_count_after=$(git -C "$REL_DIR" tag -l 'v*' | wc -l)
+if [ "$tag_count_before" -eq "$tag_count_after" ]; then
+  pass "release.sh --dry-run does not create a new tag"
+else
+  fail "release.sh --dry-run should not create a new tag"
+fi
+
+# Test 6: dry-run JSON format
+rel_dry_json=$(cd "$REL_DIR" && bash scripts/release.sh --dry-run --format=json 2>&1 || true)
+if echo "$rel_dry_json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+assert d['dry_run'] == True
+assert d['status'] == 'dry_run'
+assert 'new_tag' in d
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "release.sh --dry-run --format=json produces valid JSON"
+else
+  fail "release.sh --dry-run --format=json should produce valid JSON"
+fi
+
+rm -rf "$REL_DIR" "$REL_BARE"
+
+echo ""
+
 # --- Summary ---
 
 echo "================================"
