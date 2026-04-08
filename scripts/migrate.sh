@@ -553,6 +553,10 @@ if [ -f "$dir/quickstart.sh" ] && ! grep -q '\-\-format=' "$dir/quickstart.sh" 2
   printf '  %bNOTE:%b' "$YELLOW" "$RESET"; echo " quickstart.sh missing --format flag (added Day 17)"
   echo "        Compare with upstream to add table/csv/json/kv output format support."
 fi
+if [ -f "$dir/quickstart.sh" ] && ! grep -q '\-\-verbose\|-v)' "$dir/quickstart.sh" 2>/dev/null; then
+  printf '  %bNOTE:%b' "$YELLOW" "$RESET"; echo " quickstart.sh missing --verbose flag (added Day 18)"
+  echo "        Compare with upstream to add verbose state file analysis in --check mode."
+fi
 if [ -f "$dir/validate.sh" ] && ! grep -q '\-\-format=' "$dir/validate.sh" 2>/dev/null; then
   printf '  %bNOTE:%b' "$YELLOW" "$RESET"; echo " validate.sh missing --format flag (added Day 17)"
   echo "        Compare with upstream to add table/csv/json/kv output format support."
