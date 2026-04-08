@@ -3384,6 +3384,263 @@ fi
 
 echo ""
 
+# --- Step 61: grafana.sh status with dead exporter PID detection ---
+
+echo "--- Step 61: grafana.sh status dead exporter PID ---"
+
+# Create a PID file with a dead PID (PID 99999 should not exist)
+GRAF_DEAD_PID_DIR=$(mktemp -d "$TMPDIR_BASE/graf-dead-pid-XXXXXX")
+rsync -a --exclude='.git' --exclude='.beads' --exclude='.runtime' "$PROJECT_DIR/" "$GRAF_DEAD_PID_DIR/"
+
+# Create mock docker for status
+MOCK_DEAD_BIN=$(mktemp -d "$TMPDIR_BASE/mock-dead-bin-XXXXXX")
+cat > "$MOCK_DEAD_BIN/docker" << 'MOCKEOF'
+#!/usr/bin/env bash
+case "$*" in
+  "compose version") echo "Docker Compose version v2.0.0-mock" ;;
+  *"inspect -f"*"rigseed-prometheus"*) echo "running" ;;
+  *"inspect -f"*"rigseed-grafana"*) echo "running" ;;
+  *"inspect rigseed-prometheus"*) exit 0 ;;
+  *"inspect rigseed-grafana"*) exit 0 ;;
+  *) exit 0 ;;
+esac
+MOCKEOF
+chmod +x "$MOCK_DEAD_BIN/docker"
+
+# Create exporter PID file with a dead PID
+echo "99999:9142:$GRAF_DEAD_PID_DIR" > /tmp/rigseed-exporter.pids
+
+# Test 1: status JSON shows exporter as dead when PID doesn't exist
+dead_status_json=$(PATH="$MOCK_DEAD_BIN:$PATH" bash "$GRAF_DEAD_PID_DIR/scripts/grafana.sh" --format=json status "$GRAF_DEAD_PID_DIR" 2>&1 || true)
+if echo "$dead_status_json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+comps = d['components']
+exporter = [c for c in comps if c['name'] == 'exporter']
+assert len(exporter) > 0, 'no exporter component'
+assert exporter[0]['status'] == 'dead', f'expected dead, got {exporter[0][\"status\"]}'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "grafana.sh status --format=json detects dead exporter PID"
+else
+  fail "grafana.sh status --format=json should detect dead exporter PID"
+fi
+
+# Test 2: status KV shows exporter_status=dead
+dead_status_kv=$(PATH="$MOCK_DEAD_BIN:$PATH" bash "$GRAF_DEAD_PID_DIR/scripts/grafana.sh" --format=kv status "$GRAF_DEAD_PID_DIR" 2>&1 || true)
+if echo "$dead_status_kv" | grep -q 'exporter_status=dead'; then
+  pass "grafana.sh status --format=kv reports exporter_status=dead"
+else
+  fail "grafana.sh status --format=kv should report exporter_status=dead"
+fi
+
+# Test 3: status CSV includes exporter row with dead status
+dead_status_csv=$(PATH="$MOCK_DEAD_BIN:$PATH" bash "$GRAF_DEAD_PID_DIR/scripts/grafana.sh" --format=csv status "$GRAF_DEAD_PID_DIR" 2>&1 || true)
+if echo "$dead_status_csv" | grep -q '^exporter,dead'; then
+  pass "grafana.sh status --format=csv shows exporter,dead"
+else
+  fail "grafana.sh status --format=csv should show exporter,dead"
+fi
+
+rm -f /tmp/rigseed-exporter.pids
+rm -rf "$GRAF_DEAD_PID_DIR" "$MOCK_DEAD_BIN"
+
+echo ""
+
+# --- Step 62: sync-upstream.sh dry-run with partial changes detection ---
+
+echo "--- Step 62: sync-upstream.sh dry-run partial changes ---"
+
+SYNC_DRY_UPSTREAM=$(mktemp -d "$TMPDIR_BASE/rigseed-sync-dry-upstream-XXXXXX")
+SYNC_DRY_FORK=$(mktemp -d "$TMPDIR_BASE/rigseed-sync-dry-fork-XXXXXX")
+
+# Set up bare upstream repo
+(cd "$SYNC_DRY_UPSTREAM" && git init -q --bare)
+
+# Set up fork repo with project files
+rsync -a --exclude='.git' --exclude='.beads' --exclude='.runtime' "$PROJECT_DIR/" "$SYNC_DRY_FORK/"
+(
+  cd "$SYNC_DRY_FORK"
+  git init -q
+  git add -A
+  git commit -q -m "Initial fork"
+  git remote add origin "$SYNC_DRY_UPSTREAM"
+  git push -q origin HEAD:main
+)
+
+# Simulate upstream changes to 2 infrastructure files
+SYNC_DRY_CLONE=$(mktemp -d "$TMPDIR_BASE/rigseed-sync-dry-clone-XXXXXX")
+(
+  cd "$SYNC_DRY_CLONE"
+  git clone -q "$SYNC_DRY_UPSTREAM" .
+  echo "# Upstream addition to validate.sh" >> validate.sh
+  echo "# Upstream addition to health-check.sh" >> health-check.sh
+  git add -A
+  git commit -q -m "Upstream infra updates"
+  git push -q origin main
+)
+rm -rf "$SYNC_DRY_CLONE"
+
+# Test 1: --dry-run --format=json reports dry-run status and changes
+sync_dry_json=$(cd "$SYNC_DRY_FORK" && bash scripts/sync-upstream.sh --dry-run --upstream="$SYNC_DRY_UPSTREAM" --format=json 2>&1 || true)
+if echo "$sync_dry_json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+assert d['mode'] == 'dry-run', f'expected dry-run mode, got {d[\"mode\"]}'
+assert d['status'] == 'dry-run', f'expected dry-run status, got {d[\"status\"]}'
+assert d['changes'] >= 2, f'expected at least 2 changes, got {d[\"changes\"]}'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "sync-upstream.sh --dry-run --format=json reports dry-run with changes"
+else
+  fail "sync-upstream.sh --dry-run --format=json should report dry-run with changes"
+fi
+
+# Test 2: --dry-run --format=json includes files array
+if echo "$sync_dry_json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+assert 'files' in d, 'missing files key'
+assert isinstance(d['files'], list), 'files should be a list'
+assert len(d['files']) >= 2, f'expected at least 2 files, got {len(d[\"files\"])}'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "sync-upstream.sh --dry-run --format=json includes files array"
+else
+  fail "sync-upstream.sh --dry-run --format=json should include files array"
+fi
+
+# Test 3: --dry-run --format=csv reports dry-run mode
+sync_dry_csv=$(cd "$SYNC_DRY_FORK" && bash scripts/sync-upstream.sh --dry-run --upstream="$SYNC_DRY_UPSTREAM" --format=csv 2>&1 || true)
+if echo "$sync_dry_csv" | grep -q '^upstream,mode,status,changes,message' && echo "$sync_dry_csv" | grep -q 'dry-run'; then
+  pass "sync-upstream.sh --dry-run --format=csv has header and dry-run mode"
+else
+  fail "sync-upstream.sh --dry-run --format=csv should have header and dry-run mode"
+fi
+
+# Test 4: --dry-run --format=kv reports mode=dry-run
+sync_dry_kv=$(cd "$SYNC_DRY_FORK" && bash scripts/sync-upstream.sh --dry-run --upstream="$SYNC_DRY_UPSTREAM" --format=kv 2>&1 || true)
+if echo "$sync_dry_kv" | grep -q '^mode=dry-run'; then
+  pass "sync-upstream.sh --dry-run --format=kv reports mode=dry-run"
+else
+  fail "sync-upstream.sh --dry-run --format=kv should report mode=dry-run"
+fi
+
+# Test 5: --dry-run does NOT modify any files (working tree clean after)
+sync_dry_status=$(cd "$SYNC_DRY_FORK" && git status --porcelain)
+if [ -z "$sync_dry_status" ]; then
+  pass "sync-upstream.sh --dry-run leaves working tree clean"
+else
+  fail "sync-upstream.sh --dry-run should leave working tree clean"
+fi
+
+rm -rf "$SYNC_DRY_UPSTREAM" "$SYNC_DRY_FORK"
+
+echo ""
+
+# --- Step 63: check.sh multi-build-system detection (go.mod + package.json) ---
+
+echo "--- Step 63: check.sh multi-build-system detection ---"
+
+CHECK_MULTI_DIR=$(mktemp -d "$TMPDIR_BASE/rigseed-check-multi-XXXXXX")
+
+# Set up a project with go.mod AND package.json
+mkdir -p "$CHECK_MULTI_DIR/.evolve"
+cat > "$CHECK_MULTI_DIR/.evolve/config.toml" << 'CONFEOF'
+[schedule]
+interval = "24h"
+CONFEOF
+
+# Create go.mod (Go project)
+cat > "$CHECK_MULTI_DIR/go.mod" << 'GOEOF'
+module example.com/test
+go 1.21
+GOEOF
+
+# Create package.json (Node.js project with build and test scripts)
+cat > "$CHECK_MULTI_DIR/package.json" << 'PKGEOF'
+{
+  "name": "test-project",
+  "scripts": {
+    "build": "echo built",
+    "test": "echo tested"
+  }
+}
+PKGEOF
+
+# Create frontend subdir with its own package.json
+mkdir -p "$CHECK_MULTI_DIR/frontend"
+cat > "$CHECK_MULTI_DIR/frontend/package.json" << 'FEEOF'
+{
+  "name": "test-frontend",
+  "scripts": {
+    "build": "echo frontend-built"
+  }
+}
+FEEOF
+
+# Copy lib.sh for the check script to source
+mkdir -p "$CHECK_MULTI_DIR/scripts"
+cp "$PROJECT_DIR/scripts/lib.sh" "$CHECK_MULTI_DIR/scripts/"
+
+# Test 1: --format=json detects all build systems
+check_multi_json=$(bash "$PROJECT_DIR/scripts/check.sh" --format=json "$CHECK_MULTI_DIR" 2>&1 || true)
+if echo "$check_multi_json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+names = [c['name'] for c in d['checks']]
+# Should detect go, npm (root), and frontend npm
+has_go = any('go' in n for n in names)
+has_npm = any('npm' in n for n in names)
+assert has_go or has_npm, f'expected go or npm checks, got {names}'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "check.sh --format=json detects multiple build systems"
+else
+  fail "check.sh --format=json should detect multiple build systems"
+fi
+
+# Test 2: JSON output includes checks from root package.json
+if echo "$check_multi_json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+names = [c['name'] for c in d['checks']]
+has_npm_check = any('npm' in n and 'frontend' not in n for n in names)
+assert has_npm_check, f'expected root npm check, got {names}'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "check.sh detects root package.json npm checks"
+else
+  fail "check.sh should detect root package.json npm checks"
+fi
+
+# Test 3: JSON output includes checks from frontend/ subdirectory
+if echo "$check_multi_json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+names = [c['name'] for c in d['checks']]
+has_frontend = any('frontend' in n for n in names)
+assert has_frontend, f'expected frontend check, got {names}'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "check.sh detects frontend/ subdirectory build system"
+else
+  fail "check.sh should detect frontend/ subdirectory build system"
+fi
+
+# Test 4: CSV format includes multiple check entries
+check_multi_csv=$(bash "$PROJECT_DIR/scripts/check.sh" --format=csv "$CHECK_MULTI_DIR" 2>&1 || true)
+csv_check_count=$(echo "$check_multi_csv" | grep -v '^$' | grep -v '^name,' | grep -v '^result,' | grep -v '^passed,' | grep -v '^failed,' | grep -v '^skipped,' | wc -l)
+if [ "$csv_check_count" -ge 2 ]; then
+  pass "check.sh --format=csv lists at least 2 checks for multi-build project"
+else
+  fail "check.sh --format=csv should list at least 2 checks, got $csv_check_count"
+fi
+
+rm -rf "$CHECK_MULTI_DIR"
+
+echo ""
+
 # --- Summary ---
 
 echo "================================"
