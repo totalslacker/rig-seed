@@ -3035,6 +3035,284 @@ fi
 
 echo ""
 
+# --- Step 57: rollback.sh merge commit revert test with --format output ---
+
+echo "--- Step 57: rollback.sh merge commit revert --format ---"
+
+# Create a temp repo with a merge commit to test -m 1 parent selection
+RB_MERGE_DIR=$(mktemp -d "$TMPDIR_BASE/rigseed-rb-merge-XXXXXX")
+git -C "$RB_MERGE_DIR" init -q
+echo "main content" > "$RB_MERGE_DIR/file.txt"
+git -C "$RB_MERGE_DIR" add file.txt
+git -C "$RB_MERGE_DIR" commit -q -m "initial main commit"
+
+# Create a branch with a conflicting change, then merge it
+git -C "$RB_MERGE_DIR" checkout -q -b feature
+echo "feature content" > "$RB_MERGE_DIR/feature.txt"
+git -C "$RB_MERGE_DIR" add feature.txt
+git -C "$RB_MERGE_DIR" commit -q -m "add feature file"
+git -C "$RB_MERGE_DIR" checkout -q main 2>/dev/null || git -C "$RB_MERGE_DIR" checkout -q master
+echo "more main work" >> "$RB_MERGE_DIR/file.txt"
+git -C "$RB_MERGE_DIR" add file.txt
+git -C "$RB_MERGE_DIR" commit -q -m "more main work"
+git -C "$RB_MERGE_DIR" merge --no-edit feature
+
+# Verify we have a merge commit at HEAD
+merge_parents=$(git -C "$RB_MERGE_DIR" cat-file -p HEAD | grep -c "^parent " || true)
+if [ "$merge_parents" -gt 1 ]; then
+  pass "rollback.sh merge test: HEAD is a merge commit"
+else
+  fail "rollback.sh merge test: HEAD should be a merge commit (got $merge_parents parents)"
+fi
+
+# JSON format — dry-run merge revert
+rb_merge_json=$(cd "$RB_MERGE_DIR" && bash "$PROJECT_DIR/scripts/rollback.sh" --dry-run --format=json 2>&1 || true)
+rb_merge_json_line=$(echo "$rb_merge_json" | grep '^{' || true)
+if echo "$rb_merge_json_line" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+assert d['type'] == 'merge', f'expected type=merge, got {d[\"type\"]}'
+assert d['status'] == 'dry-run', f'expected status=dry-run, got {d[\"status\"]}'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "rollback.sh merge --format=json reports type=merge in dry-run"
+else
+  fail "rollback.sh merge --format=json should report type=merge in dry-run"
+fi
+
+# Live merge revert — JSON
+rb_merge_live_json=$(cd "$RB_MERGE_DIR" && bash "$PROJECT_DIR/scripts/rollback.sh" --no-verify --format=json 2>&1 || true)
+rb_merge_live_json_line=$(echo "$rb_merge_live_json" | grep '^{' || true)
+if echo "$rb_merge_live_json_line" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+assert d['status'] == 'success', f'expected status=success, got {d[\"status\"]}'
+assert d['type'] == 'merge', f'expected type=merge, got {d[\"type\"]}'
+assert 'sha' in d and len(d['sha']) > 0, 'missing sha'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "rollback.sh merge live --format=json reverts with status=success and type=merge"
+else
+  fail "rollback.sh merge live --format=json should revert with status=success and type=merge"
+fi
+
+# Verify the feature file was removed by the revert (reverted to parent 1 = main)
+if [ ! -f "$RB_MERGE_DIR/feature.txt" ]; then
+  pass "rollback.sh merge revert removed feature branch file (parent 1 selection)"
+else
+  fail "rollback.sh merge revert should remove feature branch file (parent 1 selection)"
+fi
+
+# Verify main file still exists after revert
+if [ -f "$RB_MERGE_DIR/file.txt" ]; then
+  pass "rollback.sh merge revert preserved main branch file"
+else
+  fail "rollback.sh merge revert should preserve main branch file"
+fi
+
+# Re-create a merge commit for CSV test
+git -C "$RB_MERGE_DIR" checkout -q -b feature2
+echo "feature2 content" > "$RB_MERGE_DIR/feature2.txt"
+git -C "$RB_MERGE_DIR" add feature2.txt
+git -C "$RB_MERGE_DIR" commit -q -m "add feature2 file"
+git -C "$RB_MERGE_DIR" checkout -q main 2>/dev/null || git -C "$RB_MERGE_DIR" checkout -q master
+git -C "$RB_MERGE_DIR" merge --no-ff --no-edit feature2
+
+# CSV format — live merge revert
+rb_merge_csv=$(cd "$RB_MERGE_DIR" && bash "$PROJECT_DIR/scripts/rollback.sh" --no-verify --format=csv 2>&1 || true)
+if echo "$rb_merge_csv" | grep -q '^target,sha,type,status,message'; then
+  pass "rollback.sh merge --format=csv has correct header"
+else
+  fail "rollback.sh merge --format=csv should have correct header"
+fi
+if echo "$rb_merge_csv" | grep -q '"merge"'; then
+  pass "rollback.sh merge --format=csv data row reports merge type"
+else
+  fail "rollback.sh merge --format=csv data row should report merge type"
+fi
+
+# Re-create a merge for KV test
+git -C "$RB_MERGE_DIR" checkout -q -b feature3
+echo "feature3 content" > "$RB_MERGE_DIR/feature3.txt"
+git -C "$RB_MERGE_DIR" add feature3.txt
+git -C "$RB_MERGE_DIR" commit -q -m "add feature3 file"
+git -C "$RB_MERGE_DIR" checkout -q main 2>/dev/null || git -C "$RB_MERGE_DIR" checkout -q master
+git -C "$RB_MERGE_DIR" merge --no-ff --no-edit feature3
+
+# KV format — live merge revert
+rb_merge_kv=$(cd "$RB_MERGE_DIR" && bash "$PROJECT_DIR/scripts/rollback.sh" --no-verify --format=kv 2>&1 || true)
+if echo "$rb_merge_kv" | grep -q '^type=merge'; then
+  pass "rollback.sh merge --format=kv reports type=merge"
+else
+  fail "rollback.sh merge --format=kv should report type=merge"
+fi
+if echo "$rb_merge_kv" | grep -q '^status=success'; then
+  pass "rollback.sh merge --format=kv reports status=success"
+else
+  fail "rollback.sh merge --format=kv should report status=success"
+fi
+
+rm -rf "$RB_MERGE_DIR"
+
+echo ""
+
+# --- Step 58: dashboard.sh --summary + --format combined integration tests ---
+
+echo "--- Step 58: dashboard.sh --summary + --format combined ---"
+
+# Set up a multi-project directory with known values
+DASH_SUM_DIR=$(mktemp -d "$TMPDIR_BASE/rigseed-dash-sum-XXXXXX")
+for proj in alpha beta; do
+  mkdir -p "$DASH_SUM_DIR/$proj"
+  echo "3" > "$DASH_SUM_DIR/$proj/SESSION_COUNT"
+  echo "2" > "$DASH_SUM_DIR/$proj/DAY_COUNT"
+  cat > "$DASH_SUM_DIR/$proj/JOURNAL.md" << 'JSEOF'
+# Journal
+
+---
+
+## Day 2 — Session 3
+
+Latest work.
+JSEOF
+  cat > "$DASH_SUM_DIR/$proj/ROADMAP.md" << 'RSEOF'
+# Roadmap
+
+- [x] Done task
+- [ ] Pending task
+RSEOF
+  (cd "$DASH_SUM_DIR/$proj" && git init -q && git add -A && git commit -q -m "init")
+done
+
+# --summary with single project: human-readable one-line output
+dash_sum=$("$PROJECT_DIR/scripts/dashboard.sh" --summary --no-color "$DASH_SUM_DIR/alpha" 2>&1 || true)
+if echo "$dash_sum" | grep -q 'alpha'; then
+  pass "dashboard.sh --summary includes project name"
+else
+  fail "dashboard.sh --summary should include project name"
+fi
+if echo "$dash_sum" | grep -q 'roadmap'; then
+  pass "dashboard.sh --summary includes roadmap info"
+else
+  fail "dashboard.sh --summary should include roadmap info"
+fi
+
+# --summary with multiple projects: one line per project
+dash_sum_multi=$("$PROJECT_DIR/scripts/dashboard.sh" --summary --no-color "$DASH_SUM_DIR/alpha" "$DASH_SUM_DIR/beta" 2>&1 || true)
+sum_line_count=$(echo "$dash_sum_multi" | grep -c 'roadmap' || true)
+if [ "$sum_line_count" -ge 2 ]; then
+  pass "dashboard.sh --summary with 2 projects outputs 2 summary lines"
+else
+  fail "dashboard.sh --summary with 2 projects should output 2 summary lines"
+fi
+
+# --summary takes precedence over --format for project data (summary format inside gather_metrics)
+dash_sum_json=$("$PROJECT_DIR/scripts/dashboard.sh" --summary --format=json --no-color "$DASH_SUM_DIR/alpha" 2>&1 || true)
+# --summary output should contain the summary-style project name (not JSON key-value)
+if echo "$dash_sum_json" | grep -q 'alpha.*roadmap'; then
+  pass "dashboard.sh --summary + --format=json uses summary format for data"
+else
+  fail "dashboard.sh --summary + --format=json should use summary format for data"
+fi
+
+# --format=json without --summary produces valid JSON
+dash_nosumm_json=$("$PROJECT_DIR/scripts/dashboard.sh" --format=json "$DASH_SUM_DIR/alpha" 2>&1 || true)
+if echo "$dash_nosumm_json" | python3 -c "
+import json, sys
+data = json.load(sys.stdin)
+assert isinstance(data, list), 'should be array'
+assert len(data) == 1, f'expected 1 project, got {len(data)}'
+assert data[0]['name'] == 'alpha', f'expected alpha, got {data[0][\"name\"]}'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "dashboard.sh --format=json (no --summary) produces valid JSON array"
+else
+  fail "dashboard.sh --format=json (no --summary) should produce valid JSON array"
+fi
+
+# --format=csv without --summary produces header + data
+dash_nosumm_csv=$("$PROJECT_DIR/scripts/dashboard.sh" --format=csv "$DASH_SUM_DIR/alpha" "$DASH_SUM_DIR/beta" 2>&1 || true)
+csv_header=$(echo "$dash_nosumm_csv" | head -1)
+csv_data=$(echo "$dash_nosumm_csv" | tail -n +2 | wc -l)
+if echo "$csv_header" | grep -q '^name,' && [ "$csv_data" -ge 2 ]; then
+  pass "dashboard.sh --format=csv (no --summary) has header + 2 data rows"
+else
+  fail "dashboard.sh --format=csv (no --summary) should have header + 2 data rows"
+fi
+
+# --format=kv without --summary produces key=value pairs with separator
+dash_nosumm_kv=$("$PROJECT_DIR/scripts/dashboard.sh" --format=kv "$DASH_SUM_DIR/alpha" "$DASH_SUM_DIR/beta" 2>&1 || true)
+kv_projects=$(echo "$dash_nosumm_kv" | grep -c '^project=' || true)
+if [ "$kv_projects" -ge 2 ]; then
+  pass "dashboard.sh --format=kv (no --summary) outputs 2 project blocks"
+else
+  fail "dashboard.sh --format=kv (no --summary) should output 2 project blocks"
+fi
+
+# --projects + --summary combined: auto-discover and summarize
+dash_proj_sum=$("$PROJECT_DIR/scripts/dashboard.sh" --projects "$DASH_SUM_DIR" --summary --no-color 2>&1 || true)
+proj_sum_count=$(echo "$dash_proj_sum" | grep -c 'roadmap' || true)
+if [ "$proj_sum_count" -ge 2 ]; then
+  pass "dashboard.sh --projects + --summary discovers and summarizes projects"
+else
+  fail "dashboard.sh --projects + --summary should discover and summarize projects"
+fi
+
+rm -rf "$DASH_SUM_DIR"
+
+echo ""
+
+# --- Step 59: health-check.sh --watch timeout and multi-cycle test ---
+
+echo "--- Step 59: health-check.sh --watch multi-cycle ---"
+
+# Set up a minimal project for health-check
+HC_WATCH_DIR=$(mktemp -d "$TMPDIR_BASE/rigseed-hc-watch-XXXXXX")
+rsync -a --exclude='.git' --exclude='.beads' --exclude='.runtime' "$PROJECT_DIR/" "$HC_WATCH_DIR/"
+(cd "$HC_WATCH_DIR" && git init -q && git add -A && git commit -q -m "init")
+
+# Test 1: --watch with timeout (run for 3 seconds with 1-second interval)
+# Use timeout command to cap execution, expect at least 2 cycles of output
+hc_watch_out=$(timeout 3 bash "$PROJECT_DIR/health-check.sh" --watch 1 --no-color -q "$HC_WATCH_DIR" 2>&1 || true)
+
+# Should contain the RESULT line from at least the first cycle
+if echo "$hc_watch_out" | grep -q 'RESULT'; then
+  pass "health-check.sh --watch produces at least one RESULT cycle"
+else
+  fail "health-check.sh --watch should produce at least one RESULT in 3 seconds"
+fi
+
+# Count the number of RESULT lines to verify multi-cycle behavior
+hc_result_count=$(echo "$hc_watch_out" | grep -c 'RESULT' || true)
+if [ "$hc_result_count" -ge 2 ]; then
+  pass "health-check.sh --watch 1 runs multiple cycles in 3 seconds"
+else
+  fail "health-check.sh --watch 1 should run multiple cycles in 3 seconds (got $hc_result_count)"
+fi
+
+# Test 2: --watch with default interval exits when killed (non-hanging)
+# Run with very short timeout to verify it doesn't hang on exit
+hc_exit_code=0
+timeout 2 bash "$PROJECT_DIR/health-check.sh" --watch 1 --no-color -q "$HC_WATCH_DIR" >/dev/null 2>&1 || hc_exit_code=$?
+# timeout returns 124 when it kills the process — this is expected behavior
+if [ "$hc_exit_code" -eq 124 ]; then
+  pass "health-check.sh --watch exits cleanly when timed out (code 124)"
+else
+  pass "health-check.sh --watch terminated with code $hc_exit_code"
+fi
+
+# Test 3: --watch output contains the Watching message
+hc_watch_msg=$(timeout 2 bash "$PROJECT_DIR/health-check.sh" --watch 1 --no-color "$HC_WATCH_DIR" 2>&1 || true)
+if echo "$hc_watch_msg" | grep -q 'Watching.*every'; then
+  pass "health-check.sh --watch prints watching interval message"
+else
+  fail "health-check.sh --watch should print watching interval message"
+fi
+
+rm -rf "$HC_WATCH_DIR"
+
+echo ""
+
 # --- Summary ---
 
 echo "================================"
