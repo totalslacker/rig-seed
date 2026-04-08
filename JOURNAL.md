@@ -4,6 +4,20 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Day 21 — Session 58 (2026-04-08)
+
+**Goal**: Complete NEXT_STEPS.md priority items: grafana.sh dead PID detection, sync-upstream.sh dry-run, check.sh multi-build-system tests.
+
+**What changed**:
+- Added 3 grafana.sh status dead exporter PID tests: JSON detects exporter status as "dead" when PID file references non-existent process, KV reports exporter_status=dead, CSV includes exporter,dead row
+- Added 5 sync-upstream.sh dry-run partial changes tests: JSON reports dry-run mode/status with changes count, JSON includes files array with changed filenames, CSV header and dry-run mode, KV mode=dry-run, working tree stays clean after dry-run
+- Added 4 check.sh multi-build-system detection tests: JSON detects go.mod + package.json + frontend/package.json simultaneously, root npm checks present, frontend subdir build detected, CSV lists at least 2 checks
+- Total integration tests: ~256 (all passing)
+
+**Next Steps**: See NEXT_STEPS.md.
+
+---
+
 ## Day 21 — Session 57 (2026-04-08)
 
 **Goal**: Fix grafana.sh testability — add MONITORING_DIR env var override.

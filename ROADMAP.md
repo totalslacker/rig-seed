@@ -234,3 +234,6 @@ Living document. Updated each evolution session. Items come from three sources:
 - [x] Add dashboard.sh --summary --format=json/csv/kv support (Day 21)
 - [x] Add migrate.sh detection for check.sh and dashboard.sh missing lib.sh (Day 21)
 - [x] Add metrics-exporter.sh --once --format=csv/kv schema validation tests (Day 21)
+- [x] Add grafana.sh status dead exporter PID detection tests (Day 21)
+- [x] Add sync-upstream.sh --dry-run partial changes detection tests (Day 21)
+- [x] Add check.sh multi-build-system detection tests (go.mod + package.json + frontend) (Day 21)
