@@ -3864,6 +3864,265 @@ fi
 
 echo ""
 
+# --- Step 67: grafana.sh --port custom port propagation ---
+
+echo "--- Step 67: grafana.sh --port custom port propagation ---"
+
+MOCK_PORT_BIN=$(mktemp -d "$TMPDIR_BASE/mock-port-bin-XXXXXX")
+
+cat > "$MOCK_PORT_BIN/docker" << 'MOCKEOF'
+#!/usr/bin/env bash
+case "$*" in
+  *"compose"*) exit 0 ;;
+  *"inspect -f"*"rigseed-prometheus"*) echo "running" ;;
+  *"inspect -f"*"rigseed-grafana"*) echo "running" ;;
+  *"inspect rigseed-prometheus"*) exit 0 ;;
+  *"inspect rigseed-grafana"*) exit 0 ;;
+  *) exit 0 ;;
+esac
+MOCKEOF
+chmod +x "$MOCK_PORT_BIN/docker"
+
+cat > "$MOCK_PORT_BIN/docker-compose" << 'MOCKEOF'
+#!/usr/bin/env bash
+exit 0
+MOCKEOF
+chmod +x "$MOCK_PORT_BIN/docker-compose"
+
+# Test 1: JSON output reflects custom port
+gp_json=$(PATH="$MOCK_PORT_BIN:$PATH" bash "$PROJECT_DIR/scripts/grafana.sh" --port 4567 --format=json status "$PROJECT_DIR" 2>&1 || true)
+if echo "$gp_json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+assert d['grafana_port'] == 4567, f'expected 4567 got {d[\"grafana_port\"]}'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "grafana.sh --port 4567 --format=json reports grafana_port=4567"
+else
+  fail "grafana.sh --port 4567 --format=json should report grafana_port=4567"
+fi
+
+# Test 2: JSON grafana URL contains custom port
+if echo "$gp_json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+urls = [c['url'] for c in d['components'] if c['name'] == 'grafana']
+assert any('4567' in u for u in urls), f'grafana URL should contain 4567: {urls}'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "grafana.sh --port 4567 --format=json grafana URL contains custom port"
+else
+  fail "grafana.sh --port 4567 --format=json grafana URL should contain custom port"
+fi
+
+# Test 3: KV output reflects custom port
+gp_kv=$(PATH="$MOCK_PORT_BIN:$PATH" bash "$PROJECT_DIR/scripts/grafana.sh" --port 4567 --format=kv status "$PROJECT_DIR" 2>&1 || true)
+if echo "$gp_kv" | grep -q 'grafana_port=4567'; then
+  pass "grafana.sh --port 4567 --format=kv reports grafana_port=4567"
+else
+  fail "grafana.sh --port 4567 --format=kv should report grafana_port=4567"
+fi
+
+# Test 4: CSV grafana row URL contains custom port
+gp_csv=$(PATH="$MOCK_PORT_BIN:$PATH" bash "$PROJECT_DIR/scripts/grafana.sh" --port 4567 --format=csv status "$PROJECT_DIR" 2>&1 || true)
+if echo "$gp_csv" | grep '^grafana,' | grep -q '4567'; then
+  pass "grafana.sh --port 4567 --format=csv grafana row contains custom port"
+else
+  fail "grafana.sh --port 4567 --format=csv grafana row should contain custom port"
+fi
+
+rm -rf "$MOCK_PORT_BIN"
+
+echo ""
+
+# --- Step 68: sync-upstream.sh live merge (non-conflict) with --format ---
+
+echo "--- Step 68: sync-upstream.sh live merge (non-conflict) with --format ---"
+
+SYNC_LM_UPSTREAM=$(mktemp -d "$TMPDIR_BASE/rigseed-sync-lm-up-XXXXXX")
+SYNC_LM_FORK=$(mktemp -d "$TMPDIR_BASE/rigseed-sync-lm-fork-XXXXXX")
+
+# Set up bare upstream
+(cd "$SYNC_LM_UPSTREAM" && git init -q --bare)
+
+# Set up fork
+rsync -a --exclude='.git' --exclude='.beads' --exclude='.runtime' "$PROJECT_DIR/" "$SYNC_LM_FORK/"
+(
+  cd "$SYNC_LM_FORK"
+  git init -q
+  git add -A
+  git commit -q -m "Initial fork"
+  git remote add origin "$SYNC_LM_UPSTREAM"
+  git push -q origin HEAD:main
+)
+
+# Simulate non-conflicting upstream change
+SYNC_LM_CLONE=$(mktemp -d "$TMPDIR_BASE/rigseed-sync-lm-clone-XXXXXX")
+(
+  cd "$SYNC_LM_CLONE"
+  git clone -q "$SYNC_LM_UPSTREAM" .
+  echo "# Upstream-only addition" >> docs/EVOLUTION.md
+  git add -A
+  git commit -q -m "Upstream docs update"
+  git push -q origin main
+)
+rm -rf "$SYNC_LM_CLONE"
+
+# Test 1: live merge --format=json reports synced status
+sync_lm_json_raw=$(cd "$SYNC_LM_FORK" && bash scripts/sync-upstream.sh --upstream="$SYNC_LM_UPSTREAM" --format=json 2>&1 || true)
+# Extract JSON line (git merge fast-forward output may precede it)
+sync_lm_json=$(echo "$sync_lm_json_raw" | grep '^{')
+if echo "$sync_lm_json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+assert d['mode'] == 'live', f'expected live got {d[\"mode\"]}'
+assert d['status'] == 'synced', f'expected synced got {d[\"status\"]}'
+assert d['changes'] > 0, f'expected changes > 0 got {d[\"changes\"]}'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "sync-upstream.sh live merge --format=json reports mode=live status=synced"
+else
+  fail "sync-upstream.sh live merge --format=json should report mode=live status=synced"
+fi
+
+# Reset for next format test: undo the merge, re-push upstream change
+(cd "$SYNC_LM_FORK" && git reset --hard HEAD~1 2>/dev/null)
+SYNC_LM_CLONE2=$(mktemp -d "$TMPDIR_BASE/rigseed-sync-lm-clone2-XXXXXX")
+(
+  cd "$SYNC_LM_CLONE2"
+  git clone -q "$SYNC_LM_UPSTREAM" .
+  # Push a fresh change so fork has something to merge
+  echo "# Another upstream addition" >> docs/TROUBLESHOOTING.md
+  git add -A
+  git commit -q -m "Upstream troubleshooting update"
+  git push -q origin main
+)
+rm -rf "$SYNC_LM_CLONE2"
+
+# Test 2: live merge --format=csv has correct header and synced status
+sync_lm_csv_raw=$(cd "$SYNC_LM_FORK" && bash scripts/sync-upstream.sh --upstream="$SYNC_LM_UPSTREAM" --format=csv 2>&1 || true)
+# Extract CSV lines (skip git merge fast-forward output)
+sync_lm_csv=$(echo "$sync_lm_csv_raw" | grep -E '^upstream,|^[^A-Z]' | head -5)
+if echo "$sync_lm_csv_raw" | grep -q '^upstream,mode,status,changes,message'; then
+  pass "sync-upstream.sh live merge --format=csv has correct header"
+else
+  fail "sync-upstream.sh live merge --format=csv should have correct header"
+fi
+
+if echo "$sync_lm_csv_raw" | grep -v '^upstream,' | grep -q 'live.*synced\|live,synced'; then
+  pass "sync-upstream.sh live merge --format=csv reports live,synced"
+else
+  fail "sync-upstream.sh live merge --format=csv should report live,synced"
+fi
+
+# Reset for KV test
+(cd "$SYNC_LM_FORK" && git reset --hard HEAD~1 2>/dev/null)
+SYNC_LM_CLONE3=$(mktemp -d "$TMPDIR_BASE/rigseed-sync-lm-clone3-XXXXXX")
+(
+  cd "$SYNC_LM_CLONE3"
+  git clone -q "$SYNC_LM_UPSTREAM" .
+  echo "# Yet another upstream change" >> docs/FORKING.md
+  git add -A
+  git commit -q -m "Upstream forking update"
+  git push -q origin main
+)
+rm -rf "$SYNC_LM_CLONE3"
+
+# Test 3: live merge --format=kv reports mode=live and status=synced
+sync_lm_kv=$(cd "$SYNC_LM_FORK" && bash scripts/sync-upstream.sh --upstream="$SYNC_LM_UPSTREAM" --format=kv 2>&1 || true)
+if echo "$sync_lm_kv" | grep -q '^mode=live'; then
+  pass "sync-upstream.sh live merge --format=kv reports mode=live"
+else
+  fail "sync-upstream.sh live merge --format=kv should report mode=live"
+fi
+
+if echo "$sync_lm_kv" | grep -q '^status=synced'; then
+  pass "sync-upstream.sh live merge --format=kv reports status=synced"
+else
+  fail "sync-upstream.sh live merge --format=kv should report status=synced"
+fi
+
+rm -rf "$SYNC_LM_UPSTREAM" "$SYNC_LM_FORK"
+
+echo ""
+
+# --- Step 69: metrics-exporter.sh Prometheus format negative test ---
+
+echo "--- Step 69: metrics-exporter.sh Prometheus negative test (non-numeric) ---"
+
+EXPORTER="$PROJECT_DIR/docs/examples/monitoring/metrics-exporter.sh"
+
+# Create a mock metrics.sh that outputs mixed numeric and non-numeric values
+ME_NEG_DIR=$(mktemp -d "$TMPDIR_BASE/rigseed-me-neg-XXXXXX")
+
+cat > "$ME_NEG_DIR/metrics.sh" << 'METRICSEOF'
+#!/usr/bin/env bash
+# Mock metrics.sh -q output with mixed value types
+cat << 'DATA'
+day_count=21
+session_count=60
+first_session=2026-03-15
+latest_session=2026-04-08
+total_commits=142
+sessions_per_week=n/a
+roadmap_pct=95%
+empty_value=
+age_days=24
+DATA
+METRICSEOF
+chmod +x "$ME_NEG_DIR/metrics.sh"
+
+# Also need a minimal project structure
+echo "21" > "$ME_NEG_DIR/DAY_COUNT"
+(cd "$ME_NEG_DIR" && git init -q && git add -A && git commit -q -m "init")
+
+# Test 1: Prometheus output skips non-numeric values (dates, n/a, empty)
+me_prom=$(bash "$EXPORTER" --once "$ME_NEG_DIR" 2>&1 || true)
+if echo "$me_prom" | grep -q 'rigseed_day_count.*21'; then
+  pass "metrics-exporter.sh Prometheus includes numeric day_count=21"
+else
+  fail "metrics-exporter.sh Prometheus should include numeric day_count=21"
+fi
+
+# Test 2: Non-numeric date value is skipped (match metric line with {project=, not HELP/TYPE)
+if ! echo "$me_prom" | grep -q 'rigseed_first_session{'; then
+  pass "metrics-exporter.sh Prometheus skips non-numeric first_session (date)"
+else
+  fail "metrics-exporter.sh Prometheus should skip non-numeric first_session (date)"
+fi
+
+# Test 3: n/a value is skipped
+if ! echo "$me_prom" | grep -q 'rigseed_sessions_per_week{'; then
+  pass "metrics-exporter.sh Prometheus skips n/a sessions_per_week"
+else
+  fail "metrics-exporter.sh Prometheus should skip n/a sessions_per_week"
+fi
+
+# Test 4: empty value is skipped
+if ! echo "$me_prom" | grep -q 'rigseed_empty_value{'; then
+  pass "metrics-exporter.sh Prometheus skips empty empty_value"
+else
+  fail "metrics-exporter.sh Prometheus should skip empty empty_value"
+fi
+
+# Test 5: Value with % is skipped (% is non-numeric)
+if ! echo "$me_prom" | grep -q 'rigseed_roadmap_pct{'; then
+  pass "metrics-exporter.sh Prometheus skips roadmap_pct=95% (% is non-numeric)"
+else
+  fail "metrics-exporter.sh Prometheus should skip roadmap_pct=95% (% is non-numeric)"
+fi
+
+# Test 6: Plain numeric value age_days is emitted
+if echo "$me_prom" | grep -q 'rigseed_age_days.*24'; then
+  pass "metrics-exporter.sh Prometheus includes numeric age_days=24"
+else
+  fail "metrics-exporter.sh Prometheus should include numeric age_days=24"
+fi
+
+rm -rf "$ME_NEG_DIR"
+
+echo ""
+
 # --- Summary ---
 
 echo "================================"
