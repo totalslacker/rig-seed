@@ -4,21 +4,24 @@ Updated at the end of each evolution session. Read at the start of the next.
 
 ## Priority (do these first)
 
-- [ ] Add validate.sh --verbose --format=csv/kv integration tests
-- [ ] Add release.sh JSON format test for actual (non-dry-run) release
-- [ ] Add metrics.sh --plan --since --format=json schema validation test
+- [ ] Add sync-upstream.sh conflict resolution test for KV format with file list
+- [ ] Add metrics.sh --plan --since --format=csv schema validation test
+- [ ] Add dashboard.sh --projects --format=csv/kv integration tests
 
 ## Suggested (consider these)
 
-- [ ] Add check-evolve-state.sh --format=csv/kv integration tests with edge cases
-- [ ] Add dashboard.sh --format=kv integration test
-- [ ] Add rollback.sh --format integration tests
+- [ ] Add health-check.sh --watch --format=json test (watch mode with structured output)
+- [ ] Add check-evolve-state.sh partial update tests for CSV/KV format
+- [ ] Add validate.sh --lint --format=csv with real shellcheck issues test
 
 ## Deferred (not now, but don't forget)
 
-- [x] Add sync-upstream.sh conflict resolution test for CSV format output (done Day 19 Session 51)
+- [x] Add sync-upstream.sh conflict resolution test for CSV format (done Day 19 Session 51)
 - [x] Add migrate.sh integration test for validate.sh --verbose detection (done Day 19 Session 51)
 - [x] Add health-check.sh --verbose --format=csv/kv integration tests (done Day 19 Session 51)
+- [x] Add validate.sh --verbose --format=csv/kv integration tests (done Day 19 Session 51)
+- [x] Add release.sh JSON format test for actual (non-dry-run) release (done Day 19 Session 51)
+- [x] Add metrics.sh --plan --since --format=json schema validation test (done Day 19 Session 51)
 - [x] Add `--verbose` flag to validate.sh for detailed check output (done Day 19 Session 50)
 - [x] Add sync-upstream.sh conflict resolution test (done Day 19 Session 50)
 - [x] Add metrics.sh --summary --format=json schema validation test (done Day 19 Session 50)

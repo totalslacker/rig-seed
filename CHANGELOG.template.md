@@ -21,6 +21,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Integration tests for sync-upstream.sh conflict resolution with divergent state files
 - Integration tests for metrics.sh `--summary --format=json` schema validation
 - migrate.sh detection for missing `--format` and `--verbose` flags on all scripts
+- Integration tests for sync-upstream.sh conflict resolution in CSV format
+- Integration tests for health-check.sh and validate.sh `--verbose` with `--format=csv/kv`
+- Integration test for release.sh non-dry-run `--format=json` with real tag creation
+- Integration test for metrics.sh `--plan --since --format=json` schema validation
 
 ### Changed
 

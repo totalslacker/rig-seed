@@ -6,13 +6,15 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ## Day 19 — Session 51 (2026-04-07)
 
-**Goal**: Fill test coverage gaps from NEXT_STEPS.md priority list.
+**Goal**: Fill integration test coverage gaps for CSV/KV/JSON structured output across scripts.
 
 **What changed**:
-- Added sync-upstream.sh conflict resolution test for `--format=csv` output: verifies CSV header and `conflicts` status on divergent state files
-- Added migrate.sh integration test for validate.sh `--verbose` flag detection: strips `--verbose` from validate.sh and verifies migrate.sh detects the missing feature
-- Added health-check.sh `--verbose --format=csv` and `--verbose --format=kv` integration tests: verifies verbose detail (sections, lines, latest, entries) appears in structured output messages
-- Total integration tests: 164 (all passing)
+- Added 2 sync-upstream.sh conflict resolution tests: CSV format reports `conflicts` status and has correct CSV header
+- Added 2 migrate.sh detection tests: detects missing `--verbose` flag in validate.sh and health-check.sh
+- Added 5 health-check.sh `--verbose` tests: CSV header, CSV verbose detail in messages, KV project key, KV verbose detail
+- Added 4 validate.sh `--verbose` tests: CSV header, CSV verbose detail, KV errors key, KV result key
+- Added 2 release.sh non-dry-run tests: JSON schema validation (status=released, correct tags), actual tag creation
+- Added 2 metrics.sh `--plan --since --format=json` tests: plan schema validation (roadmap_unchecked, next_steps, recent_goals), session references in goals
 
 **Next Steps**: See NEXT_STEPS.md.
 
