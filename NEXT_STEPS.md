@@ -4,40 +4,23 @@ Updated at the end of each evolution session. Read at the start of the next.
 
 ## Priority (do these first)
 
-- [ ] Add check-evolve-state.sh --format=csv/kv integration tests with edge cases
-- [ ] Add dashboard.sh --format=kv integration test
-- [ ] Add rollback.sh --format integration tests
+- [ ] Add end-to-end test for rollback.sh live (non-dry-run) rollback with --format output
+- [ ] Add quickstart.sh --check edge case tests (missing state files, empty SPECS.md)
+- [ ] Add dashboard.sh --format=json schema validation test
 
 ## Suggested (consider these)
 
-- [ ] Add grafana.sh --format=csv/kv integration tests with mocked docker
-- [ ] Add lint-workflows.sh --format integration tests
-- [ ] Add quickstart.sh --verbose --format=csv/kv integration tests
+- [ ] Add grafana.sh start/stop end-to-end test with mocked docker compose
+- [ ] Add sync-upstream.sh --format=csv/kv conflict resolution edge cases (partial conflicts)
+- [ ] Add metrics-exporter.sh --format=json schema validation test
 
 ## Deferred (not now, but don't forget)
 
-- [x] Add validate.sh --verbose --format=csv/kv integration tests (done Day 19 Session 51)
-- [x] Add release.sh JSON format test for actual (non-dry-run) release (done Day 19 Session 51)
-- [x] Add metrics.sh --plan --since --format=json schema validation test (done Day 19 Session 51)
-- [x] Add sync-upstream.sh conflict resolution test for CSV format output (done Day 19 Session 51)
-- [x] Add migrate.sh integration test for validate.sh --verbose detection (done Day 19 Session 51)
-- [x] Add health-check.sh --verbose --format=csv/kv integration tests (done Day 19 Session 51)
-- [x] Add `--verbose` flag to validate.sh for detailed check output (done Day 19 Session 50)
-- [x] Add sync-upstream.sh conflict resolution test (done Day 19 Session 50)
-- [x] Add metrics.sh --summary --format=json schema validation test (done Day 19 Session 50)
-- [x] Add `--verbose` to health-check.sh (done Day 19 Session 49)
-- [x] Add validate.sh `--lint --fix --format` integration tests (done Day 19 Session 49)
-- [x] Add CHANGELOG entries for recent features (done Day 19 Session 49)
-- [x] Add `--format` to metrics.sh `--summary` mode (done Day 19 Session 48)
-- [x] Add validate.sh `--lint --format` integration tests (done Day 19 Session 48)
-- [x] Add end-to-end integration test for release.sh (done Day 19 Session 48)
-- [x] Add migrate.sh detection for quickstart.sh --verbose flag (done Day 19 Session 48)
-- [x] Add end-to-end test for sync-upstream.sh (done Day 18 Session 47)
-- [x] Add check-evolve-state.sh edge case tests (done Day 18 Session 47)
-- [x] Add --verbose flag for quickstart.sh --check (done Day 18 Session 47)
-- [x] Consolidate json_escape function into a shared shell library (done Day 17 Session 44 — scripts/lib.sh)
-- [x] Add `--format` to validate.sh (done Day 17 Session 45)
-- [x] Add `--format`/`--once` to metrics-exporter.sh (done Day 17 Session 45)
-- [x] Add grafana.sh --format integration test (done Day 17 Session 45)
-- [x] Add `--format` to release.sh and check-evolve-state.sh (done Day 17 Session 46)
+- [x] Add check-evolve-state.sh edge case CSV/KV tests (done Day 19 Session 52)
+- [x] Add quickstart.sh --verbose --format=csv/kv tests (done Day 19 Session 52)
+- [x] Add check-evolve-state.sh --format=csv/kv integration tests with edge cases (done Day 19 Session 52)
+- [x] Add dashboard.sh --format=kv integration test (already existed)
+- [x] Add rollback.sh --format integration tests (already existed)
+- [x] Add grafana.sh --format=csv/kv integration tests with mocked docker (already existed)
+- [x] Add lint-workflows.sh --format integration tests (already existed)
 - [ ] Make bead creation mandatory before implementation in Step 4 (needs Gas Town formula update, not a rig-seed change)
