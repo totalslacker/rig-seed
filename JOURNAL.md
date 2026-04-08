@@ -4,6 +4,18 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Day 21 — Session 57 (2026-04-08)
+
+**Goal**: Fix grafana.sh testability — add MONITORING_DIR env var override.
+
+**What changed**:
+- Made grafana.sh respect `MONITORING_DIR` env var override (was hardcoded from script path) — this allows tests to inject a mock monitoring directory with a stub metrics-exporter, preventing the start/stop e2e test from hanging on a real netcat server loop
+- Note: the e2e test and other NEXT_STEPS.md priority tests (sync-upstream partial conflicts, metrics-exporter JSON schema) were already merged in sessions 54-55 by another polecat; this session only contributes the grafana.sh fix that unblocks them
+
+**Next Steps**: See NEXT_STEPS.md.
+
+---
+
 ## Day 21 — Session 56 (2026-04-08)
 
 **Goal**: Fix JSON/CSV escaping bugs in check.sh and dashboard.sh, add --summary --format support to dashboard.sh.
