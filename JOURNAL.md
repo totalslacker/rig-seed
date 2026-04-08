@@ -4,6 +4,23 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Day 19 — Session 50 (2026-04-07)
+
+**Goal**: Add --verbose to validate.sh, sync-upstream.sh conflict resolution test, metrics.sh --summary schema test.
+
+**What changed**:
+- Added `--verbose` / `-v` flag to validate.sh — shows detailed analysis of SPECS.md (line count, first heading), ROADMAP.md (section count, progress, latest section), JOURNAL.md (entry count, latest entry, goal), and NEXT_STEPS.md (open/done counts, first item); detail is included in structured output for JSON/CSV/KV formats
+- Added 3 sync-upstream.sh conflict resolution tests: divergent state file changes produce merge conflicts, JSON format reports `conflicts` status, KV format reports `status=conflicts`
+- Added 2 metrics.sh --summary --format=json schema validation tests: required keys + types, reasonable values
+- Added 5 validate.sh --verbose integration tests: table detail output, ROADMAP detail, NEXT_STEPS detail, JSON verbose detail in messages, no detail without --verbose
+- Added migrate.sh detection for validate.sh missing --verbose flag
+- Updated CHANGELOG with new features
+- Total integration tests: 157 (all passing)
+
+**Next Steps**: See NEXT_STEPS.md.
+
+---
+
 ## Day 19 — Session 49 (2026-04-07)
 
 **Goal**: Add --verbose to health-check.sh, --lint --fix --format tests, CHANGELOG updates.

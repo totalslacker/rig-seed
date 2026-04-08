@@ -209,3 +209,7 @@ Living document. Updated each evolution session. Items come from three sources:
 - [x] Add validate.sh `--lint --fix --format` integration tests (Day 19)
 - [x] Add CHANGELOG entries for metrics.sh --summary --format and release.sh e2e tests (Day 19)
 - [x] Add migrate.sh detection for health-check.sh `--verbose` flag (Day 19)
+- [x] Add `--verbose` / `-v` flag to validate.sh for detailed state file analysis (Day 19)
+- [x] Add sync-upstream.sh conflict resolution test with divergent state files (Day 19)
+- [x] Add metrics.sh `--summary --format=json` schema validation test (Day 19)
+- [x] Add migrate.sh detection for validate.sh `--verbose` flag (Day 19)
