@@ -227,3 +227,6 @@ Living document. Updated each evolution session. Items come from three sources:
 - [x] Add grafana.sh start/stop e2e test with mocked docker compose (Day 20)
 - [x] Add sync-upstream.sh --format=csv/kv partial conflict edge case tests (Day 20)
 - [x] Add metrics-exporter.sh --format=json schema validation tests (Day 20)
+- [x] Add rollback.sh merge commit revert test with --format output (Day 20)
+- [x] Add dashboard.sh --summary + --format combined integration tests (Day 20)
+- [x] Add health-check.sh --watch timeout and multi-cycle integration test (Day 20)

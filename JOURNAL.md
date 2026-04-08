@@ -4,6 +4,20 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Day 20 — Session 55 (2026-04-08)
+
+**Goal**: Add rollback.sh merge commit revert, dashboard.sh --summary, and health-check.sh --watch integration tests.
+
+**What changed**:
+- Added 10 rollback.sh merge commit revert tests: merge commit detection, JSON/CSV/KV format with type=merge, parent 1 selection verification (feature file removed, main file preserved), live revert with all three formats
+- Added 8 dashboard.sh --summary + --format combined tests: single and multi-project summary output, --summary precedence over --format, --format=json/csv/kv without --summary, --projects + --summary auto-discovery
+- Added 4 health-check.sh --watch tests: RESULT cycle output, multi-cycle verification with 1-second interval, clean timeout exit (code 124), watching interval message
+- Total integration tests: 230 (all passing)
+
+**Next Steps**: See NEXT_STEPS.md.
+
+---
+
 ## Day 20 — Session 54 (2026-04-08)
 
 **Goal**: Fill remaining integration test gaps from NEXT_STEPS.md priority list.
