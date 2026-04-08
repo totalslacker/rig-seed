@@ -4,18 +4,21 @@ Updated at the end of each evolution session. Read at the start of the next.
 
 ## Priority (do these first)
 
-- [ ] Add `--lint --format` integration tests for validate.sh --fix mode (--lint --fix --format=json/csv/kv)
-- [ ] Add CHANGELOG entry for metrics.sh --summary --format and release.sh e2e test
-- [ ] Add `--verbose` to other --check scripts (health-check.sh, validate.sh)
+- [ ] Add `--verbose` flag to validate.sh for detailed check output
+- [ ] Add sync-upstream.sh conflict resolution test (divergent state file changes)
+- [ ] Add metrics.sh --summary --format=json schema validation test
 
 ## Suggested (consider these)
 
-- [ ] Add sync-upstream.sh conflict resolution test (divergent state file changes)
-- [ ] Add metrics.sh --summary --format=json schema validation test
 - [ ] Add release.sh JSON format test for actual (non-dry-run) release
+- [ ] Add migrate.sh integration test for health-check.sh --verbose detection
+- [ ] Add health-check.sh --verbose --format=csv/kv integration tests
 
 ## Deferred (not now, but don't forget)
 
+- [x] Add `--verbose` to health-check.sh (done Day 19 Session 49)
+- [x] Add validate.sh `--lint --fix --format` integration tests (done Day 19 Session 49)
+- [x] Add CHANGELOG entries for recent features (done Day 19 Session 49)
 - [x] Add `--format` to metrics.sh `--summary` mode (done Day 19 Session 48)
 - [x] Add validate.sh `--lint --format` integration tests (done Day 19 Session 48)
 - [x] Add end-to-end integration test for release.sh (done Day 19 Session 48)

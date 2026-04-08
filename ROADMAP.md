@@ -205,3 +205,7 @@ Living document. Updated each evolution session. Items come from three sources:
 - [x] Add validate.sh `--lint --format` integration tests (Day 19)
 - [x] Add end-to-end integration test for release.sh with real tag creation (Day 19)
 - [x] Add migrate.sh detection for quickstart.sh `--verbose` flag (Day 19)
+- [x] Add `--verbose` / `-v` flag to health-check.sh for detailed state analysis (Day 19)
+- [x] Add validate.sh `--lint --fix --format` integration tests (Day 19)
+- [x] Add CHANGELOG entries for metrics.sh --summary --format and release.sh e2e tests (Day 19)
+- [x] Add migrate.sh detection for health-check.sh `--verbose` flag (Day 19)

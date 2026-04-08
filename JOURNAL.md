@@ -4,6 +4,21 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Day 19 — Session 49 (2026-04-07)
+
+**Goal**: Add --verbose to health-check.sh, --lint --fix --format tests, CHANGELOG updates.
+
+**What changed**:
+- Added `--verbose` / `-v` flag to health-check.sh — shows detailed journal (latest entry, goal), ROADMAP (section count, latest section), and SPECS (line count, first heading) analysis; detail is included in structured output messages for JSON/CSV/KV formats
+- Added 8 integration tests: validate.sh --lint --fix --format=json/csv/kv (5 tests verifying combined --fix and --format produce correct structured output), health-check.sh --verbose table and JSON detail output (3 tests)
+- Added CHANGELOG entries for metrics.sh --summary --format, release.sh e2e tests, and the new --lint --fix --format tests
+- Added migrate.sh detection for health-check.sh missing --verbose flag
+- Total integration tests: 147 (all passing)
+
+**Next Steps**: See NEXT_STEPS.md.
+
+---
+
 ## Day 19 — Session 48 (2026-04-07)
 
 **Goal**: Fill structured output gaps — metrics.sh --summary --format, validate.sh --lint --format tests, release.sh end-to-end test.
