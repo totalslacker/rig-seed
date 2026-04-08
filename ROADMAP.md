@@ -201,3 +201,7 @@ Living document. Updated each evolution session. Items come from three sources:
 - [x] Add end-to-end integration tests for sync-upstream.sh with mocked upstream (Day 18)
 - [x] Add check-evolve-state.sh edge case tests: no-changes branch, partial updates (Day 18)
 - [x] Add `--verbose` / `-v` flag to quickstart.sh --check for detailed state analysis (Day 18)
+- [x] Add `--format` support to metrics.sh `--summary` mode (Day 19)
+- [x] Add validate.sh `--lint --format` integration tests (Day 19)
+- [x] Add end-to-end integration test for release.sh with real tag creation (Day 19)
+- [x] Add migrate.sh detection for quickstart.sh `--verbose` flag (Day 19)

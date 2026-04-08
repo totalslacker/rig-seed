@@ -4,6 +4,20 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Day 19 — Session 48 (2026-04-07)
+
+**Goal**: Fill structured output gaps — metrics.sh --summary --format, validate.sh --lint --format tests, release.sh end-to-end test.
+
+**What changed**:
+- Added `--format=table|csv|json|kv` support to metrics.sh `--summary` mode — previously summary exited early, ignoring the --format flag
+- Added 14 integration tests: validate.sh --lint with --format=json/csv/kv (lint + shellcheck categories), metrics.sh --summary with --format=json/csv/kv/table, release.sh end-to-end (tag creation with real bare remote, patch/minor/major bumps, dry-run, dry-run JSON format)
+- Added migrate.sh detection for quickstart.sh --verbose flag (Day 18 feature)
+- Total integration tests: 139 (all passing)
+
+**Next Steps**: See NEXT_STEPS.md.
+
+---
+
 ## Day 18 — Session 47 (2026-04-03)
 
 **Goal**: Fill test coverage gaps — sync-upstream.sh, check-evolve-state.sh edge cases, quickstart.sh --verbose.
