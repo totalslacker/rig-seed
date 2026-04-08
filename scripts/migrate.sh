@@ -561,6 +561,10 @@ if [ -f "$dir/health-check.sh" ] && ! grep -q '\-\-verbose\|-v)' "$dir/health-ch
   printf '  %bNOTE:%b' "$YELLOW" "$RESET"; echo " health-check.sh missing --verbose flag (added Day 19)"
   echo "        Compare with upstream to add detailed journal, ROADMAP, and SPECS analysis."
 fi
+if [ -f "$dir/validate.sh" ] && ! grep -q '\-\-verbose\|-v)' "$dir/validate.sh" 2>/dev/null; then
+  printf '  %bNOTE:%b' "$YELLOW" "$RESET"; echo " validate.sh missing --verbose flag (added Day 19)"
+  echo "        Compare with upstream to add detailed SPECS, ROADMAP, JOURNAL, and NEXT_STEPS analysis."
+fi
 if [ -f "$dir/validate.sh" ] && ! grep -q '\-\-format=' "$dir/validate.sh" 2>/dev/null; then
   printf '  %bNOTE:%b' "$YELLOW" "$RESET"; echo " validate.sh missing --format flag (added Day 17)"
   echo "        Compare with upstream to add table/csv/json/kv output format support."
