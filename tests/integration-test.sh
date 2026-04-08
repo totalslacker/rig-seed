@@ -2315,6 +2315,162 @@ fi
 
 echo ""
 
+# --- Step 48: validate.sh --verbose --format=csv/kv tests ---
+
+echo "--- Step 48: validate.sh --verbose --format=csv/kv ---"
+
+# CSV: --verbose should include verbose detail in message column
+v_verbose_csv=$(bash "$PROJECT_DIR/validate.sh" --verbose --format=csv "$PROJECT_DIR" 2>&1 || true)
+if echo "$v_verbose_csv" | grep -q '^category,file,status,message'; then
+  pass "validate.sh --verbose --format=csv has CSV header"
+else
+  fail "validate.sh --verbose --format=csv should have CSV header"
+fi
+if echo "$v_verbose_csv" | grep -qi 'sections\|lines\|entries\|open'; then
+  pass "validate.sh --verbose --format=csv includes verbose detail in messages"
+else
+  fail "validate.sh --verbose --format=csv should include verbose detail in messages"
+fi
+
+# CSV: without --verbose should NOT include verbose detail
+v_normal_csv=$(bash "$PROJECT_DIR/validate.sh" --format=csv "$PROJECT_DIR" 2>&1 || true)
+if echo "$v_normal_csv" | grep -v '^category' | grep -qi 'sections.*done.*remaining\|entries.*latest'; then
+  fail "validate.sh --format=csv without --verbose should not include verbose detail"
+else
+  pass "validate.sh --format=csv without --verbose has no verbose detail"
+fi
+
+# KV: --verbose should include verbose detail in status values
+v_verbose_kv=$(bash "$PROJECT_DIR/validate.sh" --verbose --format=kv "$PROJECT_DIR" 2>&1 || true)
+if echo "$v_verbose_kv" | grep -q '^errors='; then
+  pass "validate.sh --verbose --format=kv has errors key"
+else
+  fail "validate.sh --verbose --format=kv should have errors key"
+fi
+if echo "$v_verbose_kv" | grep -q '^result='; then
+  pass "validate.sh --verbose --format=kv has result key"
+else
+  fail "validate.sh --verbose --format=kv should have result key"
+fi
+
+echo ""
+
+# --- Step 49: release.sh JSON format for actual (non-dry-run) release ---
+
+echo "--- Step 49: release.sh actual release --format=json ---"
+
+REL_JSON_BARE=$(mktemp -d "$TMPDIR_BASE/rigseed-reljson-bare-XXXXXX")
+REL_JSON_DIR=$(mktemp -d "$TMPDIR_BASE/rigseed-reljson-work-XXXXXX")
+
+# Set up bare remote + working repo with scripts (mirrors Step 39 setup)
+git init -q --bare "$REL_JSON_BARE"
+rsync -a --exclude='.git' --exclude='.beads' --exclude='.runtime' "$PROJECT_DIR/" "$REL_JSON_DIR/"
+(
+  cd "$REL_JSON_DIR"
+  git init -q
+  git remote add origin "$REL_JSON_BARE"
+  git add -A
+  git commit -q -m "Initial fork"
+  git push -q origin HEAD 2>/dev/null
+)
+
+# Test: actual release with --format=json should produce valid JSON with status=released
+# First release from base v0.1.0 → v0.1.1
+rel_actual_json=$(cd "$REL_JSON_DIR" && bash scripts/release.sh patch --format=json --no-color 2>&1 || true)
+# Extract just the JSON line (last line, ignore any git push stderr)
+rel_actual_json_line=$(echo "$rel_actual_json" | grep '^{')
+if echo "$rel_actual_json_line" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+assert d['status'] == 'released', f'expected status=released, got {d[\"status\"]}'
+assert d['dry_run'] == False, 'dry_run should be False'
+assert 'new_tag' in d, 'missing new_tag'
+assert d['bump'] == 'patch', f'expected bump=patch, got {d[\"bump\"]}'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "release.sh actual release --format=json produces valid JSON with status=released"
+else
+  fail "release.sh actual release --format=json should produce valid JSON with status=released"
+fi
+
+# Verify the tag was actually created
+if git -C "$REL_JSON_DIR" tag -l 'v*' | grep -q 'v0.'; then
+  pass "release.sh actual release --format=json created a version tag"
+else
+  fail "release.sh actual release --format=json should create a version tag"
+fi
+
+rm -rf "$REL_JSON_BARE" "$REL_JSON_DIR"
+
+echo ""
+
+# --- Step 50: metrics.sh --plan --since --format=json schema validation ---
+
+echo "--- Step 50: metrics.sh --plan --since --format=json schema ---"
+
+plan_schema_json=$("$WORK_DIR/metrics.sh" --format=json --plan --since 2 --no-color "$WORK_DIR" 2>/dev/null || true)
+plan_schema_result=$(echo "$plan_schema_json" | python3 -c "
+import json, sys
+try:
+    d = json.load(sys.stdin)
+except Exception as e:
+    print(f'FAIL: JSON parse error: {e}')
+    sys.exit(0)
+if 'plan' not in d:
+    print(f'FAIL: missing plan object, keys={list(d.keys())}')
+    sys.exit(0)
+p = d['plan']
+if 'roadmap_unchecked' not in p:
+    print(f'FAIL: missing roadmap_unchecked in plan, keys={list(p.keys())}')
+    sys.exit(0)
+if 'next_steps' not in p:
+    print(f'FAIL: missing next_steps in plan, keys={list(p.keys())}')
+    sys.exit(0)
+if not isinstance(p['roadmap_unchecked'], list):
+    print('FAIL: roadmap_unchecked should be list')
+    sys.exit(0)
+if not isinstance(p['next_steps'], list):
+    print('FAIL: next_steps should be list')
+    sys.exit(0)
+print('valid')
+" 2>&1)
+if echo "$plan_schema_result" | grep -q 'valid'; then
+  pass "metrics.sh --plan --since --format=json has valid plan schema"
+else
+  fail "metrics.sh --plan --since --format=json should have valid plan schema"
+fi
+
+# Verify recent_goals is present when --since > 0
+if echo "$plan_schema_json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+p = d['plan']
+assert 'recent_goals' in p, 'missing recent_goals with --since > 0'
+assert isinstance(p['recent_goals'], list), 'recent_goals should be list'
+assert len(p['recent_goals']) > 0, 'recent_goals should have entries with --since 2'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "metrics.sh --plan --since --format=json includes recent_goals array"
+else
+  fail "metrics.sh --plan --since --format=json should include recent_goals array"
+fi
+
+# Verify types of plan values
+if echo "$plan_schema_json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+assert isinstance(d['day_count'], (int, float)), 'day_count should be numeric'
+assert isinstance(d['session_counter'], (int, float)), 'session_counter should be numeric'
+assert d['day_count'] > 0, 'day_count should be positive'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "metrics.sh --plan --since --format=json has correct value types"
+else
+  fail "metrics.sh --plan --since --format=json should have correct value types"
+fi
+
+echo ""
+
 # --- Summary ---
 
 echo "================================"
