@@ -6,6 +6,7 @@
 #
 # Options:
 #   -q, --quiet         Only print failures and the final result
+#   -v, --verbose       Show detailed state file analysis
 #   -l, --lint          Check script conventions compliance
 #   --fix               With --lint: auto-apply shellcheck fixes
 #   --format=FORMAT     Output format: table (default), csv, json, kv
@@ -23,6 +24,7 @@ set -euo pipefail
 # --- Options ---
 
 quiet=false
+verbose=false
 use_color=auto
 lint=false
 fix=false
@@ -38,6 +40,7 @@ for arg in "$@"; do
       echo ""
       echo "Options:"
       echo "  -q, --quiet         Only print failures and the final result"
+      echo "  -v, --verbose       Show detailed state file analysis"
       echo "  -l, --lint          Check script conventions compliance"
       echo "  --fix               With --lint: auto-apply shellcheck fixes"
       echo "  --format=FORMAT     Output format: table (default), csv, json, kv"
@@ -56,6 +59,9 @@ for arg in "$@"; do
       ;;
     -q|--quiet)
       quiet=true
+      ;;
+    -v|--verbose)
+      verbose=true
       ;;
     -l|--lint)
       lint=true
@@ -181,13 +187,46 @@ info ""
 info "${CYAN}=== Required State Files ===${RESET}"
 check_nonempty "IDENTITY.md"    "Project identity"
 check_file     "SPECS.md"       "Project specification"
+if [ "$verbose" = true ] && [ -f "$dir/SPECS.md" ]; then
+  specs_lines=$(wc -l < "$dir/SPECS.md" | tr -d ' ')
+  specs_heading=$(grep -m1 '^## ' "$dir/SPECS.md" 2>/dev/null || echo "")
+  specs_detail="$specs_lines lines; first heading: ${specs_heading#\#\# }"
+  info "    Detail: $specs_detail"
+  # Update last result to include verbose detail
+  validate_results[-1]="${validate_results[-1]} ($specs_detail)"
+fi
 check_file     "ROADMAP.md"     "Roadmap"
+if [ "$verbose" = true ] && [ -f "$dir/ROADMAP.md" ]; then
+  rm_sections=$(grep -c '^## ' "$dir/ROADMAP.md" 2>/dev/null) || rm_sections=0
+  rm_checked=$(grep -c '^\- \[x\]' "$dir/ROADMAP.md" 2>/dev/null) || rm_checked=0
+  rm_unchecked=$(grep -c '^\- \[ \]' "$dir/ROADMAP.md" 2>/dev/null) || rm_unchecked=0
+  rm_latest=$(grep '^## ' "$dir/ROADMAP.md" 2>/dev/null | tail -1 || echo "")
+  roadmap_detail="$rm_sections sections; $rm_checked done, $rm_unchecked remaining; latest: ${rm_latest#\#\# }"
+  info "    Detail: $roadmap_detail"
+  validate_results[-1]="${validate_results[-1]} ($roadmap_detail)"
+fi
 check_file     "JOURNAL.md"     "Evolution journal"
+if [ "$verbose" = true ] && [ -f "$dir/JOURNAL.md" ]; then
+  j_entries=$(grep -c '^## \(Day [0-9].* — Session\|Session\|Day\) ' "$dir/JOURNAL.md" 2>/dev/null) || j_entries=0
+  j_latest=$(grep -m1 '^## \(Day [0-9].* — Session\|Session\|Day\) ' "$dir/JOURNAL.md" 2>/dev/null || echo "")
+  j_goal=$(grep -m1 '^\*\*Goal\*\*' "$dir/JOURNAL.md" 2>/dev/null || echo "")
+  journal_detail="$j_entries entries; latest: ${j_latest#\#\# }${j_goal:+; $j_goal}"
+  info "    Detail: $journal_detail"
+  validate_results[-1]="${validate_results[-1]} ($journal_detail)"
+fi
 check_file     "LEARNINGS.md"   "Technical learnings"
 check_file     "SESSION_COUNT"  "Session counter"
 check_file     "DAY_COUNT"      "Day counter"
 check_file     "DAY_DATE"       "Last session date"
 check_file     "NEXT_STEPS.md"  "Planning handoff"
+if [ "$verbose" = true ] && [ -f "$dir/NEXT_STEPS.md" ]; then
+  ns_open=$(grep -c '^\- \[ \]' "$dir/NEXT_STEPS.md" 2>/dev/null) || ns_open=0
+  ns_done=$(grep -c '^\- \[x\]' "$dir/NEXT_STEPS.md" 2>/dev/null) || ns_done=0
+  ns_first=$(grep -m1 '^\- \[ \]' "$dir/NEXT_STEPS.md" 2>/dev/null || echo "")
+  nextsteps_detail="$ns_open open, $ns_done done; first: ${ns_first#- \[ \] }"
+  info "    Detail: $nextsteps_detail"
+  validate_results[-1]="${validate_results[-1]} ($nextsteps_detail)"
+fi
 check_file     "PERSONALITY.md" "Agent personality"
 
 info ""
