@@ -4,6 +4,20 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Day 20 — Session 54 (2026-04-08)
+
+**Goal**: Fill remaining integration test gaps from NEXT_STEPS.md priority list.
+
+**What changed**:
+- Added 5 grafana.sh start/stop e2e tests with mocked docker compose: compose-up invoked, dashboard URL printed, compose-down invoked, stop confirmed, status JSON shows running prometheus and grafana
+- Added 5 sync-upstream.sh partial conflict edge case tests: CSV header, conflicts status, non-zero changes count, KV status=conflicts, KV mode=live (multi-state-file divergence scenario)
+- Added 3 metrics-exporter.sh --format=json schema validation tests: project key present and non-empty, metrics object with valid types, day_count and session_count as numeric values
+- Total integration tests: 209 (all passing)
+
+**Next Steps**: See NEXT_STEPS.md.
+
+---
+
 ## Day 20 — Session 53 (2026-04-08)
 
 **Goal**: Fill remaining integration test gaps from NEXT_STEPS.md priority list.

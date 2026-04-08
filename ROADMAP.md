@@ -224,3 +224,6 @@ Living document. Updated each evolution session. Items come from three sources:
 - [x] Add rollback.sh live (non-dry-run) rollback with --format integration tests (Day 20)
 - [x] Add quickstart.sh --check edge case tests (template failure, empty SPECS.md) (Day 20)
 - [x] Add dashboard.sh --format=json schema validation tests (Day 20)
+- [x] Add grafana.sh start/stop e2e test with mocked docker compose (Day 20)
+- [x] Add sync-upstream.sh --format=csv/kv partial conflict edge case tests (Day 20)
+- [x] Add metrics-exporter.sh --format=json schema validation tests (Day 20)
