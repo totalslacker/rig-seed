@@ -35,7 +35,7 @@ set -euo pipefail
 # --- Resolve script and project paths ---
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-MONITORING_DIR="$REPO_ROOT/docs/examples/monitoring"
+MONITORING_DIR="${MONITORING_DIR:-$REPO_ROOT/docs/examples/monitoring}"
 
 # --- Color setup ---
 USE_COLOR=""
