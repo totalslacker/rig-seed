@@ -2019,6 +2019,209 @@ fi
 
 echo ""
 
+# --- Step 42: validate.sh --verbose ---
+
+echo "--- Step 42: validate.sh --verbose ---"
+
+VERBOSE_VAL_DIR=$(mktemp -d "$TMPDIR_BASE/rigseed-verbose-val-XXXXXX")
+rsync -a --exclude='.git' --exclude='.beads' --exclude='.runtime' "$PROJECT_DIR/" "$VERBOSE_VAL_DIR/"
+
+# Test 1: --verbose table output includes state file details
+verbose_val_table=$(bash "$VERBOSE_VAL_DIR/validate.sh" --verbose --no-color "$VERBOSE_VAL_DIR" 2>&1 || true)
+if echo "$verbose_val_table" | grep -qi 'JOURNAL.md:' && echo "$verbose_val_table" | grep -qi 'ROADMAP.md:'; then
+  pass "validate.sh --verbose shows JOURNAL and ROADMAP detail in table output"
+else
+  fail "validate.sh --verbose should show JOURNAL and ROADMAP detail in table output"
+fi
+
+# Test 2: --verbose table includes SPECS and NEXT_STEPS detail
+if echo "$verbose_val_table" | grep -qi 'SPECS.md:' && echo "$verbose_val_table" | grep -qi 'NEXT_STEPS.md:'; then
+  pass "validate.sh --verbose shows SPECS and NEXT_STEPS detail in table output"
+else
+  fail "validate.sh --verbose should show SPECS and NEXT_STEPS detail in table output"
+fi
+
+# Test 3: --verbose --format=json includes detail entries
+verbose_val_json=$(bash "$VERBOSE_VAL_DIR/validate.sh" --verbose --format=json "$VERBOSE_VAL_DIR" 2>&1 || true)
+if echo "$verbose_val_json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+checks = d.get('checks', [])
+detail_checks = [c for c in checks if c.get('category') == 'detail']
+assert len(detail_checks) >= 3, f'expected >=3 detail entries, got {len(detail_checks)}'
+files = [c['file'] for c in detail_checks]
+assert 'JOURNAL.md' in files, 'missing JOURNAL.md detail'
+assert 'ROADMAP.md' in files, 'missing ROADMAP.md detail'
+assert 'SPECS.md' in files, 'missing SPECS.md detail'
+# Check detail messages have content
+for c in detail_checks:
+    assert len(c['message']) > 5, f'detail message too short: {c[\"message\"]}'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "validate.sh --verbose --format=json includes detail category with state file analysis"
+else
+  fail "validate.sh --verbose --format=json should include detail category with state file analysis"
+fi
+
+# Test 4: without --verbose, no detail entries in JSON
+nonverbose_val_json=$(bash "$VERBOSE_VAL_DIR/validate.sh" --format=json "$VERBOSE_VAL_DIR" 2>&1 || true)
+if echo "$nonverbose_val_json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+checks = d.get('checks', [])
+detail_checks = [c for c in checks if c.get('category') == 'detail']
+assert len(detail_checks) == 0, f'expected 0 detail entries without --verbose, got {len(detail_checks)}'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "validate.sh without --verbose has no detail entries in JSON"
+else
+  fail "validate.sh without --verbose should have no detail entries in JSON"
+fi
+
+rm -rf "$VERBOSE_VAL_DIR"
+
+echo ""
+
+# --- Step 43: sync-upstream.sh conflict resolution (divergent state files) ---
+
+echo "--- Step 43: sync-upstream.sh conflict resolution (divergent state files) ---"
+
+# Set up: upstream and fork both modify the same state file → merge conflict
+CONFLICT_UPSTREAM=$(mktemp -d "$TMPDIR_BASE/rigseed-conflict-upstream-XXXXXX")
+CONFLICT_FORK=$(mktemp -d "$TMPDIR_BASE/rigseed-conflict-fork-XXXXXX")
+
+# Create bare upstream
+(
+  cd "$CONFLICT_UPSTREAM"
+  git init -q --bare
+)
+
+# Create fork with project files
+rsync -a --exclude='.git' --exclude='.beads' --exclude='.runtime' "$PROJECT_DIR/" "$CONFLICT_FORK/"
+(
+  cd "$CONFLICT_FORK"
+  git init -q
+  git add -A
+  git commit -q -m "Initial fork"
+  git remote add origin "$CONFLICT_UPSTREAM"
+  git push -q origin HEAD:main
+)
+
+# Push upstream changes that diverge from the fork on state files
+CONFLICT_CLONE=$(mktemp -d "$TMPDIR_BASE/rigseed-conflict-clone-XXXXXX")
+(
+  cd "$CONFLICT_CLONE"
+  git clone -q "$CONFLICT_UPSTREAM" .
+  # Modify a NEVER_SYNC file (JOURNAL.md) AND an infrastructure file
+  echo "## Upstream journal entry" >> JOURNAL.md
+  echo "# Upstream validate.sh change" >> validate.sh
+  git add -A
+  git commit -q -m "Upstream divergent changes"
+  git push -q origin main
+)
+rm -rf "$CONFLICT_CLONE"
+
+# Now modify the SAME state file locally in the fork (diverge)
+(
+  cd "$CONFLICT_FORK"
+  echo "## Local journal entry — different content" >> JOURNAL.md
+  git add -A
+  git commit -q -m "Local state file change"
+)
+
+# Test 1: live sync with conflicts returns exit code 1 and mentions conflicts
+conflict_output=$(cd "$CONFLICT_FORK" && bash scripts/sync-upstream.sh --upstream="$CONFLICT_UPSTREAM" --no-color 2>&1 || true)
+conflict_exit=$?
+if echo "$conflict_output" | grep -qi 'conflict'; then
+  pass "sync-upstream.sh detects merge conflicts on divergent state files"
+else
+  fail "sync-upstream.sh should detect merge conflicts on divergent state files"
+fi
+
+# Clean up the conflicted state for next test
+(cd "$CONFLICT_FORK" && git merge --abort 2>/dev/null || true)
+
+# Test 2: JSON format reports conflict status
+# Note: git merge outputs conflict messages to stdout before the JSON line, so extract the JSON
+conflict_json=$(cd "$CONFLICT_FORK" && bash scripts/sync-upstream.sh --upstream="$CONFLICT_UPSTREAM" --format=json 2>&1 || true)
+if echo "$conflict_json" | grep '^{' | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+assert d['status'] == 'conflicts', f'expected conflicts status, got {d[\"status\"]}'
+assert d['changes'] > 0, 'should report changes'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "sync-upstream.sh --format=json reports conflict status on divergent files"
+else
+  fail "sync-upstream.sh --format=json should report conflict status on divergent files"
+fi
+
+# Clean up
+(cd "$CONFLICT_FORK" && git merge --abort 2>/dev/null || true)
+
+rm -rf "$CONFLICT_UPSTREAM" "$CONFLICT_FORK"
+
+echo ""
+
+# --- Step 44: metrics.sh --summary --format=json schema validation ---
+
+echo "--- Step 44: metrics.sh --summary --format=json schema validation ---"
+
+METRICS_SCHEMA_DIR=$(mktemp -d "$TMPDIR_BASE/rigseed-metrics-schema-XXXXXX")
+rsync -a --exclude='.git' --exclude='.beads' --exclude='.runtime' "$PROJECT_DIR/" "$METRICS_SCHEMA_DIR/"
+(
+  cd "$METRICS_SCHEMA_DIR"
+  git init -q
+  git add -A
+  git commit -q -m "Initial commit"
+)
+
+# Test 1: --summary --format=json produces valid JSON with required keys
+metrics_summary_json=$(cd "$METRICS_SCHEMA_DIR" && bash metrics.sh --summary --format=json --no-color 2>&1 || true)
+if echo "$metrics_summary_json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+required_keys = ['day_count', 'session_counter', 'roadmap_checked', 'roadmap_unchecked', 'roadmap_total', 'total_commits', 'last_commit_date']
+for k in required_keys:
+    assert k in d, f'missing required key: {k}'
+
+# Type checks
+assert isinstance(d['day_count'], int), f'day_count should be int, got {type(d[\"day_count\"]).__name__}'
+assert isinstance(d['session_counter'], int), f'session_counter should be int, got {type(d[\"session_counter\"]).__name__}'
+assert isinstance(d['roadmap_checked'], int), f'roadmap_checked should be int, got {type(d[\"roadmap_checked\"]).__name__}'
+assert isinstance(d['roadmap_unchecked'], int), f'roadmap_unchecked should be int, got {type(d[\"roadmap_unchecked\"]).__name__}'
+assert isinstance(d['roadmap_total'], int), f'roadmap_total should be int, got {type(d[\"roadmap_total\"]).__name__}'
+assert isinstance(d['total_commits'], int), f'total_commits should be int, got {type(d[\"total_commits\"]).__name__}'
+assert isinstance(d['last_commit_date'], str), f'last_commit_date should be str, got {type(d[\"last_commit_date\"]).__name__}'
+
+# Invariant: roadmap_total = roadmap_checked + roadmap_unchecked
+assert d['roadmap_total'] == d['roadmap_checked'] + d['roadmap_unchecked'], \
+    f'roadmap_total ({d[\"roadmap_total\"]}) != checked ({d[\"roadmap_checked\"]}) + unchecked ({d[\"roadmap_unchecked\"]})'
+
+# If roadmap_total > 0, roadmap_pct should be present
+if d['roadmap_total'] > 0:
+    assert 'roadmap_pct' in d, 'roadmap_pct should be present when roadmap_total > 0'
+    assert isinstance(d['roadmap_pct'], int), f'roadmap_pct should be int, got {type(d[\"roadmap_pct\"]).__name__}'
+
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "metrics.sh --summary --format=json has valid schema with correct types"
+else
+  fail "metrics.sh --summary --format=json should have valid schema with correct types"
+fi
+
+# Test 2: --summary --format=csv has correct header
+metrics_summary_csv=$(cd "$METRICS_SCHEMA_DIR" && bash metrics.sh --summary --format=csv --no-color 2>&1 || true)
+if echo "$metrics_summary_csv" | head -1 | grep -q 'day_count'; then
+  pass "metrics.sh --summary --format=csv includes header with day_count"
+else
+  fail "metrics.sh --summary --format=csv should include header with day_count"
+fi
+
+rm -rf "$METRICS_SCHEMA_DIR"
+
+echo ""
+
 # --- Summary ---
 
 echo "================================"
