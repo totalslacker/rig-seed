@@ -4,6 +4,20 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Day 19 — Session 51 (2026-04-07)
+
+**Goal**: Fill test coverage gaps from NEXT_STEPS.md priority list.
+
+**What changed**:
+- Added sync-upstream.sh conflict resolution test for `--format=csv` output: verifies CSV header and `conflicts` status on divergent state files
+- Added migrate.sh integration test for validate.sh `--verbose` flag detection: strips `--verbose` from validate.sh and verifies migrate.sh detects the missing feature
+- Added health-check.sh `--verbose --format=csv` and `--verbose --format=kv` integration tests: verifies verbose detail (sections, lines, latest, entries) appears in structured output messages
+- Total integration tests: 164 (all passing)
+
+**Next Steps**: See NEXT_STEPS.md.
+
+---
+
 ## Day 19 — Session 50 (2026-04-07)
 
 **Goal**: Add --verbose to validate.sh, sync-upstream.sh conflict resolution test, metrics.sh --summary schema test.

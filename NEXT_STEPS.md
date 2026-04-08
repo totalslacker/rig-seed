@@ -4,18 +4,21 @@ Updated at the end of each evolution session. Read at the start of the next.
 
 ## Priority (do these first)
 
-- [ ] Add sync-upstream.sh conflict resolution test for CSV format output
-- [ ] Add migrate.sh integration test for validate.sh --verbose detection
-- [ ] Add health-check.sh --verbose --format=csv/kv integration tests
+- [ ] Add validate.sh --verbose --format=csv/kv integration tests
+- [ ] Add release.sh JSON format test for actual (non-dry-run) release
+- [ ] Add metrics.sh --plan --since --format=json schema validation test
 
 ## Suggested (consider these)
 
-- [ ] Add release.sh JSON format test for actual (non-dry-run) release
-- [ ] Add validate.sh --verbose --format=csv/kv integration tests
-- [ ] Add metrics.sh --plan --since --format=json schema validation test
+- [ ] Add check-evolve-state.sh --format=csv/kv integration tests with edge cases
+- [ ] Add dashboard.sh --format=kv integration test
+- [ ] Add rollback.sh --format integration tests
 
 ## Deferred (not now, but don't forget)
 
+- [x] Add sync-upstream.sh conflict resolution test for CSV format output (done Day 19 Session 51)
+- [x] Add migrate.sh integration test for validate.sh --verbose detection (done Day 19 Session 51)
+- [x] Add health-check.sh --verbose --format=csv/kv integration tests (done Day 19 Session 51)
 - [x] Add `--verbose` flag to validate.sh for detailed check output (done Day 19 Session 50)
 - [x] Add sync-upstream.sh conflict resolution test (done Day 19 Session 50)
 - [x] Add metrics.sh --summary --format=json schema validation test (done Day 19 Session 50)

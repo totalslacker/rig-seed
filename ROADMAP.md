@@ -213,3 +213,6 @@ Living document. Updated each evolution session. Items come from three sources:
 - [x] Add sync-upstream.sh conflict resolution test with divergent state files (Day 19)
 - [x] Add metrics.sh `--summary --format=json` schema validation test (Day 19)
 - [x] Add migrate.sh detection for validate.sh `--verbose` flag (Day 19)
+- [x] Add sync-upstream.sh conflict resolution test for CSV format output (Day 19)
+- [x] Add migrate.sh integration test for validate.sh --verbose detection (Day 19)
+- [x] Add health-check.sh --verbose --format=csv/kv integration tests (Day 19)
