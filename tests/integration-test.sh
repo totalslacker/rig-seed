@@ -3207,13 +3207,21 @@ else
   fail "dashboard.sh --summary with 2 projects should output 2 summary lines"
 fi
 
-# --summary takes precedence over --format for project data (summary format inside gather_metrics)
-dash_sum_json=$("$PROJECT_DIR/scripts/dashboard.sh" --summary --format=json --no-color "$DASH_SUM_DIR/alpha" 2>&1 || true)
-# --summary output should contain the summary-style project name (not JSON key-value)
-if echo "$dash_sum_json" | grep -q 'alpha.*roadmap'; then
-  pass "dashboard.sh --summary + --format=json uses summary format for data"
+# --summary + --format=json produces compact JSON (no commits/learnings/velocity)
+dash_sum_json=$("$PROJECT_DIR/scripts/dashboard.sh" --summary --format=json "$DASH_SUM_DIR/alpha" 2>&1 || true)
+if echo "$dash_sum_json" | python3 -c "
+import json, sys
+data = json.load(sys.stdin)
+assert isinstance(data, list), 'should be array'
+assert len(data) == 1, f'expected 1 project, got {len(data)}'
+assert 'name' in data[0], 'missing name'
+assert 'roadmap_pct' in data[0], 'missing roadmap_pct'
+assert 'commits' not in data[0], 'summary should not have commits'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "dashboard.sh --summary + --format=json produces compact JSON"
 else
-  fail "dashboard.sh --summary + --format=json should use summary format for data"
+  fail "dashboard.sh --summary + --format=json should produce compact JSON"
 fi
 
 # --format=json without --summary produces valid JSON
@@ -3231,6 +3239,20 @@ else
   fail "dashboard.sh --format=json (no --summary) should produce valid JSON array"
 fi
 
+# --summary + --format=csv has compact header
+dash_sum_csv=$("$PROJECT_DIR/scripts/dashboard.sh" --summary --format=csv "$DASH_SUM_DIR/alpha" "$DASH_SUM_DIR/beta" 2>&1 || true)
+if echo "$dash_sum_csv" | head -1 | grep -q 'name,day_count,sessions,roadmap_done'; then
+  pass "dashboard.sh --summary --format=csv has compact CSV header"
+else
+  fail "dashboard.sh --summary --format=csv should have compact CSV header"
+fi
+csv_cols=$(echo "$dash_sum_csv" | head -1 | tr ',' '\n' | wc -l)
+if [ "$csv_cols" -eq 7 ]; then
+  pass "dashboard.sh --summary --format=csv has 7 columns (compact)"
+else
+  fail "dashboard.sh --summary --format=csv should have 7 columns, got $csv_cols"
+fi
+
 # --format=csv without --summary produces header + data
 dash_nosumm_csv=$("$PROJECT_DIR/scripts/dashboard.sh" --format=csv "$DASH_SUM_DIR/alpha" "$DASH_SUM_DIR/beta" 2>&1 || true)
 csv_header=$(echo "$dash_nosumm_csv" | head -1)
@@ -3239,6 +3261,19 @@ if echo "$csv_header" | grep -q '^name,' && [ "$csv_data" -ge 2 ]; then
   pass "dashboard.sh --format=csv (no --summary) has header + 2 data rows"
 else
   fail "dashboard.sh --format=csv (no --summary) should have header + 2 data rows"
+fi
+
+# --summary + --format=kv
+dash_sum_kv=$("$PROJECT_DIR/scripts/dashboard.sh" --summary --format=kv "$DASH_SUM_DIR/alpha" "$DASH_SUM_DIR/beta" 2>&1 || true)
+if echo "$dash_sum_kv" | grep -q '^project='; then
+  pass "dashboard.sh --summary --format=kv includes project= key"
+else
+  fail "dashboard.sh --summary --format=kv should include project= key"
+fi
+if echo "$dash_sum_kv" | grep -q '^roadmap_pct='; then
+  pass "dashboard.sh --summary --format=kv includes roadmap_pct"
+else
+  fail "dashboard.sh --summary --format=kv should include roadmap_pct"
 fi
 
 # --format=kv without --summary produces key=value pairs with separator
@@ -3311,6 +3346,41 @@ else
 fi
 
 rm -rf "$HC_WATCH_DIR"
+
+echo ""
+
+# --- Step 60: metrics-exporter.sh --once --format=csv/kv schema validation ---
+
+echo "--- Step 60: metrics-exporter.sh --once --format=csv/kv ---"
+
+EXPORTER="$PROJECT_DIR/docs/examples/monitoring/metrics-exporter.sh"
+
+# --once --format=csv
+exp_csv=$(bash "$EXPORTER" --once --format=csv "$PROJECT_DIR" 2>&1 || true)
+if echo "$exp_csv" | head -1 | grep -q '^metric,value'; then
+  pass "metrics-exporter.sh --format=csv has metric,value header"
+else
+  fail "metrics-exporter.sh --format=csv should have metric,value header"
+fi
+exp_csv_lines=$(echo "$exp_csv" | tail -n +2 | wc -l)
+if [ "$exp_csv_lines" -ge 3 ]; then
+  pass "metrics-exporter.sh --format=csv has at least 3 metric rows"
+else
+  fail "metrics-exporter.sh --format=csv should have at least 3 metric rows, got $exp_csv_lines"
+fi
+
+# --once --format=kv
+exp_kv=$(bash "$EXPORTER" --once --format=kv "$PROJECT_DIR" 2>&1 || true)
+if echo "$exp_kv" | grep -q 'day_count='; then
+  pass "metrics-exporter.sh --format=kv includes day_count"
+else
+  fail "metrics-exporter.sh --format=kv should include day_count"
+fi
+if echo "$exp_kv" | grep -q 'session_count='; then
+  pass "metrics-exporter.sh --format=kv includes session_count"
+else
+  fail "metrics-exporter.sh --format=kv should include session_count"
+fi
 
 echo ""
 

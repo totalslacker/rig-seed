@@ -230,3 +230,7 @@ Living document. Updated each evolution session. Items come from three sources:
 - [x] Add rollback.sh merge commit revert test with --format output (Day 20)
 - [x] Add dashboard.sh --summary + --format combined integration tests (Day 20)
 - [x] Add health-check.sh --watch timeout and multi-cycle integration test (Day 20)
+- [x] Fix JSON/CSV escaping in check.sh and dashboard.sh — source lib.sh (Day 21)
+- [x] Add dashboard.sh --summary --format=json/csv/kv support (Day 21)
+- [x] Add migrate.sh detection for check.sh and dashboard.sh missing lib.sh (Day 21)
+- [x] Add metrics-exporter.sh --once --format=csv/kv schema validation tests (Day 21)

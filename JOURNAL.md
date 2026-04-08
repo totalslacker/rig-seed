@@ -4,6 +4,22 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Day 21 — Session 56 (2026-04-08)
+
+**Goal**: Fix JSON/CSV escaping bugs in check.sh and dashboard.sh, add --summary --format support to dashboard.sh.
+
+**What changed**:
+- Fixed JSON escaping vulnerability in check.sh and dashboard.sh: both scripts generated JSON output by interpolating raw strings directly into templates, which would produce invalid JSON if a check name or project name contained quotes or control characters. Now both source scripts/lib.sh and use json_escape/csv_escape for all user-controlled strings.
+- Fixed dashboard.sh --summary ignoring --format flag: --summary previously returned early before the format switch, always outputting human-readable text. Now --summary respects --format=json/csv/kv with compact output (fewer fields than full mode).
+- Added migrate.sh detection for check.sh and dashboard.sh missing lib.sh sourcing.
+- Updated dashboard.sh --summary tests to validate compact JSON/CSV/KV output.
+- Added 4 metrics-exporter.sh --once --format=csv/kv schema validation tests.
+- Total integration tests: 244 (all passing)
+
+**Next Steps**: See NEXT_STEPS.md.
+
+---
+
 ## Day 20 — Session 55 (2026-04-08)
 
 **Goal**: Add rollback.sh merge commit revert, dashboard.sh --summary, and health-check.sh --watch integration tests.

@@ -261,13 +261,39 @@ gather_metrics() {
 
   # Output based on format
   if [ "$summary" = true ]; then
-    local status_icon="${GREEN}●${RESET}"
-    if [ "$session_counter" -eq 0 ]; then
-      status_icon="${YELLOW}○${RESET}"
-    fi
-    printf '%b %s  %dd/%ds  %d/%d roadmap (%d%%)  last: %s\n' \
-      "$status_icon" "$name" "$day_count" "$session_counter" \
-      "$roadmap_done" "$roadmap_total" "$roadmap_pct" "$last_commit"
+    case "$format" in
+      json)
+        printf '{"name":"%s","day_count":%d,"sessions":%d,"roadmap_done":%d,"roadmap_total":%d,"roadmap_pct":%d,"last_commit":"%s"}' \
+          "$(json_escape "$name")" "$day_count" "$session_counter" \
+          "$roadmap_done" "$roadmap_total" "$roadmap_pct" \
+          "$(json_escape "$last_commit")"
+        ;;
+      csv)
+        printf '%s,%d,%d,%d,%d,%d,%s\n' \
+          "$(csv_escape "$name")" "$day_count" "$session_counter" \
+          "$roadmap_done" "$roadmap_total" "$roadmap_pct" \
+          "$(csv_escape "$last_commit")"
+        ;;
+      kv)
+        echo "project=$name"
+        echo "day_count=$day_count"
+        echo "sessions=$session_counter"
+        echo "roadmap_done=$roadmap_done"
+        echo "roadmap_total=$roadmap_total"
+        echo "roadmap_pct=$roadmap_pct"
+        echo "last_commit=$last_commit"
+        echo "---"
+        ;;
+      *)
+        local status_icon="${GREEN}●${RESET}"
+        if [ "$session_counter" -eq 0 ]; then
+          status_icon="${YELLOW}○${RESET}"
+        fi
+        printf '%b %s  %dd/%ds  %d/%d roadmap (%d%%)  last: %s\n' \
+          "$status_icon" "$name" "$day_count" "$session_counter" \
+          "$roadmap_done" "$roadmap_total" "$roadmap_pct" "$last_commit"
+        ;;
+    esac
     return
   fi
   case "$format" in
@@ -314,7 +340,11 @@ if [ "$format" = "json" ]; then
 fi
 
 if [ "$format" = "csv" ]; then
-  echo "name,day_count,sessions,commits,roadmap_done,roadmap_total,roadmap_pct,learnings,last_commit,velocity"
+  if [ "$summary" = true ]; then
+    echo "name,day_count,sessions,roadmap_done,roadmap_total,roadmap_pct,last_commit"
+  else
+    echo "name,day_count,sessions,commits,roadmap_done,roadmap_total,roadmap_pct,learnings,last_commit,velocity"
+  fi
 fi
 
 first=true
