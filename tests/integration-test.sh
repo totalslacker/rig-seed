@@ -3641,6 +3641,229 @@ rm -rf "$CHECK_MULTI_DIR"
 
 echo ""
 
+# --- Step 64: validate.sh --lint --fix end-to-end with real shellcheck issue ---
+
+echo "--- Step 64: validate.sh --lint --fix e2e ---"
+
+if command -v shellcheck &>/dev/null; then
+  LINT_FIX_DIR=$(mktemp -d "$TMPDIR_BASE/rigseed-lint-fix-XXXXXX")
+  rsync -a --exclude='.git' --exclude='.beads' --exclude='.runtime' "$PROJECT_DIR/" "$LINT_FIX_DIR/"
+  (cd "$LINT_FIX_DIR" && git init -q && git add -A && git commit -q -m "init")
+
+  # Create a script with SC2155 (warning level): declare and assign separately
+  cat > "$LINT_FIX_DIR/scripts/test-warning.sh" << 'WARNEOF'
+#!/usr/bin/env bash
+set -euo pipefail
+
+show_help() {
+  echo "Usage: test-warning.sh [--help] [--color] [--no-color]"
+}
+
+case "${1:-}" in
+  --help|-h) show_help; exit 0 ;;
+  --color) ;;
+  --no-color) ;;
+esac
+
+# SC2155: Declare and assign separately to avoid masking return values
+export myvar=$(echo "hello")
+echo "$myvar"
+WARNEOF
+  chmod +x "$LINT_FIX_DIR/scripts/test-warning.sh"
+  (cd "$LINT_FIX_DIR" && git add -A && git commit -q -m "add warning script")
+
+  # Test 1: --lint detects the shellcheck warning issue
+  lint_detect=$(cd "$LINT_FIX_DIR" && bash validate.sh --lint --no-color 2>&1 || true)
+  if echo "$lint_detect" | grep -q 'test-warning.sh'; then
+    pass "validate.sh --lint detects shellcheck warning in test-warning.sh"
+  else
+    fail "validate.sh --lint should detect shellcheck warning in test-warning.sh"
+  fi
+
+  # Test 2: --lint --fix attempts fix and reports issue (SC2155 is not auto-fixable)
+  lint_fix=$(cd "$LINT_FIX_DIR" && bash validate.sh --lint --fix --no-color 2>&1 || true)
+  if echo "$lint_fix" | grep -q 'test-warning.sh'; then
+    pass "validate.sh --lint --fix reports issue on test-warning.sh"
+  else
+    fail "validate.sh --lint --fix should report issue on test-warning.sh"
+  fi
+
+  # Test 3: --lint --format=json includes shellcheck results with fail status
+  lint_json=$(cd "$LINT_FIX_DIR" && bash validate.sh --lint --format=json --no-color 2>&1 || true)
+  if echo "$lint_json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+assert 'checks' in d, 'missing checks key'
+sc = [r for r in d['checks'] if r.get('category') == 'shellcheck']
+assert len(sc) > 0, 'expected shellcheck results'
+fails = [r for r in sc if r.get('status') == 'fail' and 'test-warning' in r.get('file', '')]
+assert len(fails) > 0, f'expected fail for test-warning.sh in shellcheck results'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+    pass "validate.sh --lint --format=json shows shellcheck fail for test-warning.sh"
+  else
+    fail "validate.sh --lint --format=json should show shellcheck fail for test-warning.sh"
+  fi
+
+  # Test 4: --lint --fix --format=json also includes shellcheck results
+  lint_fix_json=$(cd "$LINT_FIX_DIR" && bash validate.sh --lint --fix --format=json --no-color 2>&1 || true)
+  if echo "$lint_fix_json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+sc = [r for r in d['checks'] if r.get('category') == 'shellcheck']
+assert len(sc) > 0, 'expected shellcheck results with --fix'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+    pass "validate.sh --lint --fix --format=json has shellcheck results"
+  else
+    fail "validate.sh --lint --fix --format=json should have shellcheck results"
+  fi
+
+  rm -rf "$LINT_FIX_DIR"
+else
+  echo "  (shellcheck not available — skipping --lint --fix tests)"
+fi
+
+echo ""
+
+# --- Step 65: recap.sh --format=json schema validation ---
+
+echo "--- Step 65: recap.sh --format=json schema validation ---"
+
+# Test 1: --format=json --top 1 produces valid JSON with expected keys
+recap_json=$(bash "$PROJECT_DIR/scripts/recap.sh" --format=json --top 1 2>&1 || true)
+if echo "$recap_json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+assert 'header' in d, 'missing header key'
+assert 'goal' in d, 'missing goal key'
+assert 'full_entry' in d, 'missing full_entry key'
+assert isinstance(d['header'], str), 'header should be string'
+assert isinstance(d['goal'], str), 'goal should be string'
+assert len(d['header']) > 0, 'header should not be empty'
+assert len(d['goal']) > 0, 'goal should not be empty'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "recap.sh --format=json has header, goal, and full_entry keys"
+else
+  fail "recap.sh --format=json should have header, goal, and full_entry keys"
+fi
+
+# Test 2: JSON header contains Day/Session info
+if echo "$recap_json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+assert 'Day' in d['header'] or 'Session' in d['header'], f'header should mention Day or Session: {d[\"header\"]}'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "recap.sh --format=json header contains Day/Session info"
+else
+  fail "recap.sh --format=json header should contain Day/Session info"
+fi
+
+# Test 3: JSON full_entry is non-empty and contains the goal
+if echo "$recap_json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+assert len(d['full_entry']) > len(d['header']), 'full_entry should be longer than header'
+assert d['goal'] in d['full_entry'] or d['goal'][:20] in d['full_entry'], 'full_entry should contain the goal text'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "recap.sh --format=json full_entry contains goal text"
+else
+  fail "recap.sh --format=json full_entry should contain goal text"
+fi
+
+# Test 4: --format=json includes next_steps key
+if echo "$recap_json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+assert 'next_steps' in d, 'missing next_steps key'
+assert isinstance(d['next_steps'], str), 'next_steps should be string'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "recap.sh --format=json includes next_steps key"
+else
+  fail "recap.sh --format=json should include next_steps key"
+fi
+
+echo ""
+
+# --- Step 66: check.sh JSON escaping with special characters ---
+
+echo "--- Step 66: check.sh JSON escaping with special chars ---"
+
+if command -v python3 &>/dev/null; then
+  CK_ESC_DIR=$(mktemp -d "$TMPDIR_BASE/rigseed-ck-esc-XXXXXX")
+  mkdir -p "$CK_ESC_DIR/.evolve" "$CK_ESC_DIR/scripts"
+  cp "$PROJECT_DIR/scripts/check.sh" "$CK_ESC_DIR/scripts/check.sh"
+  cp "$PROJECT_DIR/scripts/lib.sh" "$CK_ESC_DIR/scripts/lib.sh" 2>/dev/null || true
+  chmod +x "$CK_ESC_DIR/scripts/check.sh"
+
+  # Create a config with a build command that has special chars in its name
+  cat > "$CK_ESC_DIR/.evolve/config.toml" << 'ESCEOF'
+[build]
+commands = [
+  "echo \"hello world\"",
+  "echo 'quotes & backslash \\ test'"
+]
+ESCEOF
+
+  (cd "$CK_ESC_DIR" && git init -q && git add -A && git commit -q -m "init")
+
+  # Test 1: JSON output with special chars is valid JSON
+  ck_esc_json=$(cd "$CK_ESC_DIR" && bash scripts/check.sh --format=json --no-color 2>&1 || true)
+  if echo "$ck_esc_json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+assert 'checks' in d, 'missing checks'
+assert 'result' in d, 'missing result'
+# If we got here, JSON parsed successfully — escaping worked
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+    pass "check.sh --format=json produces valid JSON with special chars in commands"
+  else
+    fail "check.sh --format=json should produce valid JSON with special chars in commands"
+  fi
+
+  # Test 2: JSON check names are properly escaped
+  if echo "$ck_esc_json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+for check in d['checks']:
+    # Verify each name is a valid string (not corrupt from escaping)
+    assert isinstance(check['name'], str), f'name should be string: {check}'
+    assert isinstance(check['status'], str), f'status should be string: {check}'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+    pass "check.sh --format=json check names are valid strings"
+  else
+    fail "check.sh --format=json check names should be valid strings"
+  fi
+
+  # Test 3: CSV output with special chars has proper escaping
+  ck_esc_csv=$(cd "$CK_ESC_DIR" && bash scripts/check.sh --format=csv --no-color 2>&1 || true)
+  if echo "$ck_esc_csv" | head -1 | grep -q '^name,status'; then
+    pass "check.sh --format=csv with special chars has correct header"
+  else
+    fail "check.sh --format=csv with special chars should have correct header"
+  fi
+
+  # Test 4: KV output with special chars has result key
+  ck_esc_kv=$(cd "$CK_ESC_DIR" && bash scripts/check.sh --format=kv --no-color 2>&1 || true)
+  if echo "$ck_esc_kv" | grep -q '^result='; then
+    pass "check.sh --format=kv with special chars has result key"
+  else
+    fail "check.sh --format=kv with special chars should have result key"
+  fi
+
+  rm -rf "$CK_ESC_DIR"
+else
+  echo "  (python3 not available — skipping JSON escaping tests)"
+fi
+
+echo ""
+
 # --- Summary ---
 
 echo "================================"
