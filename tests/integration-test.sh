@@ -2529,6 +2529,280 @@ fi
 
 echo ""
 
+# --- Step 51: rollback.sh live (non-dry-run) rollback with --format output ---
+
+echo "--- Step 51: rollback.sh live rollback --format ---"
+
+# Create a temp repo with a commit to revert (use --no-verify to skip build check)
+RB_LIVE_DIR=$(mktemp -d "$TMPDIR_BASE/rigseed-rb-live-XXXXXX")
+git -C "$RB_LIVE_DIR" init -q
+echo "original content" > "$RB_LIVE_DIR/file.txt"
+git -C "$RB_LIVE_DIR" add file.txt
+git -C "$RB_LIVE_DIR" commit -q -m "initial commit"
+echo "bad change" > "$RB_LIVE_DIR/file.txt"
+git -C "$RB_LIVE_DIR" add file.txt
+git -C "$RB_LIVE_DIR" commit -q -m "broken commit to revert"
+
+# JSON format — live rollback
+rb_live_json=$(cd "$RB_LIVE_DIR" && bash "$PROJECT_DIR/scripts/rollback.sh" --no-verify --format=json 2>&1 || true)
+rb_live_json_line=$(echo "$rb_live_json" | grep '^{' || true)
+if echo "$rb_live_json_line" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+assert d['status'] == 'success', f'expected status=success, got {d[\"status\"]}'
+assert 'sha' in d, 'missing sha'
+assert 'message' in d, 'missing message'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "rollback.sh live --format=json produces valid JSON with status=success"
+else
+  fail "rollback.sh live --format=json should produce valid JSON with status=success"
+fi
+
+# Verify the file was actually reverted
+if [ "$(cat "$RB_LIVE_DIR/file.txt")" = "original content" ]; then
+  pass "rollback.sh live rollback actually reverted the file content"
+else
+  fail "rollback.sh live rollback should revert file to original content"
+fi
+
+# Verify a revert commit was created
+if git -C "$RB_LIVE_DIR" log --oneline -1 | grep -q 'Revert'; then
+  pass "rollback.sh live rollback created a Revert commit"
+else
+  fail "rollback.sh live rollback should create a Revert commit"
+fi
+
+# Reset for CSV test — re-apply the bad change
+echo "bad change again" > "$RB_LIVE_DIR/file.txt"
+git -C "$RB_LIVE_DIR" add file.txt
+git -C "$RB_LIVE_DIR" commit -q -m "another broken commit"
+
+# CSV format — live rollback
+rb_live_csv=$(cd "$RB_LIVE_DIR" && bash "$PROJECT_DIR/scripts/rollback.sh" --no-verify --format=csv 2>&1 || true)
+if echo "$rb_live_csv" | grep -q '^target,sha,type,status,message'; then
+  pass "rollback.sh live --format=csv has correct header"
+else
+  fail "rollback.sh live --format=csv should have correct header row"
+fi
+if echo "$rb_live_csv" | grep -q '"success"'; then
+  pass "rollback.sh live --format=csv data row contains success status"
+else
+  fail "rollback.sh live --format=csv data row should contain success status"
+fi
+
+# Reset for KV test
+echo "yet another bad change" > "$RB_LIVE_DIR/file.txt"
+git -C "$RB_LIVE_DIR" add file.txt
+git -C "$RB_LIVE_DIR" commit -q -m "third broken commit"
+
+# KV format — live rollback
+rb_live_kv=$(cd "$RB_LIVE_DIR" && bash "$PROJECT_DIR/scripts/rollback.sh" --no-verify --format=kv 2>&1 || true)
+if echo "$rb_live_kv" | grep -q '^status=success'; then
+  pass "rollback.sh live --format=kv has status=success"
+else
+  fail "rollback.sh live --format=kv should have status=success"
+fi
+if echo "$rb_live_kv" | grep -q '^type='; then
+  pass "rollback.sh live --format=kv has type key"
+else
+  fail "rollback.sh live --format=kv should have type= key"
+fi
+
+rm -rf "$RB_LIVE_DIR"
+
+echo ""
+
+# --- Step 52: quickstart.sh --check edge cases ---
+
+echo "--- Step 52: quickstart.sh --check edge cases ---"
+
+# Edge case 1: template validation failure (missing required file) reports structured error
+QS_EDGE=$(mktemp -d "$TMPDIR_BASE/rigseed-qs-edge-XXXXXX")
+rsync -a --exclude='.git' --exclude='.beads' --exclude='.runtime' "$PROJECT_DIR/" "$QS_EDGE/"
+(cd "$QS_EDGE" && git init -q && git add -A && git commit -q -m "initial")
+
+# Remove a required file to trigger template validation failure
+rm -f "$QS_EDGE/CONTRIBUTING.md"
+qs_fail_json=$(cd "$QS_EDGE" && bash quickstart.sh --check --format=json 2>&1 || true)
+qs_fail_json_line=$(echo "$qs_fail_json" | grep '^{' || true)
+if echo "$qs_fail_json_line" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+assert d['result'] == 'fail', f'expected result=fail, got {d[\"result\"]}'
+assert d['errors'] > 0, 'expected errors > 0'
+assert any(c['file'] == 'template' for c in d['checks']), 'should flag template check'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "quickstart.sh --check reports template failure in JSON"
+else
+  fail "quickstart.sh --check should report template failure in JSON"
+fi
+
+# CSV format for template validation failure
+qs_fail_csv=$(cd "$QS_EDGE" && bash quickstart.sh --check --format=csv 2>&1 || true)
+if echo "$qs_fail_csv" | grep -q 'template,fail'; then
+  pass "quickstart.sh --check reports template failure in CSV"
+else
+  fail "quickstart.sh --check should report template failure in CSV"
+fi
+
+# KV format for template validation failure
+qs_fail_kv=$(cd "$QS_EDGE" && bash quickstart.sh --check --format=kv 2>&1 || true)
+if echo "$qs_fail_kv" | grep -q 'result=fail'; then
+  pass "quickstart.sh --check reports result=fail for template failure in KV"
+else
+  fail "quickstart.sh --check should report result=fail for template failure in KV"
+fi
+
+# Edge case 2: empty SPECS.md (less than 5 lines)
+cp "$PROJECT_DIR/CONTRIBUTING.md" "$QS_EDGE/CONTRIBUTING.md"  # Restore required file
+echo "# Empty" > "$QS_EDGE/SPECS.md"  # Nearly empty specs
+qs_empty_specs=$(cd "$QS_EDGE" && bash quickstart.sh --check --format=json 2>&1 || true)
+qs_empty_json=$(echo "$qs_empty_specs" | grep '^{' || true)
+if echo "$qs_empty_json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+found = False
+for c in d['checks']:
+    if c['file'] == 'SPECS.md' and c['status'] == 'warning':
+        found = True
+assert found, 'SPECS.md should be flagged as warning when nearly empty'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "quickstart.sh --check detects nearly empty SPECS.md in JSON"
+else
+  fail "quickstart.sh --check should detect nearly empty SPECS.md in JSON"
+fi
+
+rm -rf "$QS_EDGE"
+
+echo ""
+
+# --- Step 53: dashboard.sh --format=json schema validation ---
+
+echo "--- Step 53: dashboard.sh --format=json schema ---"
+
+DASH_SCHEMA_DIR=$(mktemp -d "$TMPDIR_BASE/rigseed-dash-schema-XXXXXX")
+# Create a minimal rig-seed project with known values
+mkdir -p "$DASH_SCHEMA_DIR/proj1"
+echo "5" > "$DASH_SCHEMA_DIR/proj1/SESSION_COUNT"
+echo "3" > "$DASH_SCHEMA_DIR/proj1/DAY_COUNT"
+cat > "$DASH_SCHEMA_DIR/proj1/JOURNAL.md" << 'JEOF'
+# Journal
+
+---
+
+## Day 3 — Session 5
+
+Test entry.
+
+---
+
+## Day 2 — Session 3
+
+Earlier entry.
+JEOF
+cat > "$DASH_SCHEMA_DIR/proj1/ROADMAP.md" << 'REOF'
+# Roadmap
+
+## Phase 1
+
+- [x] Done item
+- [x] Another done
+- [ ] Not done yet
+REOF
+cat > "$DASH_SCHEMA_DIR/proj1/LEARNINGS.md" << 'LEOF'
+# Learnings
+
+---
+
+### First learning
+
+Content.
+LEOF
+(cd "$DASH_SCHEMA_DIR/proj1" && git init -q && git add -A && git commit -q -m "init")
+
+# JSON schema validation
+dash_schema_json=$("$PROJECT_DIR/scripts/dashboard.sh" --format=json "$DASH_SCHEMA_DIR/proj1" 2>&1 || true)
+if echo "$dash_schema_json" | python3 -c "
+import json, sys
+data = json.load(sys.stdin)
+assert isinstance(data, list), 'top-level should be array'
+assert len(data) == 1, f'expected 1 project, got {len(data)}'
+d = data[0]
+# Required keys exist
+for key in ['name', 'day_count', 'sessions', 'commits', 'roadmap_done', 'roadmap_total', 'roadmap_pct', 'learnings', 'last_commit', 'velocity']:
+    assert key in d, f'missing key: {key}'
+# Numeric types
+for key in ['day_count', 'sessions', 'commits', 'roadmap_done', 'roadmap_total', 'roadmap_pct', 'learnings']:
+    assert isinstance(d[key], (int, float)), f'{key} should be numeric, got {type(d[key])}'
+# Values match what we set up
+assert d['name'] == 'proj1', f'expected name=proj1, got {d[\"name\"]}'
+assert d['day_count'] == 3, f'expected day_count=3, got {d[\"day_count\"]}'
+assert d['sessions'] == 5, f'expected sessions=5, got {d[\"sessions\"]}'
+assert d['roadmap_done'] == 2, f'expected roadmap_done=2, got {d[\"roadmap_done\"]}'
+assert d['roadmap_total'] == 3, f'expected roadmap_total=3, got {d[\"roadmap_total\"]}'
+assert d['learnings'] == 1, f'expected learnings=1, got {d[\"learnings\"]}'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "dashboard.sh --format=json has valid schema with correct types and values"
+else
+  fail "dashboard.sh --format=json should have valid schema with correct types and values"
+fi
+
+# Verify roadmap percentage is computed correctly (2/3 = 66%)
+if echo "$dash_schema_json" | python3 -c "
+import json, sys
+data = json.load(sys.stdin)
+d = data[0]
+assert d['roadmap_pct'] == 66, f'expected roadmap_pct=66, got {d[\"roadmap_pct\"]}'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "dashboard.sh --format=json computes roadmap_pct correctly"
+else
+  fail "dashboard.sh --format=json should compute roadmap_pct correctly"
+fi
+
+# Multi-project JSON — verify array with multiple entries
+mkdir -p "$DASH_SCHEMA_DIR/proj2"
+echo "1" > "$DASH_SCHEMA_DIR/proj2/SESSION_COUNT"
+echo "1" > "$DASH_SCHEMA_DIR/proj2/DAY_COUNT"
+cat > "$DASH_SCHEMA_DIR/proj2/JOURNAL.md" << 'J2EOF'
+# Journal
+
+---
+
+## Day 1 — Session 1
+
+Bootstrap.
+J2EOF
+cat > "$DASH_SCHEMA_DIR/proj2/ROADMAP.md" << 'R2EOF'
+# Roadmap
+
+- [ ] First task
+R2EOF
+(cd "$DASH_SCHEMA_DIR/proj2" && git init -q && git add -A && git commit -q -m "init")
+
+dash_multi_json=$("$PROJECT_DIR/scripts/dashboard.sh" --format=json "$DASH_SCHEMA_DIR/proj1" "$DASH_SCHEMA_DIR/proj2" 2>&1 || true)
+if echo "$dash_multi_json" | python3 -c "
+import json, sys
+data = json.load(sys.stdin)
+assert isinstance(data, list), 'top-level should be array'
+assert len(data) == 2, f'expected 2 projects, got {len(data)}'
+names = [d['name'] for d in data]
+assert 'proj1' in names and 'proj2' in names, f'expected proj1 and proj2, got {names}'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "dashboard.sh --format=json with multiple projects returns array of correct length"
+else
+  fail "dashboard.sh --format=json with multiple projects should return array of correct length"
+fi
+
+rm -rf "$DASH_SCHEMA_DIR"
+
+echo ""
+
 # --- Summary ---
 
 echo "================================"
