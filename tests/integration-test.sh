@@ -1608,6 +1608,21 @@ else
   fail "check-evolve-state.sh should return no_changes in KV format"
 fi
 
+# CSV format for no-changes should have header but no data rows
+ces_nochange_csv=$(cd "$CES_NOCHANGE" && bash scripts/check-evolve-state.sh --format=csv main 2>&1 || true)
+if echo "$ces_nochange_csv" | head -1 | grep -q 'file,type,status,message'; then
+  pass "check-evolve-state.sh no-changes CSV has header row"
+else
+  fail "check-evolve-state.sh no-changes CSV should have header row"
+fi
+# No-changes should produce only the header line (no check rows)
+ces_nochange_csv_lines=$(echo "$ces_nochange_csv" | wc -l)
+if [ "$ces_nochange_csv_lines" -le 2 ]; then
+  pass "check-evolve-state.sh no-changes CSV has no check rows"
+else
+  fail "check-evolve-state.sh no-changes CSV should have no check rows (got $ces_nochange_csv_lines lines)"
+fi
+
 rm -rf "$CES_NOCHANGE"
 
 # Edge case 2: partial updates (only some required files modified)
@@ -1651,6 +1666,21 @@ else
   fail "check-evolve-state.sh CSV should show pass/fail per required file"
 fi
 
+# KV format for partial updates should show per-file status and fail result
+ces_partial_kv=$(cd "$CES_PARTIAL" && bash scripts/check-evolve-state.sh --format=kv main 2>&1 || true)
+if echo "$ces_partial_kv" | grep -q '^result=fail' && echo "$ces_partial_kv" | grep -q '^JOURNAL.md=pass' && echo "$ces_partial_kv" | grep -q '^NEXT_STEPS.md=fail'; then
+  pass "check-evolve-state.sh KV shows pass/fail per required file with result=fail"
+else
+  fail "check-evolve-state.sh KV should show per-file pass/fail and result=fail"
+fi
+
+# KV format should include error count
+if echo "$ces_partial_kv" | grep -qE '^errors=[2-9]'; then
+  pass "check-evolve-state.sh KV partial updates shows errors>=2"
+else
+  fail "check-evolve-state.sh KV partial updates should show errors>=2"
+fi
+
 rm -rf "$CES_PARTIAL"
 
 echo ""
@@ -1690,6 +1720,34 @@ print('valid')
   pass "quickstart.sh --check --verbose --format=json includes detail fields"
 else
   fail "quickstart.sh --check --verbose --format=json should include detail fields"
+fi
+
+# CSV format with --verbose should still produce valid CSV with header
+qs_verbose_csv=$(cd "$QS_VERBOSE" && bash quickstart.sh --check --verbose --format=csv 2>&1 || true)
+if echo "$qs_verbose_csv" | head -1 | grep -q 'file,status,value,message'; then
+  pass "quickstart.sh --check --verbose --format=csv has correct header"
+else
+  fail "quickstart.sh --check --verbose --format=csv should have file,status,value,message header"
+fi
+# CSV should contain at least one check row (e.g., SESSION_COUNT)
+if echo "$qs_verbose_csv" | grep -q 'SESSION_COUNT,ok'; then
+  pass "quickstart.sh --check --verbose --format=csv includes SESSION_COUNT check"
+else
+  fail "quickstart.sh --check --verbose --format=csv should include SESSION_COUNT check"
+fi
+
+# KV format with --verbose should contain file=status entries and result
+qs_verbose_kv=$(cd "$QS_VERBOSE" && bash quickstart.sh --check --verbose --format=kv 2>&1 || true)
+if echo "$qs_verbose_kv" | grep -q '^result=' && echo "$qs_verbose_kv" | grep -q '^SESSION_COUNT='; then
+  pass "quickstart.sh --check --verbose --format=kv includes result and file checks"
+else
+  fail "quickstart.sh --check --verbose --format=kv should include result= and file checks"
+fi
+# KV should include errors count
+if echo "$qs_verbose_kv" | grep -q '^errors='; then
+  pass "quickstart.sh --check --verbose --format=kv includes errors count"
+else
+  fail "quickstart.sh --check --verbose --format=kv should include errors= line"
 fi
 
 rm -rf "$QS_VERBOSE"
