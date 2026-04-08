@@ -6,6 +6,7 @@
 #
 # Options:
 #   -q, --quiet         Only print failures and the final result
+#   -v, --verbose       Show detailed state file analysis
 #   -l, --lint          Check script conventions compliance
 #   --fix               With --lint: auto-apply shellcheck fixes
 #   --format=FORMAT     Output format: table (default), csv, json, kv
@@ -23,6 +24,7 @@ set -euo pipefail
 # --- Options ---
 
 quiet=false
+verbose=false
 use_color=auto
 lint=false
 fix=false
@@ -38,6 +40,7 @@ for arg in "$@"; do
       echo ""
       echo "Options:"
       echo "  -q, --quiet         Only print failures and the final result"
+      echo "  -v, --verbose       Show detailed state file analysis"
       echo "  -l, --lint          Check script conventions compliance"
       echo "  --fix               With --lint: auto-apply shellcheck fixes"
       echo "  --format=FORMAT     Output format: table (default), csv, json, kv"
@@ -56,6 +59,9 @@ for arg in "$@"; do
       ;;
     -q|--quiet)
       quiet=true
+      ;;
+    -v|--verbose)
+      verbose=true
       ;;
     -l|--lint)
       lint=true
@@ -189,6 +195,54 @@ check_file     "DAY_COUNT"      "Day counter"
 check_file     "DAY_DATE"       "Last session date"
 check_file     "NEXT_STEPS.md"  "Planning handoff"
 check_file     "PERSONALITY.md" "Agent personality"
+
+# --- Verbose detail for state files ---
+if [ "$verbose" = true ]; then
+  info ""
+  info "${CYAN}--- State File Details ---${RESET}"
+
+  # JOURNAL.md detail
+  journal_path="$dir/JOURNAL.md"
+  if [ -f "$journal_path" ] && [ -s "$journal_path" ]; then
+    journal_entries=$(grep -c '^## \(Day [0-9].* — Session\|Session\|Day\) ' "$journal_path" 2>/dev/null) || journal_entries=0
+    latest_entry=$(grep -m1 '^## \(Day [0-9].* — Session\|Session\|Day\) ' "$journal_path" 2>/dev/null || echo "(none)")
+    goal_line=$(grep -m1 '^\*\*Goal\*\*' "$journal_path" 2>/dev/null || echo "")
+    journal_detail="$journal_entries entries; latest: ${latest_entry#\#\# }${goal_line:+; $goal_line}"
+    info "  JOURNAL.md: $journal_detail"
+    add_result "detail" "JOURNAL.md" "info" "$journal_detail"
+  fi
+
+  # ROADMAP.md detail
+  roadmap_path="$dir/ROADMAP.md"
+  if [ -f "$roadmap_path" ] && [ -s "$roadmap_path" ]; then
+    sections=$(grep -c '^## ' "$roadmap_path" 2>/dev/null) || sections=0
+    checked=$(grep -c '^\- \[x\]' "$roadmap_path" 2>/dev/null) || checked=0
+    unchecked=$(grep -c '^\- \[ \]' "$roadmap_path" 2>/dev/null) || unchecked=0
+    roadmap_detail="$sections sections; $checked done, $unchecked remaining"
+    info "  ROADMAP.md: $roadmap_detail"
+    add_result "detail" "ROADMAP.md" "info" "$roadmap_detail"
+  fi
+
+  # SPECS.md detail
+  specs_path="$dir/SPECS.md"
+  if [ -f "$specs_path" ] && [ -s "$specs_path" ]; then
+    specs_lines=$(wc -l < "$specs_path" | tr -d ' ')
+    specs_heading=$(grep -m1 '^## ' "$specs_path" 2>/dev/null || echo "(none)")
+    specs_detail="$specs_lines lines; first heading: ${specs_heading#\#\# }"
+    info "  SPECS.md: $specs_detail"
+    add_result "detail" "SPECS.md" "info" "$specs_detail"
+  fi
+
+  # NEXT_STEPS.md detail
+  nextsteps_path="$dir/NEXT_STEPS.md"
+  if [ -f "$nextsteps_path" ] && [ -s "$nextsteps_path" ]; then
+    priority=$(grep -c '^\- \[ \]' "$nextsteps_path" 2>/dev/null) || priority=0
+    nextsteps_first=$(grep -m1 '^\- \[ \]' "$nextsteps_path" 2>/dev/null || echo "(none)")
+    nextsteps_detail="$priority open items; next: ${nextsteps_first#- \[ \] }"
+    info "  NEXT_STEPS.md: $nextsteps_detail"
+    add_result "detail" "NEXT_STEPS.md" "info" "$nextsteps_detail"
+  fi
+fi
 
 info ""
 info "${CYAN}=== Evolution Config ===${RESET}"
