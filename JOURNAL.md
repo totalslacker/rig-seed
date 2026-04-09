@@ -4,6 +4,20 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Day 22 — Session 63 (2026-04-09)
+
+**Goal**: Add integration tests for metrics.sh --watch --format=json multi-cycle validation, dashboard.sh --projects --depth with nested invalid dirs, and validate.sh --lint --format=json schema validation.
+
+**What changed**:
+- Added 4 metrics.sh --watch --format=json multi-cycle tests: multiple valid JSON objects per watch run, day_count key present, session_counter key present, day_count is numeric
+- Added 4 dashboard.sh --projects --depth nested invalid dirs tests: --depth 3 finds depth-1/2 projects but excludes depth-3, JSON output is valid array, JSON excludes invalid dirs, CSV has header and excludes invalid dirs
+- Added 4 validate.sh --lint --format=json schema validation tests: produces valid JSON, has errors/result/checks keys, check entries have category/file/status/message, captures both fail and pass/warn statuses
+- Total integration tests: 317 (all passing)
+
+**Next Steps**: See NEXT_STEPS.md.
+
+---
+
 ## Day 22 — Session 62 (2026-04-09)
 
 **Goal**: Add integration tests for release.sh csv/kv with actual tags, health-check.sh verbose+watch combined mode, and quickstart.sh missing IDENTITY.md edge case.

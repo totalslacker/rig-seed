@@ -4,18 +4,21 @@ Updated at the end of each evolution session. Read at the start of the next.
 
 ## Priority (do these first)
 
-- [ ] Add metrics.sh --watch --format=json multi-cycle test (verify valid JSON per cycle)
-- [ ] Add dashboard.sh --projects --depth with nested invalid dirs edge case test
-- [ ] Add validate.sh --lint --format=json schema validation for all lint categories
-
-## Suggested (consider these)
-
 - [ ] Add release.sh --bump=auto mode test (detect conventional commits for bump type)
 - [ ] Add health-check.sh --verbose --format=csv schema validation test (verify detail column)
 - [ ] Add check.sh multi-build-system detection test with mocked go.mod + package.json
 
+## Suggested (consider these)
+
+- [ ] Add metrics.sh --summary --format=csv/kv schema validation test
+- [ ] Add sync-upstream.sh --format=json schema validation test (required keys)
+- [ ] Add rollback.sh --format=json schema validation test (required keys)
+
 ## Deferred (not now, but don't forget)
 
+- [x] Add metrics.sh --watch --format=json multi-cycle test (done Day 22 Session 63)
+- [x] Add dashboard.sh --projects --depth nested invalid dirs test (done Day 22 Session 63)
+- [x] Add validate.sh --lint --format=json schema validation (done Day 22 Session 63)
 - [x] Add release.sh --format=csv/kv actual tag test (done Day 22 Session 62)
 - [x] Add health-check.sh --verbose --watch combined test (done Day 22 Session 62)
 - [x] Add quickstart.sh --check --verbose missing IDENTITY.md test (done Day 22 Session 62)
