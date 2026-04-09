@@ -5044,6 +5044,234 @@ rm -rf "$CHECK_MOCK_DIR"
 
 echo ""
 
+# --- Step 81: metrics.sh --summary --format=csv/kv schema validation ---
+
+echo "--- Step 81: metrics.sh --summary --format=csv/kv schema validation ---"
+
+# CSV schema: validate header columns and data row types
+ms_csv=$(bash "$PROJECT_DIR/metrics.sh" --summary --format=csv "$PROJECT_DIR" 2>&1)
+
+# Test 1: CSV header has all expected columns
+if echo "$ms_csv" | head -1 | grep -q 'day_count,session_counter,roadmap_checked,roadmap_unchecked,roadmap_total,roadmap_pct,total_commits,last_commit_date'; then
+  pass "metrics.sh --summary --format=csv header has all 8 expected columns"
+else
+  fail "metrics.sh --summary --format=csv header should have all 8 columns"
+fi
+
+# Test 2: CSV data row has correct number of fields and numeric values
+if echo "$ms_csv" | tail -1 | python3 -c "
+import sys
+line = sys.stdin.read().strip()
+fields = line.split(',')
+assert len(fields) == 8, f'expected 8 fields, got {len(fields)}'
+# day_count, session_counter, roadmap_checked, roadmap_unchecked, roadmap_total should be int
+for i in [0, 1, 2, 3, 4]:
+    assert fields[i].isdigit(), f'field {i} ({fields[i]}) should be numeric'
+# total_commits (index 6) should be numeric
+assert fields[6].isdigit(), f'total_commits ({fields[6]}) should be numeric'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "metrics.sh --summary --format=csv data row has 8 fields with numeric types"
+else
+  fail "metrics.sh --summary --format=csv data row should have 8 fields with numeric types"
+fi
+
+# KV schema: validate all expected keys present
+ms_kv=$(bash "$PROJECT_DIR/metrics.sh" --summary --format=kv "$PROJECT_DIR" 2>&1)
+
+# Test 3: KV has all 8 expected keys
+kv_keys_ok=true
+for key in day_count session_counter roadmap_checked roadmap_unchecked roadmap_total roadmap_pct total_commits last_commit_date; do
+  if ! echo "$ms_kv" | grep -q "^${key}="; then
+    kv_keys_ok=false
+    break
+  fi
+done
+if [ "$kv_keys_ok" = true ]; then
+  pass "metrics.sh --summary --format=kv has all 8 expected keys"
+else
+  fail "metrics.sh --summary --format=kv should have all 8 keys"
+fi
+
+# Test 4: KV numeric values are actually numeric
+if echo "$ms_kv" | python3 -c "
+import sys
+lines = sys.stdin.read().strip().split('\n')
+kv = {}
+for line in lines:
+    k, v = line.split('=', 1)
+    kv[k] = v
+numeric_keys = ['day_count', 'session_counter', 'roadmap_checked', 'roadmap_unchecked', 'roadmap_total', 'total_commits']
+for k in numeric_keys:
+    assert k in kv, f'missing key: {k}'
+    assert kv[k].isdigit(), f'{k}={kv[k]} should be numeric'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "metrics.sh --summary --format=kv numeric values are valid integers"
+else
+  fail "metrics.sh --summary --format=kv numeric values should be valid integers"
+fi
+
+echo ""
+
+# --- Step 82: sync-upstream.sh --format=json schema validation ---
+
+echo "--- Step 82: sync-upstream.sh --format=json schema validation ---"
+
+SYNC_JSON_UPSTREAM=$(mktemp -d "$TMPDIR_BASE/rigseed-sync-json-upstream-XXXXXX")
+SYNC_JSON_FORK=$(mktemp -d "$TMPDIR_BASE/rigseed-sync-json-fork-XXXXXX")
+
+# Set up bare upstream repo
+(
+  cd "$SYNC_JSON_UPSTREAM"
+  git init -q --bare
+)
+
+# Set up fork repo with project files
+rsync -a --exclude='.git' --exclude='.beads' --exclude='.runtime' "$PROJECT_DIR/" "$SYNC_JSON_FORK/"
+(
+  cd "$SYNC_JSON_FORK"
+  git init -q
+  git add -A
+  git commit -q -m "Initial fork"
+  git remote add origin "$SYNC_JSON_UPSTREAM"
+  git push -q origin HEAD:main
+)
+
+# Simulate upstream changes
+SYNC_JSON_CLONE=$(mktemp -d "$TMPDIR_BASE/rigseed-sync-json-clone-XXXXXX")
+(
+  cd "$SYNC_JSON_CLONE"
+  git clone -q "$SYNC_JSON_UPSTREAM" .
+  echo "# Upstream change" >> validate.sh
+  git add -A
+  git commit -q -m "Upstream infra update"
+  git push -q origin main
+)
+rm -rf "$SYNC_JSON_CLONE"
+
+# Test 1: dry-run JSON schema validation
+sync_json_dry=$(cd "$SYNC_JSON_FORK" && bash scripts/sync-upstream.sh --dry-run --format=json --upstream="$SYNC_JSON_UPSTREAM" 2>&1 || true)
+if echo "$sync_json_dry" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+required = ['upstream', 'mode', 'status', 'changes', 'message']
+for key in required:
+    assert key in d, f'missing required key: {key}'
+assert isinstance(d['upstream'], str), 'upstream should be string'
+assert d['mode'] in ('dry-run', 'live'), f'mode should be dry-run or live, got {d[\"mode\"]}'
+assert isinstance(d['changes'], int), 'changes should be int'
+assert isinstance(d['message'], str), 'message should be string'
+assert isinstance(d['status'], str), 'status should be string'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "sync-upstream.sh --format=json dry-run has valid schema (5 required keys + correct types)"
+else
+  fail "sync-upstream.sh --format=json dry-run should have valid schema"
+fi
+
+# Test 2: dry-run mode field is correct
+if echo "$sync_json_dry" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+assert d['mode'] == 'dry-run', f'expected dry-run, got {d[\"mode\"]}'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "sync-upstream.sh --format=json reports mode=dry-run correctly"
+else
+  fail "sync-upstream.sh --format=json should report mode=dry-run"
+fi
+
+# Test 3: live JSON schema has files array when changes > 0
+sync_json_live_raw=$(cd "$SYNC_JSON_FORK" && bash scripts/sync-upstream.sh --format=json --upstream="$SYNC_JSON_UPSTREAM" 2>&1 || true)
+# Extract JSON line (git merge fast-forward output may precede it)
+sync_json_live=$(echo "$sync_json_live_raw" | grep '^{')
+if echo "$sync_json_live" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+assert d['mode'] == 'live', f'expected live, got {d[\"mode\"]}'
+if d['changes'] > 0:
+    assert 'files' in d, 'files array should exist when changes > 0'
+    assert isinstance(d['files'], list), 'files should be a list'
+    assert all(isinstance(f, str) for f in d['files']), 'files entries should be strings'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "sync-upstream.sh --format=json live has files array with string entries"
+else
+  fail "sync-upstream.sh --format=json live should have files array with string entries"
+fi
+
+rm -rf "$SYNC_JSON_UPSTREAM" "$SYNC_JSON_FORK"
+
+echo ""
+
+# --- Step 83: rollback.sh --format=json schema validation ---
+
+echo "--- Step 83: rollback.sh --format=json schema validation ---"
+
+ROLLBACK_JSON_DIR=$(mktemp -d "$TMPDIR_BASE/rigseed-rollback-json-XXXXXX")
+(
+  cd "$ROLLBACK_JSON_DIR"
+  git init -q
+  echo "initial" > file.txt
+  git add -A
+  git commit -q -m "initial commit"
+  echo "second change" >> file.txt
+  git add -A
+  git commit -q -m "feat: second commit to test rollback"
+)
+
+# Test 1: dry-run JSON schema validation
+rollback_json=$(cd "$ROLLBACK_JSON_DIR" && bash "$PROJECT_DIR/scripts/rollback.sh" --dry-run --format=json 2>&1 || true)
+if echo "$rollback_json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+required = ['target', 'sha', 'type', 'status', 'message']
+for key in required:
+    assert key in d, f'missing required key: {key}'
+assert isinstance(d['target'], str), 'target should be string'
+assert isinstance(d['sha'], str), 'sha should be string'
+assert d['type'] in ('merge', 'regular'), f'type should be merge or regular, got {d[\"type\"]}'
+assert isinstance(d['status'], str), 'status should be string'
+assert isinstance(d['message'], str), 'message should be string'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "rollback.sh --format=json has valid schema (5 required keys + correct types)"
+else
+  fail "rollback.sh --format=json should have valid schema"
+fi
+
+# Test 2: dry-run reports status=dry-run and type=regular
+if echo "$rollback_json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+assert d['status'] == 'dry-run', f'expected dry-run, got {d[\"status\"]}'
+assert d['type'] == 'regular', f'expected regular, got {d[\"type\"]}'
+assert len(d['sha']) >= 7, f'sha should be at least 7 chars, got {len(d[\"sha\"])}'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "rollback.sh --format=json dry-run reports status=dry-run, type=regular, valid sha"
+else
+  fail "rollback.sh --format=json dry-run should report status=dry-run, type=regular, valid sha"
+fi
+
+# Test 3: target field contains commit message text
+if echo "$rollback_json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+assert len(d['target']) > 0, 'target should not be empty'
+assert 'second commit' in d['target'], f'target should reference the commit message'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "rollback.sh --format=json target contains commit message text"
+else
+  fail "rollback.sh --format=json target should contain commit message text"
+fi
+
+rm -rf "$ROLLBACK_JSON_DIR"
+
+echo ""
+
 # --- Summary ---
 
 echo "================================"
