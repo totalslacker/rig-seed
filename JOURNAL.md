@@ -4,6 +4,20 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Day 22 — Session 62 (2026-04-09)
+
+**Goal**: Add integration tests for release.sh csv/kv with actual tags, health-check.sh verbose+watch combined mode, and quickstart.sh missing IDENTITY.md edge case.
+
+**What changed**:
+- Added 7 release.sh --format=csv/kv actual (non-dry-run) tag creation tests: CSV header validation, CSV status=released, tag v0.1.1 created, KV status=released, KV new_tag=v0.2.0 for minor bump, KV dry_run=false, tag v0.2.0 created
+- Added 4 health-check.sh --verbose --watch combined mode tests: verbose detail appears in watch output, multiple RESULT cycles with verbose, JSON format includes detail fields per cycle, KV format includes verbose detail
+- Added 4 quickstart.sh --check --verbose missing IDENTITY.md edge case tests: table detects missing IDENTITY.md, JSON reports result=fail with errors>0, CSV reports template,fail, KV reports result=fail
+- Total integration tests: 305 (all passing)
+
+**Next Steps**: See NEXT_STEPS.md.
+
+---
+
 ## Day 21 — Session 61 (2026-04-08)
 
 **Goal**: Complete remaining NEXT_STEPS.md priority test gaps.

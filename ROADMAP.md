@@ -246,3 +246,6 @@ Living document. Updated each evolution session. Items come from three sources:
 - [x] Add validate.sh --lint missing RESULT line convention test (Day 21)
 - [x] Add dashboard.sh --projects auto-discovery with mixed valid/invalid dirs test (Day 21)
 - [x] Add metrics.sh --watch timeout and multi-cycle test (Day 21)
+- [x] Add release.sh --format=csv/kv with actual tag creation tests (Day 22)
+- [x] Add health-check.sh --verbose --watch combined mode tests (Day 22)
+- [x] Add quickstart.sh --check --verbose missing IDENTITY.md edge case tests (Day 22)
