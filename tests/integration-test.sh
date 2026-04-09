@@ -5272,6 +5272,166 @@ rm -rf "$ROLLBACK_JSON_DIR"
 
 echo ""
 
+# --- Step 84: migrate.sh detection for release.sh --bump=auto ---
+
+echo "--- Step 84: migrate.sh detection for release.sh --bump=auto ---"
+
+MIGRATE_BUMP_DIR=$(mktemp -d "$TMPDIR_BASE/rigseed-migbump-XXXXXX")
+rsync -a --exclude='.git' --exclude='.beads' --exclude='.runtime' "$PROJECT_DIR/" "$MIGRATE_BUMP_DIR/"
+(cd "$MIGRATE_BUMP_DIR" && git init -q && git add -A && git commit -q -m "init")
+
+# Test 1: migrate.sh detects missing --bump=auto in release.sh without detect_bump_from_commits
+# Remove the function from the copy to simulate an old fork
+sed -i '/detect_bump_from_commits/d' "$MIGRATE_BUMP_DIR/scripts/release.sh"
+migrate_bump_out=$(bash "$PROJECT_DIR/scripts/migrate.sh" --dry-run --no-color "$MIGRATE_BUMP_DIR" 2>&1 || true)
+if echo "$migrate_bump_out" | grep -q 'release.sh missing --bump=auto'; then
+  pass "migrate.sh detects missing release.sh --bump=auto mode"
+else
+  fail "migrate.sh should detect missing release.sh --bump=auto mode"
+fi
+
+# Test 2: migrate.sh does NOT flag when detect_bump_from_commits is present
+migrate_bump_present=$(bash "$PROJECT_DIR/scripts/migrate.sh" --dry-run --no-color "$PROJECT_DIR" 2>&1 || true)
+if echo "$migrate_bump_present" | grep -q 'release.sh missing --bump=auto'; then
+  fail "migrate.sh should NOT flag --bump=auto when detect_bump_from_commits is present"
+else
+  pass "migrate.sh does not flag --bump=auto when detect_bump_from_commits is present"
+fi
+
+rm -rf "$MIGRATE_BUMP_DIR"
+
+echo ""
+
+# --- Step 85: release.sh --bump=auto --format=json schema validation ---
+
+echo "--- Step 85: release.sh --bump=auto --format=json schema validation ---"
+
+REL_SCHEMA_BARE=$(mktemp -d "$TMPDIR_BASE/rigseed-relschema-bare-XXXXXX")
+REL_SCHEMA_DIR=$(mktemp -d "$TMPDIR_BASE/rigseed-relschema-work-XXXXXX")
+
+git init -q --bare "$REL_SCHEMA_BARE"
+rsync -a --exclude='.git' --exclude='.beads' --exclude='.runtime' "$PROJECT_DIR/" "$REL_SCHEMA_DIR/"
+(
+  cd "$REL_SCHEMA_DIR"
+  git init -q
+  git remote add origin "$REL_SCHEMA_BARE"
+  git add -A
+  git commit -q -m "Initial fork"
+  git push -q origin HEAD 2>/dev/null
+  git tag v1.0.0
+  git push -q origin v1.0.0 2>/dev/null
+  git commit --allow-empty -q -m "feat: add new widget"
+)
+
+# Test 1: JSON has all required keys with correct types
+rel_schema_json=$(cd "$REL_SCHEMA_DIR" && bash scripts/release.sh auto --dry-run --format=json --no-color 2>&1 || true)
+if echo "$rel_schema_json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+assert 'latest_tag' in d, 'missing latest_tag'
+assert 'new_tag' in d, 'missing new_tag'
+assert 'bump' in d, 'missing bump'
+assert 'dry_run' in d, 'missing dry_run'
+assert 'status' in d, 'missing status'
+assert isinstance(d['latest_tag'], str), 'latest_tag should be string'
+assert isinstance(d['new_tag'], str), 'new_tag should be string'
+assert isinstance(d['bump'], str), 'bump should be string'
+assert isinstance(d['dry_run'], bool), 'dry_run should be bool'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "release.sh auto --format=json has all required keys with correct types"
+else
+  fail "release.sh auto --format=json should have all required keys with correct types"
+fi
+
+# Test 2: bump field reflects auto-detected type (feat → minor)
+if echo "$rel_schema_json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+assert d['bump'] == 'minor', f'expected minor for feat: commit, got {d[\"bump\"]}'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "release.sh auto --format=json bump field reflects detected minor type"
+else
+  fail "release.sh auto --format=json bump field should reflect detected minor type"
+fi
+
+# Test 3: dry_run=true and new_tag follows semver from auto bump
+if echo "$rel_schema_json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+assert d['dry_run'] == True, f'expected dry_run=true, got {d[\"dry_run\"]}'
+assert d['new_tag'] == 'v1.1.0', f'expected v1.1.0 for minor bump from v1.0.0, got {d[\"new_tag\"]}'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "release.sh auto --format=json dry_run=true and new_tag=v1.1.0"
+else
+  fail "release.sh auto --format=json should have dry_run=true and new_tag=v1.1.0"
+fi
+
+rm -rf "$REL_SCHEMA_BARE" "$REL_SCHEMA_DIR"
+
+echo ""
+
+# --- Step 86: recap.sh --format=csv/kv schema validation ---
+
+echo "--- Step 86: recap.sh --format=csv/kv schema validation ---"
+
+# Test 1: CSV header has exactly 3 columns
+recap_csv_schema=$("$PROJECT_DIR/scripts/recap.sh" --format=csv --no-color "$PROJECT_DIR" 2>/dev/null || true)
+if echo "$recap_csv_schema" | head -1 | grep -q '^header,goal,next_steps$'; then
+  pass "recap.sh --format=csv header has exactly 3 columns (header,goal,next_steps)"
+else
+  fail "recap.sh --format=csv header should have exactly 3 columns (header,goal,next_steps)"
+fi
+
+# Test 2: CSV data row has 3 fields with quoted values
+recap_csv_data=$(echo "$recap_csv_schema" | sed -n '2p')
+if echo "$recap_csv_data" | grep -qE '^"[^"]*","[^"]*","[^"]*"$'; then
+  pass "recap.sh --format=csv data row has 3 quoted fields"
+else
+  fail "recap.sh --format=csv data row should have 3 quoted fields"
+fi
+
+# Test 3: CSV data row contains a Day/Session header reference
+if echo "$recap_csv_data" | grep -qiE 'Day|Session'; then
+  pass "recap.sh --format=csv data row contains Day or Session reference"
+else
+  fail "recap.sh --format=csv data row should contain Day or Session reference"
+fi
+
+# Test 4: KV output has header= key
+recap_kv_schema=$("$PROJECT_DIR/scripts/recap.sh" --format=kv --no-color "$PROJECT_DIR" 2>/dev/null || true)
+if echo "$recap_kv_schema" | grep -q '^header='; then
+  pass "recap.sh --format=kv has header= key"
+else
+  fail "recap.sh --format=kv should have header= key"
+fi
+
+# Test 5: KV output has goal= key
+if echo "$recap_kv_schema" | grep -q '^goal='; then
+  pass "recap.sh --format=kv has goal= key"
+else
+  fail "recap.sh --format=kv should have goal= key"
+fi
+
+# Test 6: KV output has next_steps= key
+if echo "$recap_kv_schema" | grep -q '^next_steps='; then
+  pass "recap.sh --format=kv has next_steps= key"
+else
+  fail "recap.sh --format=kv should have next_steps= key"
+fi
+
+# Test 7: KV header value contains Day or Session reference
+recap_kv_header=$(echo "$recap_kv_schema" | grep '^header=' | head -1)
+if echo "$recap_kv_header" | grep -qiE 'Day|Session'; then
+  pass "recap.sh --format=kv header= value contains Day or Session reference"
+else
+  fail "recap.sh --format=kv header= value should contain Day or Session reference"
+fi
+
+echo ""
+
 # --- Summary ---
 
 echo "================================"

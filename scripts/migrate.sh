@@ -593,6 +593,15 @@ fi
 echo "  ok"
 echo ""
 
+# Day 22: release.sh --bump=auto conventional commit detection
+echo "Day 22 enhancements (in-file updates):"
+if [ -f "$dir/scripts/release.sh" ] && ! grep -q 'detect_bump_from_commits' "$dir/scripts/release.sh" 2>/dev/null; then
+  printf '  %bNOTE:%b' "$YELLOW" "$RESET"; echo " scripts/release.sh missing --bump=auto mode (added Day 22)"
+  echo "        Compare with upstream to add conventional commit detection for auto semver bumps."
+fi
+echo "  ok"
+echo ""
+
 # --- Summary ---
 
 printf '%b================================%b\n' "$BOLD" "$RESET"
