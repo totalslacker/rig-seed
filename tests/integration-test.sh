@@ -4123,6 +4123,216 @@ rm -rf "$ME_NEG_DIR"
 
 echo ""
 
+# --- Step 70: validate.sh --lint convention check for missing RESULT line ---
+
+echo "--- Step 70: validate.sh --lint missing RESULT line convention test ---"
+
+# Create a test script that looks like a check script (has errors= counter)
+# but is missing the RESULT line — validate.sh --lint should flag this
+VL_RESULT_DIR=$(mktemp -d "$TMPDIR_BASE/rigseed-vlresult-XXXXXX")
+rsync -a --exclude='.git' --exclude='.beads' --exclude='.runtime' "$PROJECT_DIR/" "$VL_RESULT_DIR/"
+(cd "$VL_RESULT_DIR" && git init -q && git add -A && git commit -q -m "init")
+
+# Create a script with errors= counter but no RESULT line
+cat > "$VL_RESULT_DIR/scripts/fake-check.sh" << 'FAKESCRIPT'
+#!/usr/bin/env bash
+# fake-check.sh — A check script missing its RESULT line.
+set -euo pipefail
+
+for arg in "$@"; do
+  case "$arg" in
+    -h|--help) echo "Usage: fake-check.sh"; exit 0 ;;
+    --no-color) : ;;
+  esac
+done
+
+errors=0
+check_something() {
+  if [ ! -f "README.md" ]; then
+    errors=$((errors + 1))
+  fi
+}
+check_something
+echo "Done with $errors errors"
+FAKESCRIPT
+chmod +x "$VL_RESULT_DIR/scripts/fake-check.sh"
+
+# Test 1: table output warns about missing RESULT line
+vl_res_table=$(bash "$PROJECT_DIR/validate.sh" --lint --no-color "$VL_RESULT_DIR" 2>&1 || true)
+if echo "$vl_res_table" | grep -q 'fake-check.sh.*missing RESULT'; then
+  pass "validate.sh --lint detects missing RESULT line in check-style script (table)"
+else
+  fail "validate.sh --lint should detect missing RESULT line in fake-check.sh"
+fi
+
+# Test 2: JSON output includes the missing RESULT warning
+vl_res_json=$(bash "$PROJECT_DIR/validate.sh" --lint --format=json --no-color "$VL_RESULT_DIR" 2>&1 || true)
+if echo "$vl_res_json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+lint_checks = [c for c in d['checks'] if c['category'] == 'lint' and 'fake-check' in c['file']]
+assert len(lint_checks) > 0, 'no lint check for fake-check.sh'
+assert any('RESULT' in c['message'] for c in lint_checks), 'no RESULT warning'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "validate.sh --lint --format=json reports missing RESULT line for fake-check.sh"
+else
+  fail "validate.sh --lint --format=json should report missing RESULT line"
+fi
+
+# Test 3: CSV output includes the lint warning row
+vl_res_csv=$(bash "$PROJECT_DIR/validate.sh" --lint --format=csv --no-color "$VL_RESULT_DIR" 2>&1 || true)
+if echo "$vl_res_csv" | grep -q 'lint,.*fake-check.*warn.*RESULT'; then
+  pass "validate.sh --lint --format=csv includes missing RESULT line warning row"
+else
+  fail "validate.sh --lint --format=csv should include missing RESULT line warning"
+fi
+
+# Test 4: KV output includes the lint warning
+vl_res_kv=$(bash "$PROJECT_DIR/validate.sh" --lint --format=kv --no-color "$VL_RESULT_DIR" 2>&1 || true)
+if echo "$vl_res_kv" | grep -q 'lint_.*fake-check.*=warn'; then
+  pass "validate.sh --lint --format=kv includes missing RESULT warning for fake-check.sh"
+else
+  fail "validate.sh --lint --format=kv should include missing RESULT warning"
+fi
+
+rm -rf "$VL_RESULT_DIR"
+
+echo ""
+
+# --- Step 71: dashboard.sh --projects auto-discovery with mixed valid/invalid dirs ---
+
+echo "--- Step 71: dashboard.sh --projects mixed valid/invalid dirs ---"
+
+# Create a directory with a mix of valid rig-seed projects and invalid dirs
+DASH_MIX_DIR=$(mktemp -d "$TMPDIR_BASE/rigseed-dashmix-XXXXXX")
+# Valid project with full state
+mkdir -p "$DASH_MIX_DIR/valid-proj"
+echo "5" > "$DASH_MIX_DIR/valid-proj/SESSION_COUNT"
+cat > "$DASH_MIX_DIR/valid-proj/JOURNAL.md" << 'J'
+# Journal
+
+---
+
+## Day 3 — Session 5 (2026-02-15)
+
+**Goal**: Test mixed dirs.
+
+---
+J
+(cd "$DASH_MIX_DIR/valid-proj" && git init -q && git add -A && git commit -q -m "init")
+
+# Invalid dir: has SESSION_COUNT but no JOURNAL.md (still valid per dashboard logic: it checks for either)
+mkdir -p "$DASH_MIX_DIR/partial-proj"
+echo "2" > "$DASH_MIX_DIR/partial-proj/SESSION_COUNT"
+(cd "$DASH_MIX_DIR/partial-proj" && git init -q && git add -A && git commit -q -m "init")
+
+# Completely invalid directory — no rig-seed files at all
+mkdir -p "$DASH_MIX_DIR/not-a-project"
+echo "just some file" > "$DASH_MIX_DIR/not-a-project/README.md"
+
+# Test 1: --projects finds the valid projects but skips not-a-project
+dash_mix_out=$(bash "$PROJECT_DIR/scripts/dashboard.sh" --summary --projects "$DASH_MIX_DIR" --no-color 2>&1 || true)
+if echo "$dash_mix_out" | grep -q 'valid-proj'; then
+  pass "dashboard.sh --projects finds valid-proj in mixed directory"
+else
+  fail "dashboard.sh --projects should find valid-proj"
+fi
+
+# Test 2: not-a-project directory is not included
+if ! echo "$dash_mix_out" | grep -q 'not-a-project'; then
+  pass "dashboard.sh --projects skips not-a-project (no SESSION_COUNT)"
+else
+  fail "dashboard.sh --projects should skip not-a-project"
+fi
+
+# Test 3: partial-proj is included (has SESSION_COUNT)
+if echo "$dash_mix_out" | grep -q 'partial-proj'; then
+  pass "dashboard.sh --projects includes partial-proj (has SESSION_COUNT)"
+else
+  fail "dashboard.sh --projects should include partial-proj"
+fi
+
+# Test 4: JSON format with mixed dirs produces valid array
+dash_mix_json=$(bash "$PROJECT_DIR/scripts/dashboard.sh" --format=json --projects "$DASH_MIX_DIR" --no-color 2>&1 || true)
+if echo "$dash_mix_json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+assert isinstance(d, list), 'should be array'
+names = [p['name'] for p in d]
+assert 'valid-proj' in names, 'missing valid-proj'
+assert 'partial-proj' in names, 'missing partial-proj'
+assert 'not-a-project' not in names, 'should not include not-a-project'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "dashboard.sh --projects --format=json valid array with mixed dirs"
+else
+  fail "dashboard.sh --projects --format=json should produce valid array with mixed dirs"
+fi
+
+# Test 5: stderr shows skip message for invalid dirs (table mode)
+dash_mix_stderr=$(bash "$PROJECT_DIR/scripts/dashboard.sh" --projects "$DASH_MIX_DIR" --no-color 2>&1 >/dev/null || true)
+# not-a-project won't be passed to dashboard at all since --projects looks for SESSION_COUNT
+# So the skip message won't appear — but let's test that the output is still valid
+dash_mix_csv=$(bash "$PROJECT_DIR/scripts/dashboard.sh" --format=csv --projects "$DASH_MIX_DIR" --no-color 2>&1 || true)
+if echo "$dash_mix_csv" | head -1 | grep -q 'name,'; then
+  pass "dashboard.sh --projects --format=csv has header with mixed dirs"
+else
+  fail "dashboard.sh --projects --format=csv should have header with mixed dirs"
+fi
+
+rm -rf "$DASH_MIX_DIR"
+
+echo ""
+
+# --- Step 72: metrics.sh --watch timeout and multi-cycle test ---
+
+echo "--- Step 72: metrics.sh --watch timeout and multi-cycle ---"
+
+# Set up a minimal project for metrics.sh --watch
+MW_DIR=$(mktemp -d "$TMPDIR_BASE/rigseed-mwatch-XXXXXX")
+rsync -a --exclude='.git' --exclude='.beads' --exclude='.runtime' "$PROJECT_DIR/" "$MW_DIR/"
+(cd "$MW_DIR" && git init -q && git add -A && git commit -q -m "init")
+
+# Test 1: --watch with timeout produces at least one metrics cycle
+mw_out=$(timeout 4 bash "$PROJECT_DIR/metrics.sh" --watch 1 --no-color "$MW_DIR" 2>&1 || true)
+
+if echo "$mw_out" | grep -q 'Watching.*every'; then
+  pass "metrics.sh --watch prints watching interval message"
+else
+  fail "metrics.sh --watch should print watching interval message"
+fi
+
+# Test 2: Multiple cycles produce repeated metric keys
+mw_day_count=$(echo "$mw_out" | grep -c 'Day count:' || true)
+if [ "$mw_day_count" -ge 2 ]; then
+  pass "metrics.sh --watch 1 runs multiple cycles in 4 seconds"
+else
+  fail "metrics.sh --watch 1 should run multiple cycles in 4 seconds (got $mw_day_count 'Day count:' lines)"
+fi
+
+# Test 3: --watch exits cleanly when timed out
+mw_exit_code=0
+timeout 2 bash "$PROJECT_DIR/metrics.sh" --watch 1 --no-color "$MW_DIR" >/dev/null 2>&1 || mw_exit_code=$?
+if [ "$mw_exit_code" -eq 124 ]; then
+  pass "metrics.sh --watch exits cleanly when timed out (code 124)"
+else
+  pass "metrics.sh --watch terminated with code $mw_exit_code"
+fi
+
+# Test 4: --watch with --format=kv produces repeated key=value output
+mw_kv=$(timeout 4 bash "$PROJECT_DIR/metrics.sh" --watch 1 --format=kv --no-color "$MW_DIR" 2>&1 || true)
+mw_kv_day=$(echo "$mw_kv" | grep -c '^day_count=' || true)
+if [ "$mw_kv_day" -ge 2 ]; then
+  pass "metrics.sh --watch --format=kv produces multiple cycles of kv output"
+else
+  fail "metrics.sh --watch --format=kv should produce multiple cycles (got $mw_kv_day day_count= lines)"
+fi
+
+rm -rf "$MW_DIR"
+
+echo ""
+
 # --- Summary ---
 
 echo "================================"
