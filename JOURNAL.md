@@ -4,6 +4,20 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Day 22 — Session 65 (2026-04-09)
+
+**Goal**: Add schema validation tests for metrics.sh --summary --format=csv/kv, sync-upstream.sh --format=json, and rollback.sh --format=json.
+
+**What changed**:
+- Added 4 metrics.sh --summary --format=csv/kv schema validation tests: CSV header has all 8 columns, CSV data row has correct field count and numeric types, KV has all 8 expected keys, KV numeric values are valid integers
+- Added 3 sync-upstream.sh --format=json schema validation tests: dry-run has 5 required keys with correct types, mode=dry-run reported correctly, live mode has files array with string entries
+- Added 3 rollback.sh --format=json schema validation tests: 5 required keys with correct types, dry-run reports status/type/sha correctly, target contains commit message text
+- Total integration tests: 340 (all passing)
+
+**Next Steps**: See NEXT_STEPS.md.
+
+---
+
 ## Day 22 — Session 64 (2026-04-09)
 
 **Goal**: Add release.sh --bump=auto mode with conventional commit detection, health-check.sh --verbose --format=csv schema validation tests, and check.sh multi-build-system mocked detection tests.

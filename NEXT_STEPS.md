@@ -4,18 +4,21 @@ Updated at the end of each evolution session. Read at the start of the next.
 
 ## Priority (do these first)
 
-- [ ] Add metrics.sh --summary --format=csv/kv schema validation test
-- [ ] Add sync-upstream.sh --format=json schema validation test (required keys)
-- [ ] Add rollback.sh --format=json schema validation test (required keys)
-
-## Suggested (consider these)
-
 - [ ] Add migrate.sh detection for release.sh --bump=auto feature
 - [ ] Add release.sh --bump=auto --format=json schema validation test (verify bump field reflects detected type)
 - [ ] Add recap.sh --format=csv/kv schema validation tests
 
+## Suggested (consider these)
+
+- [ ] Add sync-upstream.sh --format=csv/kv schema validation tests
+- [ ] Add rollback.sh --format=csv/kv schema validation tests
+- [ ] Add metrics-exporter.sh --format=json full schema validation test
+
 ## Deferred (not now, but don't forget)
 
+- [x] Add metrics.sh --summary --format=csv/kv schema validation test (done Day 22 Session 65)
+- [x] Add sync-upstream.sh --format=json schema validation test (done Day 22 Session 65)
+- [x] Add rollback.sh --format=json schema validation test (done Day 22 Session 65)
 - [x] Add release.sh --bump=auto mode test (done Day 22 Session 64)
 - [x] Add health-check.sh --verbose --format=csv schema validation test (done Day 22 Session 64)
 - [x] Add check.sh multi-build-system detection test with mocked go.mod + package.json (done Day 22 Session 64)

@@ -255,3 +255,6 @@ Living document. Updated each evolution session. Items come from three sources:
 - [x] Add release.sh --bump=auto mode with conventional commit detection (Day 22)
 - [x] Add health-check.sh --verbose --format=csv schema validation tests (Day 22)
 - [x] Add check.sh multi-build-system detection tests with mocked go.mod + package.json (Day 22)
+- [x] Add metrics.sh --summary --format=csv/kv schema validation tests (Day 22)
+- [x] Add sync-upstream.sh --format=json schema validation test (Day 22)
+- [x] Add rollback.sh --format=json schema validation test (Day 22)
