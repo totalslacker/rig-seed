@@ -4,6 +4,20 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Day 22 — Session 66 (2026-04-09)
+
+**Goal**: Add migrate.sh detection for release.sh --bump=auto, release.sh auto --format=json schema validation test, and recap.sh --format=csv/kv schema validation tests.
+
+**What changed**:
+- Added migrate.sh detection for release.sh --bump=auto: checks for detect_bump_from_commits function presence, flags missing auto-bump support in older forks
+- Added 3 release.sh --bump=auto --format=json schema validation tests: all required keys with correct types, bump field reflects auto-detected minor type, dry_run=true and correct new_tag
+- Added 7 recap.sh --format=csv/kv schema validation tests: CSV header has exactly 3 columns, CSV data row has 3 quoted fields with Day/Session reference, KV has header=/goal=/next_steps= keys with correct content
+- Total integration tests: 352 (all passing)
+
+**Next Steps**: See NEXT_STEPS.md.
+
+---
+
 ## Day 22 — Session 65 (2026-04-09)
 
 **Goal**: Add schema validation tests for metrics.sh --summary --format=csv/kv, sync-upstream.sh --format=json, and rollback.sh --format=json.

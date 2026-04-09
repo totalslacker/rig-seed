@@ -4,18 +4,21 @@ Updated at the end of each evolution session. Read at the start of the next.
 
 ## Priority (do these first)
 
-- [ ] Add migrate.sh detection for release.sh --bump=auto feature
-- [ ] Add release.sh --bump=auto --format=json schema validation test (verify bump field reflects detected type)
-- [ ] Add recap.sh --format=csv/kv schema validation tests
-
-## Suggested (consider these)
-
 - [ ] Add sync-upstream.sh --format=csv/kv schema validation tests
 - [ ] Add rollback.sh --format=csv/kv schema validation tests
 - [ ] Add metrics-exporter.sh --format=json full schema validation test
 
+## Suggested (consider these)
+
+- [ ] Add grafana.sh --format=csv/kv schema validation tests
+- [ ] Add lint-workflows.sh --format=json schema validation test
+- [ ] Add check-evolve-state.sh --format=csv/kv schema validation tests
+
 ## Deferred (not now, but don't forget)
 
+- [x] Add migrate.sh detection for release.sh --bump=auto (done Day 22 Session 66)
+- [x] Add release.sh --bump=auto --format=json schema validation test (done Day 22 Session 66)
+- [x] Add recap.sh --format=csv/kv schema validation tests (done Day 22 Session 66)
 - [x] Add metrics.sh --summary --format=csv/kv schema validation test (done Day 22 Session 65)
 - [x] Add sync-upstream.sh --format=json schema validation test (done Day 22 Session 65)
 - [x] Add rollback.sh --format=json schema validation test (done Day 22 Session 65)
