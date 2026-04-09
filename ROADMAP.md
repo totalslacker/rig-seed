@@ -243,3 +243,6 @@ Living document. Updated each evolution session. Items come from three sources:
 - [x] Add grafana.sh --port custom port propagation tests (Day 21)
 - [x] Add sync-upstream.sh live merge (non-conflict) with --format=json/csv/kv tests (Day 21)
 - [x] Add metrics-exporter.sh Prometheus format negative test for non-numeric values (Day 21)
+- [x] Add validate.sh --lint missing RESULT line convention test (Day 21)
+- [x] Add dashboard.sh --projects auto-discovery with mixed valid/invalid dirs test (Day 21)
+- [x] Add metrics.sh --watch timeout and multi-cycle test (Day 21)

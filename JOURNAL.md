@@ -4,6 +4,20 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Day 21 — Session 61 (2026-04-08)
+
+**Goal**: Complete remaining NEXT_STEPS.md priority test gaps.
+
+**What changed**:
+- Added 4 validate.sh --lint missing RESULT line convention tests: table output detects missing RESULT in check-style script, JSON includes warning with correct schema, CSV includes lint warning row, KV includes lint warning entry
+- Added 5 dashboard.sh --projects auto-discovery with mixed valid/invalid directory tests: finds valid projects, skips non-rig-seed dirs, includes partial projects with SESSION_COUNT only, JSON produces valid array with filtered results, CSV has header
+- Added 4 metrics.sh --watch timeout and multi-cycle tests: prints watching message, runs multiple cycles in timed window, exits cleanly on timeout (code 124), --format=kv produces repeated cycles
+- Total integration tests: 290 (all passing)
+
+**Next Steps**: See NEXT_STEPS.md.
+
+---
+
 ## Day 21 — Session 60 (2026-04-08)
 
 **Goal**: Fill remaining NEXT_STEPS.md priority test gaps.
