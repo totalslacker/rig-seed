@@ -4333,6 +4333,185 @@ rm -rf "$MW_DIR"
 
 echo ""
 
+# --- Step 73: release.sh --format=csv/kv with actual tag creation ---
+
+echo "--- Step 73: release.sh actual release --format=csv/kv ---"
+
+REL_CSV_BARE=$(mktemp -d "$TMPDIR_BASE/rigseed-relcsv-bare-XXXXXX")
+REL_CSV_DIR=$(mktemp -d "$TMPDIR_BASE/rigseed-relcsv-work-XXXXXX")
+
+git init -q --bare "$REL_CSV_BARE"
+rsync -a --exclude='.git' --exclude='.beads' --exclude='.runtime' "$PROJECT_DIR/" "$REL_CSV_DIR/"
+(
+  cd "$REL_CSV_DIR"
+  git init -q
+  git remote add origin "$REL_CSV_BARE"
+  git add -A
+  git commit -q -m "Initial fork"
+  git push -q origin HEAD 2>/dev/null
+)
+
+# Test 1: actual release with --format=csv has correct header and status=released
+rel_csv=$(cd "$REL_CSV_DIR" && bash scripts/release.sh patch --format=csv --no-color 2>&1 || true)
+if echo "$rel_csv" | grep -q 'latest_tag,new_tag,bump,dry_run,status,message'; then
+  pass "release.sh actual release --format=csv has correct header"
+else
+  fail "release.sh actual release --format=csv should have correct header"
+fi
+
+if echo "$rel_csv" | grep -q 'released'; then
+  pass "release.sh actual release --format=csv reports status=released"
+else
+  fail "release.sh actual release --format=csv should report status=released"
+fi
+
+# Verify tag was actually created
+if git -C "$REL_CSV_DIR" tag -l 'v*' | grep -q 'v0.1.1'; then
+  pass "release.sh actual release --format=csv created tag v0.1.1"
+else
+  fail "release.sh actual release --format=csv should create tag v0.1.1"
+fi
+
+# Test 2: second release with --format=kv has status=released and correct fields
+rel_kv=$(cd "$REL_CSV_DIR" && bash scripts/release.sh minor --format=kv --no-color 2>&1 || true)
+if echo "$rel_kv" | grep -q 'status=released'; then
+  pass "release.sh actual release --format=kv reports status=released"
+else
+  fail "release.sh actual release --format=kv should report status=released"
+fi
+
+if echo "$rel_kv" | grep -q 'new_tag=v0.2.0'; then
+  pass "release.sh actual release --format=kv has new_tag=v0.2.0 for minor bump"
+else
+  fail "release.sh actual release --format=kv should have new_tag=v0.2.0 for minor bump"
+fi
+
+if echo "$rel_kv" | grep -q 'dry_run=false'; then
+  pass "release.sh actual release --format=kv has dry_run=false"
+else
+  fail "release.sh actual release --format=kv should have dry_run=false"
+fi
+
+# Verify second tag was created
+if git -C "$REL_CSV_DIR" tag -l 'v*' | grep -q 'v0.2.0'; then
+  pass "release.sh actual release --format=kv created tag v0.2.0"
+else
+  fail "release.sh actual release --format=kv should create tag v0.2.0"
+fi
+
+rm -rf "$REL_CSV_BARE" "$REL_CSV_DIR"
+
+echo ""
+
+# --- Step 74: health-check.sh --verbose --watch combined mode ---
+
+echo "--- Step 74: health-check.sh --verbose --watch combined ---"
+
+HC_VW_DIR=$(mktemp -d "$TMPDIR_BASE/rigseed-hc-vw-XXXXXX")
+rsync -a --exclude='.git' --exclude='.beads' --exclude='.runtime' "$PROJECT_DIR/" "$HC_VW_DIR/"
+(cd "$HC_VW_DIR" && git init -q && git add -A && git commit -q -m "init")
+
+# Test 1: --verbose --watch produces verbose detail in output
+hc_vw_out=$(timeout 3 bash "$PROJECT_DIR/health-check.sh" --verbose --watch 1 --no-color "$HC_VW_DIR" 2>&1 || true)
+
+# Verbose mode should include detail keywords like "entries found" or "latest session"
+if echo "$hc_vw_out" | grep -qi 'entries\|latest\|lines\|sections'; then
+  pass "health-check.sh --verbose --watch includes verbose detail in output"
+else
+  fail "health-check.sh --verbose --watch should include verbose detail in output"
+fi
+
+# Test 2: --verbose --watch still produces RESULT lines (watch cycle works)
+hc_vw_result_count=$(echo "$hc_vw_out" | grep -c 'RESULT' || true)
+if [ "$hc_vw_result_count" -ge 2 ]; then
+  pass "health-check.sh --verbose --watch runs multiple cycles with RESULT"
+else
+  fail "health-check.sh --verbose --watch should run multiple cycles (got $hc_vw_result_count RESULT lines)"
+fi
+
+# Test 3: --verbose --watch --format=json produces verbose JSON with detail fields
+hc_vw_json=$(timeout 3 bash "$PROJECT_DIR/health-check.sh" --verbose --watch 1 --format=json --no-color "$HC_VW_DIR" 2>&1 || true)
+# Each JSON line should have verbose detail fields in check messages
+hc_vw_json_line=$(echo "$hc_vw_json" | grep '^{' | head -1 || true)
+if [ -n "$hc_vw_json_line" ] && echo "$hc_vw_json_line" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+# Verbose JSON should include detail or extra fields in check messages
+checks_str = json.dumps(d.get('checks', []))
+assert 'detail' in checks_str or 'entries' in checks_str or 'sections' in checks_str or 'lines' in checks_str, 'verbose detail missing from checks'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "health-check.sh --verbose --watch --format=json includes detail in checks"
+else
+  fail "health-check.sh --verbose --watch --format=json should include detail in checks"
+fi
+
+# Test 4: --verbose --watch --format=kv includes verbose detail keys
+hc_vw_kv=$(timeout 3 bash "$PROJECT_DIR/health-check.sh" --verbose --watch 1 --format=kv --no-color "$HC_VW_DIR" 2>&1 || true)
+if echo "$hc_vw_kv" | grep -qi 'entries\|latest\|sections\|lines'; then
+  pass "health-check.sh --verbose --watch --format=kv includes verbose detail"
+else
+  fail "health-check.sh --verbose --watch --format=kv should include verbose detail"
+fi
+
+rm -rf "$HC_VW_DIR"
+
+echo ""
+
+# --- Step 75: quickstart.sh --check --verbose edge case (missing IDENTITY.md) ---
+
+echo "--- Step 75: quickstart.sh --check --verbose missing IDENTITY.md ---"
+
+QS_ID_DIR=$(mktemp -d "$TMPDIR_BASE/rigseed-qs-ident-XXXXXX")
+rsync -a --exclude='.git' --exclude='.beads' --exclude='.runtime' "$PROJECT_DIR/" "$QS_ID_DIR/"
+(cd "$QS_ID_DIR" && git init -q && git add -A && git commit -q -m "initial")
+
+# Remove IDENTITY.md to trigger the edge case
+rm -f "$QS_ID_DIR/IDENTITY.md"
+
+# Test 1: --check --verbose table format detects missing IDENTITY.md
+qs_id_out=$(cd "$QS_ID_DIR" && bash quickstart.sh --check --verbose --no-color 2>&1 || true)
+if echo "$qs_id_out" | grep -qi 'IDENTITY\|identity'; then
+  pass "quickstart.sh --check --verbose detects missing IDENTITY.md"
+else
+  fail "quickstart.sh --check --verbose should detect missing IDENTITY.md"
+fi
+
+# Test 2: --check --verbose --format=json reports failure for missing IDENTITY.md
+qs_id_json=$(cd "$QS_ID_DIR" && bash quickstart.sh --check --verbose --format=json 2>&1 || true)
+qs_id_json_line=$(echo "$qs_id_json" | grep '^{' || true)
+if [ -n "$qs_id_json_line" ] && echo "$qs_id_json_line" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+assert d['result'] == 'fail', f'expected result=fail, got {d[\"result\"]}'
+assert d['errors'] > 0, 'expected errors > 0'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "quickstart.sh --check --verbose --format=json reports result=fail with errors"
+else
+  fail "quickstart.sh --check --verbose --format=json should report result=fail with errors"
+fi
+
+# Test 3: --check --verbose --format=csv reports template failure
+qs_id_csv=$(cd "$QS_ID_DIR" && bash quickstart.sh --check --verbose --format=csv 2>&1 || true)
+if echo "$qs_id_csv" | grep -q 'template,fail'; then
+  pass "quickstart.sh --check --verbose --format=csv reports template,fail"
+else
+  fail "quickstart.sh --check --verbose --format=csv should report template,fail"
+fi
+
+# Test 4: --check --verbose --format=kv reports result=fail
+qs_id_kv=$(cd "$QS_ID_DIR" && bash quickstart.sh --check --verbose --format=kv 2>&1 || true)
+if echo "$qs_id_kv" | grep -q 'result=fail'; then
+  pass "quickstart.sh --check --verbose --format=kv reports result=fail"
+else
+  fail "quickstart.sh --check --verbose --format=kv should report result=fail"
+fi
+
+rm -rf "$QS_ID_DIR"
+
+echo ""
+
 # --- Summary ---
 
 echo "================================"
