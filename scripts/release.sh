@@ -6,6 +6,7 @@
 #   ./scripts/release.sh patch        # Same as above
 #   ./scripts/release.sh minor        # v0.1.1 → v0.2.0
 #   ./scripts/release.sh major        # v0.2.0 → v1.0.0
+#   ./scripts/release.sh auto         # Detect bump from conventional commits
 #   ./scripts/release.sh --dry-run    # Show what would happen without doing it
 #
 # Options:
@@ -15,6 +16,12 @@
 #   --json           Alias for --format=json
 #   --color          Force colored output
 #   --no-color       Disable colored output
+#
+# Bump types:
+#   auto    Detect from conventional commits since last tag:
+#           - "BREAKING CHANGE:" or "!:" in commit → major
+#           - "feat:" or "feat(...):" → minor
+#           - Everything else → patch
 #
 # If no tags exist yet, starts at v0.1.0.
 
@@ -45,6 +52,7 @@ for arg in "$@"; do
       echo "  major        Increment major version (v1.2.3 → v2.0.0)"
       echo "  minor        Increment minor version (v1.2.3 → v1.3.0)"
       echo "  patch        Increment patch version (v1.2.3 → v1.2.4) [default]"
+      echo "  auto         Detect from conventional commits since last tag"
       echo ""
       echo "If no tags exist yet, starts at v0.1.0."
       exit 0
@@ -63,7 +71,7 @@ for arg in "$@"; do
     --json) format=json ;;
     --color) use_color=always ;;
     --no-color) use_color=never ;;
-    major|minor|patch) BUMP="$arg" ;;
+    major|minor|patch|auto) BUMP="$arg" ;;
     *)
       echo "Error: unknown option '$arg'" >&2
       echo "Usage: $(basename "$0") [--dry-run] [--color|--no-color] [major|minor|patch]" >&2
@@ -73,6 +81,35 @@ for arg in "$@"; do
 done
 
 BUMP="${BUMP:-patch}"
+
+# --- Auto-detect bump from conventional commits ---
+
+detect_bump_from_commits() {
+  local since_ref="$1"
+  local log_range=""
+  if [ -n "$since_ref" ]; then
+    log_range="${since_ref}..HEAD"
+  else
+    log_range="HEAD"
+  fi
+  local commits
+  commits=$(git log "$log_range" --pretty=format:"%s%n%b" 2>/dev/null || true)
+  if [ -z "$commits" ]; then
+    echo "patch"
+    return
+  fi
+  # Check for breaking changes
+  if echo "$commits" | grep -qiE '^[a-z]+(\(.+\))?!:|BREAKING CHANGE:'; then
+    echo "major"
+    return
+  fi
+  # Check for features
+  if echo "$commits" | grep -qE '^feat(\(.+\))?:'; then
+    echo "minor"
+    return
+  fi
+  echo "patch"
+}
 
 # --- Color setup ---
 
@@ -135,6 +172,12 @@ else
     MINOR="${REST%%.*}"
     PATCH="${REST#*.}"
     [ "$format" = "table" ] && printf '%b\n' "Latest tag: ${BOLD}$LATEST_TAG${RESET}"
+fi
+
+# Resolve auto bump from conventional commits
+if [ "$BUMP" = "auto" ]; then
+    BUMP=$(detect_bump_from_commits "${LATEST_TAG:-}")
+    [ "$format" = "table" ] && printf '%b\n' "${CYAN}Auto-detected bump: $BUMP${RESET}"
 fi
 
 # Increment
