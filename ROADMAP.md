@@ -252,3 +252,6 @@ Living document. Updated each evolution session. Items come from three sources:
 - [x] Add metrics.sh --watch --format=json multi-cycle validation tests (Day 22)
 - [x] Add dashboard.sh --projects --depth with nested invalid dirs edge case tests (Day 22)
 - [x] Add validate.sh --lint --format=json schema validation for all lint categories (Day 22)
+- [x] Add release.sh --bump=auto mode with conventional commit detection (Day 22)
+- [x] Add health-check.sh --verbose --format=csv schema validation tests (Day 22)
+- [x] Add check.sh multi-build-system detection tests with mocked go.mod + package.json (Day 22)

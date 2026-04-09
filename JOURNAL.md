@@ -4,6 +4,21 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Day 22 — Session 64 (2026-04-09)
+
+**Goal**: Add release.sh --bump=auto mode with conventional commit detection, health-check.sh --verbose --format=csv schema validation tests, and check.sh multi-build-system mocked detection tests.
+
+**What changed**:
+- Implemented --bump=auto in release.sh: scans conventional commits since last tag, detects BREAKING CHANGE (major), feat: (minor), or defaults to patch
+- Added 6 release.sh --bump=auto integration tests: feat→minor, breaking→major, fix→patch, BREAKING CHANGE in body→major, CSV header validation, actual tag creation
+- Added 4 health-check.sh --verbose --format=csv schema validation tests: header format, row schema, verbose detail in messages, minimum row count
+- Added 3 check.sh multi-build mocked tests: detects both go.mod and package.json, JSON schema validation, KV format lists both systems
+- Total integration tests: 330 (all passing)
+
+**Next Steps**: See NEXT_STEPS.md.
+
+---
+
 ## Day 22 — Session 63 (2026-04-09)
 
 **Goal**: Add integration tests for metrics.sh --watch --format=json multi-cycle validation, dashboard.sh --projects --depth with nested invalid dirs, and validate.sh --lint --format=json schema validation.
