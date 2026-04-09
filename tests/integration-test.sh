@@ -4817,6 +4817,233 @@ rm -rf "$VL_JSON_DIR"
 
 echo ""
 
+# --- Step 78: release.sh --bump=auto conventional commit detection ---
+
+echo "--- Step 78: release.sh --bump=auto ---"
+
+REL_AUTO_BARE=$(mktemp -d "$TMPDIR_BASE/rigseed-relauto-bare-XXXXXX")
+REL_AUTO_DIR=$(mktemp -d "$TMPDIR_BASE/rigseed-relauto-work-XXXXXX")
+
+git init -q --bare "$REL_AUTO_BARE"
+rsync -a --exclude='.git' --exclude='.beads' --exclude='.runtime' "$PROJECT_DIR/" "$REL_AUTO_DIR/"
+(
+  cd "$REL_AUTO_DIR"
+  git init -q
+  git remote add origin "$REL_AUTO_BARE"
+  git add -A
+  git commit -q -m "Initial fork"
+  git push -q origin HEAD 2>/dev/null
+  git tag v1.0.0
+  git push -q origin v1.0.0 2>/dev/null
+)
+
+# Test 1: feat: commit → auto detects minor bump
+(cd "$REL_AUTO_DIR" && git commit --allow-empty -q -m "feat: add new dashboard widget")
+rel_auto_minor=$(cd "$REL_AUTO_DIR" && bash scripts/release.sh auto --dry-run --format=json --no-color 2>&1 || true)
+if echo "$rel_auto_minor" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+assert d['bump'] == 'minor', f'expected minor, got {d[\"bump\"]}'
+assert d['new_tag'] == 'v1.1.0', f'expected v1.1.0, got {d[\"new_tag\"]}'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "release.sh auto detects minor bump from feat: commit"
+else
+  fail "release.sh auto should detect minor bump from feat: commit"
+fi
+
+# Test 2: breaking change commit → auto detects major bump
+(cd "$REL_AUTO_DIR" && git commit --allow-empty -q -m "refactor!: remove deprecated API")
+rel_auto_major=$(cd "$REL_AUTO_DIR" && bash scripts/release.sh auto --dry-run --format=json --no-color 2>&1 || true)
+if echo "$rel_auto_major" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+assert d['bump'] == 'major', f'expected major, got {d[\"bump\"]}'
+assert d['new_tag'] == 'v2.0.0', f'expected v2.0.0, got {d[\"new_tag\"]}'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "release.sh auto detects major bump from breaking change commit"
+else
+  fail "release.sh auto should detect major bump from breaking change commit"
+fi
+
+# Test 3: fix-only commits → auto detects patch bump
+(
+  cd "$REL_AUTO_DIR"
+  # Tag current state to reset commit range
+  git tag v2.0.0
+  git commit --allow-empty -q -m "fix: correct off-by-one error"
+  git commit --allow-empty -q -m "docs: update changelog"
+)
+rel_auto_patch=$(cd "$REL_AUTO_DIR" && bash scripts/release.sh auto --dry-run --format=json --no-color 2>&1 || true)
+if echo "$rel_auto_patch" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+assert d['bump'] == 'patch', f'expected patch, got {d[\"bump\"]}'
+assert d['new_tag'] == 'v2.0.1', f'expected v2.0.1, got {d[\"new_tag\"]}'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "release.sh auto detects patch bump from fix-only commits"
+else
+  fail "release.sh auto should detect patch bump from fix-only commits"
+fi
+
+# Test 4: BREAKING CHANGE in commit body → auto detects major
+(
+  cd "$REL_AUTO_DIR"
+  git tag v2.0.1
+  git commit --allow-empty -q -m "feat: new auth flow
+
+BREAKING CHANGE: old tokens no longer accepted"
+)
+rel_auto_body=$(cd "$REL_AUTO_DIR" && bash scripts/release.sh auto --dry-run --format=kv --no-color 2>&1 || true)
+if echo "$rel_auto_body" | grep -q '^bump=major'; then
+  pass "release.sh auto detects major bump from BREAKING CHANGE in body"
+else
+  fail "release.sh auto should detect major bump from BREAKING CHANGE in body"
+fi
+
+# Test 5: auto with actual tag creation (non-dry-run)
+(cd "$REL_AUTO_DIR" && git tag v3.0.0 && git commit --allow-empty -q -m "feat(ui): add dark mode")
+rel_auto_real=$(cd "$REL_AUTO_DIR" && bash scripts/release.sh auto --format=csv --no-color 2>&1 || true)
+if echo "$rel_auto_real" | grep -q '^latest_tag,new_tag,bump'; then
+  pass "release.sh auto --format=csv has correct header"
+else
+  fail "release.sh auto --format=csv should have correct header"
+fi
+if git -C "$REL_AUTO_DIR" tag -l 'v*' | grep -q 'v3.1.0'; then
+  pass "release.sh auto creates correct tag v3.1.0 from feat: commit"
+else
+  fail "release.sh auto should create tag v3.1.0 from feat: commit"
+fi
+
+rm -rf "$REL_AUTO_BARE" "$REL_AUTO_DIR"
+
+echo ""
+
+# --- Step 79: health-check.sh --verbose --format=csv schema validation ---
+
+echo "--- Step 79: health-check.sh --verbose --format=csv schema validation ---"
+
+hc_vcv=$(bash "$PROJECT_DIR/health-check.sh" --verbose --format=csv "$PROJECT_DIR" 2>&1 || true)
+
+# Test 1: CSV has exactly 3 columns in header
+if echo "$hc_vcv" | head -1 | grep -q '^category,status,message$'; then
+  pass "health-check.sh --verbose --format=csv header is category,status,message"
+else
+  fail "health-check.sh --verbose --format=csv header should be category,status,message"
+fi
+
+# Test 2: every data row has 3 comma-separated fields with quoted message
+hc_vcv_valid=true
+while IFS= read -r line; do
+  # Skip header
+  [ "$line" = "category,status,message" ] && continue
+  [ -z "$line" ] && continue
+  # Each row: word,word,"..."
+  if ! echo "$line" | grep -qE '^[a-z_]+,(ok|warn|fail),"'; then
+    hc_vcv_valid=false
+    break
+  fi
+done <<< "$hc_vcv"
+if [ "$hc_vcv_valid" = true ]; then
+  pass "health-check.sh --verbose --format=csv rows match schema category,status,\"message\""
+else
+  fail "health-check.sh --verbose --format=csv rows should match schema category,status,\"message\""
+fi
+
+# Test 3: verbose detail appears in CSV message column (sections/lines/latest/entries)
+if echo "$hc_vcv" | grep -qiE '"[^"]*\b(sections|lines|latest|entries)\b'; then
+  pass "health-check.sh --verbose --format=csv includes verbose detail in message column"
+else
+  fail "health-check.sh --verbose --format=csv should include verbose detail in message column"
+fi
+
+# Test 4: at least 3 data rows present (structure, journal, config checks)
+hc_vcv_rows=$(echo "$hc_vcv" | grep -c '^[a-z]' || true)
+hc_vcv_rows=$((hc_vcv_rows - 1))  # subtract header
+if [ "$hc_vcv_rows" -ge 3 ]; then
+  pass "health-check.sh --verbose --format=csv has at least 3 check rows"
+else
+  fail "health-check.sh --verbose --format=csv should have at least 3 check rows, got $hc_vcv_rows"
+fi
+
+echo ""
+
+# --- Step 80: check.sh multi-build-system detection with mocked go.mod + package.json ---
+
+echo "--- Step 80: check.sh multi-build mocked go.mod + package.json ---"
+
+CHECK_MOCK_DIR=$(mktemp -d "$TMPDIR_BASE/rigseed-check-mock-XXXXXX")
+
+# Set up minimal project with go.mod + package.json (no real toolchains)
+mkdir -p "$CHECK_MOCK_DIR/.evolve" "$CHECK_MOCK_DIR/scripts"
+cp "$PROJECT_DIR/scripts/lib.sh" "$CHECK_MOCK_DIR/scripts/"
+cat > "$CHECK_MOCK_DIR/.evolve/config.toml" << 'CONFEOF'
+[schedule]
+interval = "24h"
+CONFEOF
+
+cat > "$CHECK_MOCK_DIR/go.mod" << 'GOEOF'
+module example.com/mocktest
+go 1.22
+GOEOF
+
+cat > "$CHECK_MOCK_DIR/package.json" << 'PKGEOF'
+{
+  "name": "mock-project",
+  "scripts": {
+    "build": "echo built",
+    "test": "echo tested"
+  }
+}
+PKGEOF
+
+# Test 1: JSON output detects both Go and Node.js build systems
+check_mock_json=$(bash "$PROJECT_DIR/scripts/check.sh" --format=json "$CHECK_MOCK_DIR" 2>&1 || true)
+if echo "$check_mock_json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+names = [c['name'].lower() for c in d['checks']]
+all_names = ' '.join(names)
+has_go = 'go' in all_names
+has_npm = 'npm' in all_names
+assert has_go, f'missing go detection in {names}'
+assert has_npm, f'missing npm detection in {names}'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "check.sh detects both go.mod and package.json build systems"
+else
+  fail "check.sh should detect both go.mod and package.json build systems"
+fi
+
+# Test 2: JSON schema has checks array with name, status, command keys
+if echo "$check_mock_json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+assert 'checks' in d, 'missing checks key'
+for c in d['checks']:
+    assert 'name' in c, f'missing name in {c}'
+    assert 'status' in c, f'missing status in {c}'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "check.sh --format=json schema has checks with name and status"
+else
+  fail "check.sh --format=json schema should have checks with name and status"
+fi
+
+# Test 3: KV format lists both build systems
+check_mock_kv=$(bash "$PROJECT_DIR/scripts/check.sh" --format=kv "$CHECK_MOCK_DIR" 2>&1 || true)
+if echo "$check_mock_kv" | grep -qi 'go' && echo "$check_mock_kv" | grep -qi 'npm'; then
+  pass "check.sh --format=kv lists both go and npm checks"
+else
+  fail "check.sh --format=kv should list both go and npm checks"
+fi
+
+rm -rf "$CHECK_MOCK_DIR"
+
+echo ""
+
 # --- Summary ---
 
 echo "================================"
