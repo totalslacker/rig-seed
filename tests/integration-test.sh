@@ -4512,6 +4512,311 @@ rm -rf "$QS_ID_DIR"
 
 echo ""
 
+# --- Step 76: metrics.sh --watch --format=json multi-cycle test ---
+
+echo "--- Step 76: metrics.sh --watch --format=json multi-cycle ---"
+
+# Set up a minimal project for metrics.sh --watch --format=json
+MWJ_DIR=$(mktemp -d "$TMPDIR_BASE/rigseed-mwjson-XXXXXX")
+rsync -a --exclude='.git' --exclude='.beads' --exclude='.runtime' "$PROJECT_DIR/" "$MWJ_DIR/"
+(cd "$MWJ_DIR" && git init -q && git add -A && git commit -q -m "init")
+
+# Test 1: --watch --format=json produces output with valid JSON objects
+mwj_out=$(timeout 4 bash "$PROJECT_DIR/metrics.sh" --watch 1 --format=json --no-color "$MWJ_DIR" 2>&1 || true)
+
+# Each JSON cycle should be a complete, parseable JSON object on its own line
+mwj_json_count=0
+while IFS= read -r line; do
+  if echo "$line" | python3 -c "import sys,json; json.load(sys.stdin)" 2>/dev/null; then
+    mwj_json_count=$((mwj_json_count + 1))
+  fi
+done <<< "$mwj_out"
+
+if [ "$mwj_json_count" -ge 2 ]; then
+  pass "metrics.sh --watch --format=json produces multiple valid JSON objects"
+else
+  fail "metrics.sh --watch --format=json should produce >=2 valid JSON objects (got $mwj_json_count)"
+fi
+
+# Test 2: Each JSON object contains expected keys (day_count, session_counter)
+mwj_first_json=$(echo "$mwj_out" | while IFS= read -r line; do
+  if echo "$line" | python3 -c "import sys,json; json.load(sys.stdin)" 2>/dev/null; then
+    echo "$line"
+    break
+  fi
+done)
+
+if echo "$mwj_first_json" | python3 -c "import sys,json; d=json.load(sys.stdin); assert 'day_count' in d" 2>/dev/null; then
+  pass "metrics.sh --watch --format=json includes day_count key"
+else
+  fail "metrics.sh --watch --format=json should include day_count key"
+fi
+
+if echo "$mwj_first_json" | python3 -c "import sys,json; d=json.load(sys.stdin); assert 'session_counter' in d" 2>/dev/null; then
+  pass "metrics.sh --watch --format=json includes session_counter key"
+else
+  fail "metrics.sh --watch --format=json should include session_counter key"
+fi
+
+# Test 3: JSON objects contain numeric values for day_count
+if echo "$mwj_first_json" | python3 -c "import sys,json; d=json.load(sys.stdin); assert isinstance(d['day_count'], int)" 2>/dev/null; then
+  pass "metrics.sh --watch --format=json day_count is numeric"
+else
+  fail "metrics.sh --watch --format=json day_count should be numeric"
+fi
+
+rm -rf "$MWJ_DIR"
+
+echo ""
+
+# --- Step 77: dashboard.sh --projects --depth with nested invalid dirs ---
+
+echo "--- Step 77: dashboard.sh --projects --depth nested invalid dirs ---"
+
+# Create structure: valid projects at depth 1-2, invalid dirs mixed in, nested invalids
+DASH_NEST_DIR=$(mktemp -d "$TMPDIR_BASE/rigseed-dashnest-XXXXXX")
+mkdir -p "$DASH_NEST_DIR/valid-proj"
+mkdir -p "$DASH_NEST_DIR/not-a-project"
+mkdir -p "$DASH_NEST_DIR/sub/valid-deep"
+mkdir -p "$DASH_NEST_DIR/sub/invalid-deep"
+mkdir -p "$DASH_NEST_DIR/sub/deeper/valid-level3"
+
+# valid-proj: has SESSION_COUNT + JOURNAL.md
+echo "1" > "$DASH_NEST_DIR/valid-proj/SESSION_COUNT"
+cat > "$DASH_NEST_DIR/valid-proj/JOURNAL.md" << 'J'
+# Journal
+
+---
+
+## Day 1 — Session 1 (2026-01-01)
+
+**Goal**: Test valid.
+
+---
+J
+
+# not-a-project: random file, no SESSION_COUNT
+echo "random" > "$DASH_NEST_DIR/not-a-project/README.md"
+
+# sub/valid-deep: valid project at depth 2
+echo "2" > "$DASH_NEST_DIR/sub/valid-deep/SESSION_COUNT"
+cat > "$DASH_NEST_DIR/sub/valid-deep/JOURNAL.md" << 'J'
+# Journal
+
+---
+
+## Day 1 — Session 2 (2026-01-02)
+
+**Goal**: Test deep valid.
+
+---
+J
+
+# sub/invalid-deep: has SESSION_COUNT but no JOURNAL.md
+echo "1" > "$DASH_NEST_DIR/sub/invalid-deep/SESSION_COUNT"
+
+# sub/deeper/valid-level3: valid project at depth 3
+echo "3" > "$DASH_NEST_DIR/sub/deeper/valid-level3/SESSION_COUNT"
+cat > "$DASH_NEST_DIR/sub/deeper/valid-level3/JOURNAL.md" << 'J'
+# Journal
+
+---
+
+## Day 1 — Session 3 (2026-01-03)
+
+**Goal**: Test level3.
+
+---
+J
+
+# Init git repos for valid dirs
+for p in "$DASH_NEST_DIR/valid-proj" "$DASH_NEST_DIR/sub/valid-deep" "$DASH_NEST_DIR/sub/deeper/valid-level3"; do
+  (cd "$p" && git init -q && git add -A && git commit -q -m "init")
+done
+
+# Test 1: --depth 3 finds valid-proj and sub/valid-deep but NOT sub/deeper/valid-level3
+# find -maxdepth N counts from the root: valid-proj/SESSION_COUNT is depth 2,
+# sub/valid-deep/SESSION_COUNT is depth 3, sub/deeper/valid-level3/SESSION_COUNT is depth 4
+dash_nest_d3=$("$WORK_DIR/scripts/dashboard.sh" --summary --projects "$DASH_NEST_DIR" --depth 3 --no-color 2>/dev/null || true)
+if echo "$dash_nest_d3" | grep -q "valid-proj" && echo "$dash_nest_d3" | grep -q "valid-deep" && ! echo "$dash_nest_d3" | grep -q "valid-level3"; then
+  pass "dashboard.sh --depth 3 finds depth-1 and depth-2 projects, excludes depth-3"
+else
+  fail "dashboard.sh --depth 3 should find valid-proj + valid-deep, not valid-level3"
+fi
+
+# Test 2: --depth 3 --format=json skips invalid dirs gracefully
+dash_nest_json=$("$WORK_DIR/scripts/dashboard.sh" --format=json --projects "$DASH_NEST_DIR" --depth 3 --no-color 2>/dev/null || true)
+if echo "$dash_nest_json" | python3 -c "import sys,json; d=json.load(sys.stdin); assert isinstance(d, list)" 2>/dev/null; then
+  pass "dashboard.sh --depth 3 --format=json produces valid JSON array"
+else
+  fail "dashboard.sh --depth 3 --format=json should produce valid JSON array"
+fi
+
+# Test 3: JSON array doesn't contain entries for invalid dirs (not-a-project, invalid-deep)
+dash_nest_names=$(echo "$dash_nest_json" | python3 -c "
+import sys,json
+d=json.load(sys.stdin)
+names=[e.get('name','') for e in d]
+print(' '.join(names))
+" 2>/dev/null || echo "")
+if echo "$dash_nest_names" | grep -q "valid-proj" && ! echo "$dash_nest_names" | grep -q "not-a-project"; then
+  pass "dashboard.sh --depth 3 --format=json excludes invalid directories"
+else
+  fail "dashboard.sh --depth 3 --format=json should exclude invalid directories"
+fi
+
+# Test 4: --depth 3 --format=csv has correct header and only valid entries
+dash_nest_csv=$("$WORK_DIR/scripts/dashboard.sh" --format=csv --projects "$DASH_NEST_DIR" --depth 3 --no-color 2>/dev/null || true)
+if echo "$dash_nest_csv" | head -1 | grep -q 'name,day_count,sessions' && ! echo "$dash_nest_csv" | grep -q 'not-a-project'; then
+  pass "dashboard.sh --depth 3 --format=csv has header and excludes invalid dirs"
+else
+  fail "dashboard.sh --depth 3 --format=csv should have header and exclude invalid dirs"
+fi
+
+rm -rf "$DASH_NEST_DIR"
+
+echo ""
+
+# --- Step 78: validate.sh --lint --format=json schema validation ---
+
+echo "--- Step 78: validate.sh --lint --format=json schema validation ---"
+
+# Create a test project with scripts that exercise multiple lint categories
+VL_JSON_DIR=$(mktemp -d "$TMPDIR_BASE/rigseed-vljson-XXXXXX")
+mkdir -p "$VL_JSON_DIR/.evolve" "$VL_JSON_DIR/scripts"
+echo "1" > "$VL_JSON_DIR/SESSION_COUNT"
+echo "1" > "$VL_JSON_DIR/DAY_COUNT"
+cat > "$VL_JSON_DIR/IDENTITY.md" << 'EOF'
+# Test Identity
+EOF
+cat > "$VL_JSON_DIR/SPECS.md" << 'EOF'
+# Test Specs
+EOF
+cat > "$VL_JSON_DIR/JOURNAL.md" << 'EOF'
+# Journal
+
+---
+
+## Day 1 — Session 1 (2026-01-01)
+
+**Goal**: Test.
+
+---
+EOF
+cat > "$VL_JSON_DIR/ROADMAP.md" << 'EOF'
+# Roadmap
+EOF
+cat > "$VL_JSON_DIR/LEARNINGS.md" << 'EOF'
+# Learnings
+EOF
+cat > "$VL_JSON_DIR/PERSONALITY.md" << 'EOF'
+# Personality
+EOF
+cat > "$VL_JSON_DIR/.evolve/IMMUTABLE.txt" << 'EOF'
+IDENTITY.md
+.evolve/IMMUTABLE.txt
+EOF
+cat > "$VL_JSON_DIR/.evolve/config.toml" << 'EOF'
+[schedule]
+interval = "24h"
+EOF
+
+# Script 1: Good script — should pass all lint checks
+cat > "$VL_JSON_DIR/scripts/good.sh" << 'SCRIPT'
+#!/usr/bin/env bash
+set -euo pipefail
+# --help flag
+if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+  echo "Usage: good.sh"; exit 0
+fi
+# --color/--no-color
+color=true
+case "${1:-}" in --no-color) color=false ;; --color) color=true ;; esac
+echo "RESULT: pass"
+SCRIPT
+chmod +x "$VL_JSON_DIR/scripts/good.sh"
+
+# Script 2: Missing --help — should fail help check
+cat > "$VL_JSON_DIR/scripts/no-help.sh" << 'SCRIPT'
+#!/usr/bin/env bash
+set -euo pipefail
+echo "no help here"
+echo "RESULT: ok"
+SCRIPT
+chmod +x "$VL_JSON_DIR/scripts/no-help.sh"
+
+# Script 3: Missing shebang — should fail shebang check
+cat > "$VL_JSON_DIR/scripts/no-shebang.sh" << 'SCRIPT'
+set -euo pipefail
+echo "RESULT: ok"
+SCRIPT
+chmod +x "$VL_JSON_DIR/scripts/no-shebang.sh"
+
+# Script 4: Check-style script missing RESULT line — should warn
+cat > "$VL_JSON_DIR/scripts/check-missing-result.sh" << 'SCRIPT'
+#!/usr/bin/env bash
+set -euo pipefail
+if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+  echo "Usage: check-missing-result.sh"; exit 0
+fi
+echo "checking things..."
+SCRIPT
+chmod +x "$VL_JSON_DIR/scripts/check-missing-result.sh"
+
+# Test 1: --lint --format=json produces valid JSON
+vl_json=$(bash "$PROJECT_DIR/validate.sh" --lint --format=json --no-color "$VL_JSON_DIR" 2>&1 || true)
+if echo "$vl_json" | python3 -c "import sys,json; json.load(sys.stdin)" 2>/dev/null; then
+  pass "validate.sh --lint --format=json produces valid JSON"
+else
+  fail "validate.sh --lint --format=json should produce valid JSON"
+fi
+
+# Test 2: JSON has required top-level keys (errors, warnings, result, checks)
+if echo "$vl_json" | python3 -c "
+import sys,json
+d=json.load(sys.stdin)
+assert 'errors' in d, 'missing errors'
+assert 'result' in d, 'missing result'
+assert 'checks' in d, 'missing checks'
+assert isinstance(d['checks'], list), 'checks not a list'
+" 2>/dev/null; then
+  pass "validate.sh --lint --format=json has errors, result, checks keys"
+else
+  fail "validate.sh --lint --format=json should have errors, result, checks keys"
+fi
+
+# Test 3: checks array entries have category, file, status, message
+if echo "$vl_json" | python3 -c "
+import sys,json
+d=json.load(sys.stdin)
+for c in d['checks']:
+    assert 'category' in c, f'missing category in {c}'
+    assert 'file' in c, f'missing file in {c}'
+    assert 'status' in c, f'missing status in {c}'
+    assert 'message' in c, f'missing message in {c}'
+" 2>/dev/null; then
+  pass "validate.sh --lint --format=json check entries have category/file/status/message"
+else
+  fail "validate.sh --lint --format=json check entries should have category/file/status/message"
+fi
+
+# Test 4: JSON captures multiple lint categories (fail for missing shebang, warn for missing RESULT)
+if echo "$vl_json" | python3 -c "
+import sys,json
+d=json.load(sys.stdin)
+statuses = [c['status'] for c in d['checks']]
+assert 'fail' in statuses, 'no fail status found'
+assert 'pass' in statuses or 'warn' in statuses, 'no pass or warn found'
+" 2>/dev/null; then
+  pass "validate.sh --lint --format=json captures both fail and pass/warn statuses"
+else
+  fail "validate.sh --lint --format=json should capture both fail and pass/warn statuses"
+fi
+
+rm -rf "$VL_JSON_DIR"
+
+echo ""
+
 # --- Summary ---
 
 echo "================================"
