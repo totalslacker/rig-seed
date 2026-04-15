@@ -5432,6 +5432,234 @@ fi
 
 echo ""
 
+# --- Step 87: sync-upstream.sh --format=csv/kv schema validation ---
+
+echo "--- Step 87: sync-upstream.sh --format=csv/kv schema validation ---"
+
+SYNC_FMT_UPSTREAM=$(mktemp -d "$TMPDIR_BASE/rigseed-syncfmt-up-XXXXXX")
+SYNC_FMT_FORK=$(mktemp -d "$TMPDIR_BASE/rigseed-syncfmt-fork-XXXXXX")
+
+(cd "$SYNC_FMT_UPSTREAM" && git init -q --bare)
+rsync -a --exclude='.git' --exclude='.beads' --exclude='.runtime' "$PROJECT_DIR/" "$SYNC_FMT_FORK/"
+(
+  cd "$SYNC_FMT_FORK"
+  git init -q
+  git add -A
+  git commit -q -m "Initial fork"
+  git remote add origin "$SYNC_FMT_UPSTREAM"
+  git push -q origin HEAD:main
+)
+
+# Test 1: CSV header has exactly 5 columns
+sync_csv=$(cd "$SYNC_FMT_FORK" && bash scripts/sync-upstream.sh --dry-run --format=csv --upstream="$SYNC_FMT_UPSTREAM" 2>&1 || true)
+if echo "$sync_csv" | grep -q '^upstream,mode,status,changes,message$'; then
+  pass "sync-upstream.sh --format=csv header has exactly 5 columns (upstream,mode,status,changes,message)"
+else
+  fail "sync-upstream.sh --format=csv header should be upstream,mode,status,changes,message"
+fi
+
+# Test 2: CSV data row has 5 comma-separated fields
+sync_csv_data=$(echo "$sync_csv" | sed -n '2p')
+sync_csv_fields=$(echo "$sync_csv_data" | awk -F, '{print NF}')
+if [ "$sync_csv_fields" = "5" ]; then
+  pass "sync-upstream.sh --format=csv data row has 5 fields"
+else
+  fail "sync-upstream.sh --format=csv data row should have 5 fields (got $sync_csv_fields)"
+fi
+
+# Test 3: CSV data row reports mode=dry-run
+if echo "$sync_csv_data" | grep -qE '(^|,)"?dry-run"?(,|$)'; then
+  pass "sync-upstream.sh --format=csv data row reports mode=dry-run"
+else
+  fail "sync-upstream.sh --format=csv data row should report mode=dry-run"
+fi
+
+# Test 4: KV output has all required keys
+sync_kv=$(cd "$SYNC_FMT_FORK" && bash scripts/sync-upstream.sh --dry-run --format=kv --upstream="$SYNC_FMT_UPSTREAM" 2>&1 || true)
+sync_kv_missing=""
+for key in upstream mode status changes message; do
+  echo "$sync_kv" | grep -q "^${key}=" || sync_kv_missing="$sync_kv_missing $key"
+done
+if [ -z "$sync_kv_missing" ]; then
+  pass "sync-upstream.sh --format=kv has all 5 required keys (upstream, mode, status, changes, message)"
+else
+  fail "sync-upstream.sh --format=kv missing keys:$sync_kv_missing"
+fi
+
+# Test 5: KV mode value equals dry-run
+if echo "$sync_kv" | grep -q '^mode=dry-run$'; then
+  pass "sync-upstream.sh --format=kv mode=dry-run"
+else
+  fail "sync-upstream.sh --format=kv should report mode=dry-run"
+fi
+
+# Test 6: KV changes value is numeric
+sync_kv_changes=$(echo "$sync_kv" | grep '^changes=' | head -1 | cut -d= -f2)
+if echo "$sync_kv_changes" | grep -qE '^[0-9]+$'; then
+  pass "sync-upstream.sh --format=kv changes value is numeric"
+else
+  fail "sync-upstream.sh --format=kv changes value should be numeric (got '$sync_kv_changes')"
+fi
+
+rm -rf "$SYNC_FMT_UPSTREAM" "$SYNC_FMT_FORK"
+
+echo ""
+
+# --- Step 88: rollback.sh --format=csv/kv schema validation ---
+
+echo "--- Step 88: rollback.sh --format=csv/kv schema validation ---"
+
+ROLLBACK_FMT_DIR=$(mktemp -d "$TMPDIR_BASE/rigseed-rbfmt-XXXXXX")
+(
+  cd "$ROLLBACK_FMT_DIR"
+  git init -q
+  echo "initial" > file.txt
+  git add -A
+  git commit -q -m "initial commit"
+  echo "second change" >> file.txt
+  git add -A
+  git commit -q -m "feat: second commit to test rollback"
+)
+
+# Test 1: CSV header has exactly 5 columns
+rb_csv=$(cd "$ROLLBACK_FMT_DIR" && bash "$PROJECT_DIR/scripts/rollback.sh" --dry-run --format=csv 2>&1 || true)
+if echo "$rb_csv" | grep -q '^target,sha,type,status,message$'; then
+  pass "rollback.sh --format=csv header has exactly 5 columns (target,sha,type,status,message)"
+else
+  fail "rollback.sh --format=csv header should be target,sha,type,status,message"
+fi
+
+# Test 2: CSV data row has 5 fields
+rb_csv_data=$(echo "$rb_csv" | sed -n '2p')
+rb_csv_fields=$(echo "$rb_csv_data" | awk -F, '{print NF}')
+if [ "$rb_csv_fields" = "5" ]; then
+  pass "rollback.sh --format=csv data row has 5 fields"
+else
+  fail "rollback.sh --format=csv data row should have 5 fields (got $rb_csv_fields)"
+fi
+
+# Test 3: CSV data row reports type=regular and status=dry-run
+if echo "$rb_csv_data" | grep -qE '"?regular"?,"?dry-run"?'; then
+  pass "rollback.sh --format=csv data row reports type=regular,status=dry-run"
+else
+  fail "rollback.sh --format=csv data row should report type=regular,status=dry-run"
+fi
+
+# Test 4: KV output has all required keys
+rb_kv=$(cd "$ROLLBACK_FMT_DIR" && bash "$PROJECT_DIR/scripts/rollback.sh" --dry-run --format=kv 2>&1 || true)
+rb_kv_missing=""
+for key in target sha type status message; do
+  echo "$rb_kv" | grep -q "^${key}=" || rb_kv_missing="$rb_kv_missing $key"
+done
+if [ -z "$rb_kv_missing" ]; then
+  pass "rollback.sh --format=kv has all 5 required keys (target, sha, type, status, message)"
+else
+  fail "rollback.sh --format=kv missing keys:$rb_kv_missing"
+fi
+
+# Test 5: KV type=regular and status=dry-run
+if echo "$rb_kv" | grep -q '^type=regular$' && echo "$rb_kv" | grep -q '^status=dry-run$'; then
+  pass "rollback.sh --format=kv reports type=regular and status=dry-run"
+else
+  fail "rollback.sh --format=kv should report type=regular and status=dry-run"
+fi
+
+# Test 6: KV target value contains commit message text
+rb_kv_target=$(echo "$rb_kv" | grep '^target=' | head -1 | cut -d= -f2-)
+if echo "$rb_kv_target" | grep -q 'second commit'; then
+  pass "rollback.sh --format=kv target value contains commit message"
+else
+  fail "rollback.sh --format=kv target value should contain commit message text"
+fi
+
+rm -rf "$ROLLBACK_FMT_DIR"
+
+echo ""
+
+# --- Step 89: metrics-exporter.sh --format=json full schema validation ---
+
+echo "--- Step 89: metrics-exporter.sh --format=json full schema validation ---"
+
+EXPORTER="$PROJECT_DIR/docs/examples/monitoring/metrics-exporter.sh"
+exp_full_json=$(bash "$EXPORTER" --once --format=json "$PROJECT_DIR" 2>&1 || true)
+
+# Test 1: top-level shape — exactly two keys: project (str), metrics (object)
+if echo "$exp_full_json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+assert set(d.keys()) == {'project', 'metrics'}, f'expected exactly project+metrics keys, got {sorted(d.keys())}'
+assert isinstance(d['project'], str) and len(d['project']) > 0
+assert isinstance(d['metrics'], dict) and len(d['metrics']) > 0
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "metrics-exporter.sh --format=json top-level has exactly project (str) + metrics (object)"
+else
+  fail "metrics-exporter.sh --format=json top-level should have exactly project + metrics"
+fi
+
+# Test 2: every numeric metric value is int or float (no numeric strings sneaking in)
+if echo "$exp_full_json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+m = d['metrics']
+NUMERIC_KEYS = ['day_count', 'session_count']
+for k in NUMERIC_KEYS:
+    assert k in m, f'missing numeric metric: {k}'
+    assert isinstance(m[k], (int, float)) and not isinstance(m[k], bool), f'{k} should be number, got {type(m[k]).__name__}={m[k]!r}'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "metrics-exporter.sh --format=json day_count and session_count are real numbers (not strings)"
+else
+  fail "metrics-exporter.sh --format=json day_count/session_count should be numbers, not strings"
+fi
+
+# Test 3: null values used for n/a, no empty strings
+if echo "$exp_full_json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+m = d['metrics']
+for k, v in m.items():
+    assert v is None or isinstance(v, (int, float, str)), f'{k}: invalid type {type(v).__name__}'
+    if isinstance(v, str):
+        assert v != '', f'{k}: should be null instead of empty string'
+        assert v.lower() != 'n/a', f'{k}: n/a should be null, not string'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "metrics-exporter.sh --format=json uses null for n/a values (no empty strings or 'n/a' literals)"
+else
+  fail "metrics-exporter.sh --format=json should use null for n/a values, not strings"
+fi
+
+# Test 4: known string-typed keys (when present) are non-empty strings
+if echo "$exp_full_json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+m = d['metrics']
+STRING_KEYS_OPTIONAL = ['last_session_date', 'project_name']
+for k in STRING_KEYS_OPTIONAL:
+    if k in m and m[k] is not None:
+        assert isinstance(m[k], str) and len(m[k]) > 0, f'{k}: should be non-empty string'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "metrics-exporter.sh --format=json optional string keys are non-empty when present"
+else
+  fail "metrics-exporter.sh --format=json optional string keys should be non-empty when present"
+fi
+
+# Test 5: metrics object is non-trivial (>= 3 entries)
+if echo "$exp_full_json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+assert len(d['metrics']) >= 3, f'metrics should have >= 3 entries, got {len(d[\"metrics\"])}'
+print('valid')
+" 2>/dev/null | grep -q 'valid'; then
+  pass "metrics-exporter.sh --format=json metrics object has >= 3 entries"
+else
+  fail "metrics-exporter.sh --format=json metrics object should have >= 3 entries"
+fi
+
+echo ""
+
 # --- Summary ---
 
 echo "================================"

@@ -261,3 +261,6 @@ Living document. Updated each evolution session. Items come from three sources:
 - [x] Add migrate.sh detection for release.sh --bump=auto feature (Day 22)
 - [x] Add release.sh --bump=auto --format=json schema validation test (Day 22)
 - [x] Add recap.sh --format=csv/kv schema validation tests (Day 22)
+- [x] Add sync-upstream.sh --format=csv/kv schema validation tests (Day 23)
+- [x] Add rollback.sh --format=csv/kv schema validation tests (Day 23)
+- [x] Add metrics-exporter.sh --format=json full schema validation tests (Day 23)

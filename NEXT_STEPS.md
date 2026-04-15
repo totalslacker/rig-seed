@@ -4,18 +4,21 @@ Updated at the end of each evolution session. Read at the start of the next.
 
 ## Priority (do these first)
 
-- [ ] Add sync-upstream.sh --format=csv/kv schema validation tests
-- [ ] Add rollback.sh --format=csv/kv schema validation tests
-- [ ] Add metrics-exporter.sh --format=json full schema validation test
-
-## Suggested (consider these)
-
 - [ ] Add grafana.sh --format=csv/kv schema validation tests
 - [ ] Add lint-workflows.sh --format=json schema validation test
 - [ ] Add check-evolve-state.sh --format=csv/kv schema validation tests
 
+## Suggested (consider these)
+
+- [ ] Add metrics-exporter.sh --format=csv/kv full schema validation tests (mirror of Day 23 JSON test)
+- [ ] Add migrate.sh detection for any new Day 22-23 features that older forks should adopt
+- [ ] Add a periodic /tmp cleanup helper to the integration test prologue (avoid mktemp ENOSPC from leftover dirs)
+
 ## Deferred (not now, but don't forget)
 
+- [x] Add sync-upstream.sh --format=csv/kv schema validation tests (done Day 23 Session 67)
+- [x] Add rollback.sh --format=csv/kv schema validation tests (done Day 23 Session 67)
+- [x] Add metrics-exporter.sh --format=json full schema validation test (done Day 23 Session 67)
 - [x] Add migrate.sh detection for release.sh --bump=auto (done Day 22 Session 66)
 - [x] Add release.sh --bump=auto --format=json schema validation test (done Day 22 Session 66)
 - [x] Add recap.sh --format=csv/kv schema validation tests (done Day 22 Session 66)

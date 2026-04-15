@@ -4,6 +4,21 @@ Evolution session log. Most recent entry first. Never delete entries.
 
 ---
 
+## Day 23 — Session 67 (2026-04-14)
+
+**Goal**: Add sync-upstream.sh and rollback.sh --format=csv/kv schema validation tests, and a metrics-exporter.sh --format=json full schema validation test.
+
+**What changed**:
+- Added 6 sync-upstream.sh --format=csv/kv schema validation tests: CSV header is exactly `upstream,mode,status,changes,message`, data row has 5 fields, mode=dry-run reported (handles quoted/unquoted), KV has all 5 required keys, KV mode=dry-run, KV changes value is numeric
+- Added 6 rollback.sh --format=csv/kv schema validation tests: CSV header is exactly `target,sha,type,status,message`, data row has 5 fields, type=regular,status=dry-run reported, KV has all 5 required keys, KV type/status correct, KV target contains commit message text
+- Added 5 metrics-exporter.sh --format=json full schema validation tests: top-level shape (project string + metrics object only), day_count/session_count are real numbers (not numeric strings), null used for n/a (no empty strings or "n/a" literals), optional string keys non-empty when present, metrics object has ≥3 entries
+- Total integration tests: 369 (all passing, +17 new)
+- Cleaned ~9.2M stale entries from /tmp during the session — leftover from prior runs was filling the directory and causing mktemp to ENOSPC
+
+**Next Steps**: See NEXT_STEPS.md.
+
+---
+
 ## Day 22 — Session 66 (2026-04-09)
 
 **Goal**: Add migrate.sh detection for release.sh --bump=auto, release.sh auto --format=json schema validation test, and recap.sh --format=csv/kv schema validation tests.
